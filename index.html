@@ -1,0 +1,766 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Xiaomi Visual | Dashboard</title>
+    <link rel="stylesheet" href="style_v127.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script>
+    window.onerror = function(message, source, lineno, colno, error) {
+        // Ignorar el molesto y falso "Script error" genérico del navegador causado por bloqueos externos o CORS
+        if (String(message).toLowerCase().includes('script error') || lineno === 0) {
+            console.warn('⚠️ Aviso de navegador: Ignorado error genérico cross-origin sin contexto.');
+            return true; // Evita que salte el banner y silencia el log molesto
+        }
+
+        const errorDiv = document.createElement('div');
+        errorDiv.style.position = 'fixed';
+        errorDiv.style.top = '0';
+        errorDiv.style.left = '0';
+        errorDiv.style.width = '100%';
+        errorDiv.style.background = '#ff4d4f';
+        errorDiv.style.color = 'white';
+        errorDiv.style.padding = '15px';
+        errorDiv.style.zIndex = '999999';
+        errorDiv.style.fontSize = '14px';
+        errorDiv.style.fontWeight = 'bold';
+        errorDiv.style.textAlign = 'center';
+        errorDiv.style.boxShadow = '0 4px 10px rgba(0,0,0,0.3)';
+        errorDiv.innerHTML = '🚨 ERROR ENCONTRADO: ' + message + ' <br><small>Archivo: ' + source + ' | Línea: ' + lineno + '</small>';
+        if (document.body) {
+            document.body.appendChild(errorDiv);
+        } else if (document.documentElement) {
+            document.documentElement.appendChild(errorDiv);
+        }
+        return false;
+    };
+    </script>
+</head>
+<body>
+    <div id="login-container" class="view">
+        <div class="login-card">
+            <img src="logo.png" alt="Xiaomi Logo" class="logo">
+            <h1>Xiaomi Visual</h1>
+            <p>Inicia sesión con tu cuenta Mi</p>
+            <form id="login-form">
+                <select id="login-usuario" required>
+                    <option value="" disabled selected>Usuario</option>
+                </select>
+                <input type="password" id="login-password" placeholder="Contraseña" required>
+                <button type="submit" class="btn-primary">Entrar</button>
+            </form>
+            <p id="login-error" class="error-msg"></p>
+        </div>
+    </div>
+
+    <!-- Main App Container (Hidden by default) -->
+    <div id="app-container" class="view hidden">
+        <nav class="sidebar">
+            <div class="sidebar-header" style="cursor: pointer;">
+                <img src="logo.png" alt="Logo">
+                <span>Visual APP</span>
+            </div>
+            <ul class="nav-links">
+                <li data-target="dashboard" class="active"><i class="fas fa-chart-line"></i> Dashboard</li>
+                <li data-target="reportes"><i class="fas fa-clipboard-list"></i> Incidencias</li>
+                <li data-target="lanzamientos"><i class="fas fa-rocket"></i> Lanzamientos</li>
+                <li data-target="materiales"><i class="fas fa-folder-open"></i> Materiales</li>
+                <li data-target="mensajes" style="position:relative;">
+                    <i class="fas fa-bell"></i> Mensajes
+                    <span id="msg-nav-badge" class="nav-badge">0</span>
+                </li>
+                <li id="logout-btn" class="logout-item"><i class="fas fa-sign-out-alt"></i> Cerrar Sesión</li>
+            </ul>
+        </nav>
+
+        <main class="content">
+            <header class="top-bar">
+                <h2 id="view-title">Dashboard</h2>
+                <div class="user-info hidden" style="display:none !important;">
+                    <span id="user-name">Usuario</span>
+                    <span id="user-badge" class="badge">Estandar</span>
+                </div>
+            </header>
+
+            <!-- View: Dashboard - OVERHAULED PREMIUM -->
+            <section id="view-dashboard" class="sub-view">
+                
+                <div class="dashboard-hero-welcome">
+                    <h1 id="welcome-msg">¡Hola, Usuario! ✨</h1>
+                    <p><i class="fa fa-chart-line" style="color: var(--mi-orange);"></i> Panel de reportes y lanzamientos</p>
+                </div>
+
+                <!-- SECTION 1: INCIDENCIAS GENERALES -->
+                <h3 style="margin: 1rem 0; font-size: 1.1rem; color: var(--mi-gray-dark); display: flex; align-items: center; gap: 8px;">
+                    <i class="fa fa-chart-pie" style="color: var(--mi-orange)"></i> Resumen Incidencias
+                </h3>
+                
+                <div class="dashboard-grid-composite">
+                    <!-- Big Hero Left: Total Global Reports -->
+                    <div class="hero-stat-card" onclick="openDashboardModal('all')" style="cursor: pointer; background: linear-gradient(135deg, #fff 0%, #f9f9f9 100%); padding: 2rem;">
+                        <span id="stat-total" class="hero-val" style="color: var(--mi-black);">0</span>
+                        <small style="margin-top: 1rem; font-weight: 600; color: var(--mi-orange); letter-spacing: 0.5px;">Reportes Generales</small>
+                    </div>
+
+                    <!-- Quad Grid Right: Incident Focus (Remapped to User Spec) -->
+                    <div class="sub-grid-quad">
+                        <div class="stat-card" onclick="openDashboardModal('abierta')" style="cursor:pointer;">
+                            <h3><i class="fa fa-exclamation-circle" style="color: #ff4d4f;"></i> Abierta</h3>
+                            <p id="stat-incidents-open" style="color: #ff4d4f; font-size: 1.8rem;">0</p>
+                        </div>
+                        <div class="stat-card" onclick="openDashboardModal('pendiente')" style="cursor:pointer;">
+                            <h3><i class="fa fa-hourglass-half" style="color: #faad14;"></i> Pendiente</h3>
+                            <p id="stat-incidents-pending" style="color: #faad14; font-size: 1.8rem;">0</p>
+                        </div>
+                        <div class="stat-card" onclick="openDashboardModal('solucionado')" style="cursor:pointer;">
+                            <h3><i class="fa fa-check-circle" style="color: #1890ff;"></i> Solucionado</h3>
+                            <p id="stat-incidents-solved" style="color: #1890ff; font-size: 1.8rem;">0</p>
+                        </div>
+                        <div class="stat-card" onclick="openDashboardModal('cerrada')" style="cursor:pointer;">
+                            <h3><i class="fa fa-lock" style="color: #52c41a;"></i> Cerrado</h3>
+                            <p id="stat-incidents-closed" style="color: #52c41a; font-size: 1.8rem;">0</p>
+                        </div>
+                    </div>
+                </div>
+
+
+                <!-- SECTION 2: CONTROL DE LANZAMIENTOS (AL FINAL/ABAJO) -->
+                <div style="margin-top: 3rem; border-top: 1px solid #eee; padding-top: 2rem;">
+                    <h3 style="margin-bottom: 1.5rem; font-size: 1.1rem; color: var(--mi-gray-dark); display: flex; align-items: center; gap: 8px;">
+                        <i class="fa fa-rocket" style="color: var(--mi-orange)"></i> Control de Lanzamientos
+                    </h3>
+                    
+                    <!-- Floating Filter moved down into the Launch area -->
+                    <div id="dash-launch-filter-capsule" class="floating-filter-capsule" style="margin-bottom: 1.5rem;">
+                        <div id="dash-launch-filter-wrapper" class="filter-group" style="min-width: 200px;">
+                            <label><i class="fa fa-rocket"></i> Seleccionar Lanzamiento</label>
+                            <select id="dash-launch-filter" class="capsule-select" onchange="updateDashboardLaunchStats()">
+                                <option value="all">Ver todos</option>
+                            </select>
+                        </div>
+
+
+                        <button class="capsule-search-btn" onclick="refreshAllDashboardData()" title="Recargar">
+                            <i class="fa fa-sync-alt"></i>
+                        </button>
+                    </div>
+
+                    <!-- Dual Launch grid -->
+                    <div class="dashboard-grid-composite">
+                         <div class="hero-stat-card" onclick="filterLaunchStores('all')" style="cursor:pointer; background: #fff;">
+                             <h3 style="color: var(--text-muted); font-size: 12px; margin-bottom: 1rem;">Tiendas Totales</h3>
+                             <span id="dash-launch-total" class="hero-val">0</span>
+                         </div>
+                         <div class="sub-grid-quad">
+                             <div class="stat-card" onclick="filterLaunchStores('done')" style="cursor:pointer;">
+                                 <h3><i class="fa fa-check" style="color: #52c41a;"></i> Ejecutadas</h3>
+                                 <p id="dash-launch-done" style="color: #52c41a;">0</p>
+                             </div>
+                             <div class="stat-card" onclick="filterLaunchStores('pending')" style="cursor:pointer;">
+                                 <h3><i class="fa fa-hourglass-half" style="color: #faad14;"></i> Pendientes</h3>
+                                 <p id="dash-launch-pending" style="color: #faad14;">0</p>
+                             </div>
+                             <div class="stat-card" onclick="filterLaunchStores('inc')" style="cursor:pointer;">
+                                 <h3><i class="fa fa-times-circle" style="color: #ff4d4f;"></i> Con Incidente</h3>
+                                 <p id="dash-launch-inc" style="color: #ff4d4f;">0</p>
+                             </div>
+                             <div class="stat-card">
+                                 <h3><i class="fa fa-percentage" style="color: #722ed1;"></i> INSTALADO</h3>
+                                 <p id="dash-launch-pct" style="color: #722ed1; font-size: 1.8rem; font-weight: bold;">0%</p>
+                             </div>
+                         </div>
+                    </div>
+                </div>
+                
+            </section>
+
+
+            <!-- View: Reporte Incidencia -->
+            <section id="view-reportes" class="sub-view hidden">
+                <div class="procedure-container">
+                    
+                    <!-- BANNER DE ALERTA MODO EDICIÓN -->
+                    <div id="editing-mode-banner" class="hidden" style="background: #fff1f0; border: 1px solid #ffa39e; padding: 12px; border-radius: 6px; display: none; align-items: center; justify-content: space-between; margin-bottom: 1.5rem;">
+                        <div style="display: flex; align-items: center; gap: 8px; color: #cf1322; font-weight: 600; font-size: 13px;">
+                            <i class="fa fa-edit"></i> MODO EDICIÓN: Modificando un reporte ya existente.
+                        </div>
+                        <button onclick="cancelEditMode()" style="background: transparent; border: 1px solid #cf1322; color: #cf1322; border-radius: 4px; padding: 3px 8px; font-size: 11px; cursor: pointer;">
+                            Cancelar y crear nuevo
+                        </button>
+                    </div>
+
+                    <!-- Paso 0: Selección de Cuenta y Centro -->
+                    <div class="level-box active" id="incident-selection-box">
+                        <div class="form-grid-2col">
+                            <div class="form-group">
+                                <label>Cuenta</label>
+                                <select class="form-control" id="incident-cuenta" onchange="filterStoresByAccount('incident', this.value)">
+                                    <option value="" disabled selected>Cargando cuentas...</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label>Centro</label>
+                                <select class="form-control" id="incident-centro" onchange="startIncidentProcedure(this.value)" disabled>
+                                    <option value="" disabled selected>Primero elige cuenta</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Nivel 1: Selección de Categoría Principal -->
+                    <div id="category-selection" class="level-box hidden" data-level="1" style="margin-top: 2rem;">
+                        <span class="level-label">Categoría</span>
+                        <div class="bubble-group">
+                            <button class="bubble-btn furniture" onclick="chooseMainCategory('furniture', this)">Mobiliario</button>
+                            <button class="bubble-btn device" onclick="chooseMainCategory('device', this)">Dispositivo</button>
+                        </div>
+                    </div>
+
+                    <div id="furniture-procedure" class="hidden" style="margin-top: 2rem;">
+                        <div class="procedure-col furniture-col" style="width: 100%;">
+                            <div id="furniture-l2" class="level-box hidden" data-level="2">
+                                <span class="level-label">Subcategoría</span>
+                                <div class="bubble-group">
+                                    <button class="bubble-btn sub" onclick="selectLevel('furniture', 2, 'COLUMNA')">COLUMNA</button>
+                                    <button class="bubble-btn sub" onclick="selectLevel('furniture', 2, 'MURO')">MURO</button>
+                                    <button class="bubble-btn sub" onclick="selectLevel('furniture', 2, 'MESA')">MESA</button>
+                                    <button class="bubble-btn sub" onclick="selectLevel('furniture', 2, 'SUELO')">SUELO</button>
+                                    <button class="bubble-btn sub" onclick="selectLevel('furniture', 2, 'LINEAL')">LINEAL</button>
+                                    <button class="bubble-btn sub" onclick="selectLevel('furniture', 2, 'OTROS')">OTROS</button>
+                                </div>
+                            </div>
+
+                            <div id="furniture-l3" class="level-box hidden" data-level="3">
+                                <span class="level-label">Motivo</span>
+                                <div class="bubble-group">
+                                    <button class="bubble-btn reason" onclick="selectLevel('furniture', 3, 'IDIOMA')">IDIOMA</button>
+                                    <button class="bubble-btn reason" onclick="selectLevel('furniture', 3, 'NO RECIBIDO')">NO RECIBIDO</button>
+                                    <button class="bubble-btn reason" onclick="selectLevel('furniture', 3, 'DETERIORO')">DETERIORO</button>
+                                    <button class="bubble-btn reason" onclick="selectLevel('furniture', 3, 'ILUMINACIÓN')">ILUMINACIÓN</button>
+                                    <button class="bubble-btn reason" onclick="selectLevel('furniture', 3, 'TEXTIL')">TEXTIL</button>
+                                    <button class="bubble-btn reason" onclick="selectLevel('furniture', 3, 'OTROS')">OTROS</button>
+                                </div>
+                            </div>
+                        </div>
+                        </div>
+                        
+                        <!-- Final Level Mobiliario Compacted -->
+                        <div id="final-level-furniture" class="form-container hidden" style="max-width: 100%; margin-top: 2rem;">
+                            <form onsubmit="submitFinalReport(event, 'furniture')">
+                                <div class="form-grid-2col" style="gap: 1.5rem; margin-bottom: 1.5rem;">
+                                    <!-- Columna 1 -->
+                                    <div class="form-group">
+                                        <label style="font-weight: 600; color: var(--mi-orange);"><i class="fas fa-truck"></i> ¿Dónde enviar el material? <span style="color:red;">*</span></label>
+                                        <select class="form-control rep-enviar" required style="margin-top: 0.5rem;">
+                                            <option value="" disabled selected>Seleccione destino...</option>
+                                            <option value="Tienda">Tienda</option>
+                                            <option value="GPV">GPV</option>
+                                            <option value="Recoger en almacén">Recoger en almacén</option>
+                                            <option value="No se necesita enviar material">No se necesita enviar material</option>
+                                        </select>
+                                        
+                                        <label style="font-weight: 600; margin-top: 1.2rem; display:block;"><i class="fas fa-comment-alt"></i> Comentarios adicionales</label>
+                                        <textarea class="rep-desc" rows="4" placeholder="Escribe aquí cualquier detalle..." style="margin-top: 0.5rem; resize: none;"></textarea>
+                                    </div>
+                                    <!-- Columna 2 -->
+                                    <div class="form-group" style="position:relative;">
+                                        <label style="font-weight: 600;"><i class="fas fa-camera"></i> Reporte fotográfico</label>
+                                        <input type="file" class="rep-files" multiple accept="image/png, image/jpeg, image/jpg, image/heic, image/heif, .heic, .heif, image/*" onchange="handleIncidentPhotos(this, 'furniture')" style="display: none;" id="furn-file-ghost">
+                                        <label for="furn-file-ghost" style="display: block; background: #f9f9f9; border: 2px dashed var(--mi-border); border-radius: 8px; padding: 1.5rem; margin-top: 0.5rem; text-align: center; cursor: pointer; transition: all 0.3s;" class="drop-zone-visual" id="drop-zone-furniture">
+                                            <i class="fas fa-cloud-upload-alt" style="font-size: 2rem; color: var(--mi-orange); margin-bottom: 0.5rem;"></i><br>
+                                            <span style="color: #666; font-size: 12px; font-weight:600;">Haz clic aquí para subir o arrastra tus fotos</span>
+                                        </label>
+                                        <div id="incident-thumbnails-furniture" class="thumbnail-container" style="display: flex; flex-wrap: wrap; gap: 10px; margin-top: 10px;"></div>
+                                        <small id="incident-uploading-msg-furniture" style="display: none; color: var(--mi-orange); font-weight: 600;"><i class="fas fa-spinner fa-spin"></i> Subiendo fotos...</small>
+                                    </div>
+                                </div>
+                                <button type="submit" class="btn-primary" style="width: 100%; padding: 1rem; font-size: 1rem;">
+                                    <i class="fas fa-paper-plane"></i> Enviar Reporte de Mobiliario
+                                </button>
+                            </form>
+                        </div>
+
+                    <!-- Procedimiento Dispositivo REDISEÑADO COMPACTO -->
+                    <div id="device-procedure" class="hidden" style="margin-top: 2rem;">
+                        <div class="procedure-col device-col" style="width: 100%;">
+                            
+                            <div id="device-l2" class="level-box hidden" data-level="2">
+                                <span class="level-label">Tipología</span>
+                                <div class="bubble-group">
+                                    <button class="bubble-btn tipology" onclick="selectDeviceTipology('LDU', this)">LDU</button>
+                                    <button class="bubble-btn tipology" onclick="selectDeviceTipology('DUMMY', this)">DUMMY</button>
+                                    <button class="bubble-btn tipology" onclick="selectDeviceTipology('POSM', this)">POSM</button>
+                                </div>
+                            </div>
+                            
+                            <div id="device-l3" class="level-box hidden" data-level="3">
+                                <span class="level-label">Subcategoría</span>
+                                <div id="device-subcategories-group" class="bubble-group"></div>
+                            </div>
+
+                            <!-- EL MOTIVO AHORA VIENE AQUÍ DIRECTAMENTE TRAS LA SUBCATEGORIA -->
+                            <div id="device-l4" class="level-box hidden" data-level="4" style="margin-bottom: 2rem;">
+                                <span class="level-label">Motivo</span>
+                                <div class="bubble-group">
+                                    <button class="bubble-btn reason" onclick="selectLevel('device', 4, 'Dañado')">Dañado</button>
+                                    <button class="bubble-btn reason" onclick="selectLevel('device', 4, 'Incorrecto')">Incorrecto</button>
+                                    <button class="bubble-btn reason" onclick="selectLevel('device', 4, 'Robado')">Robado</button>
+                                    <button class="bubble-btn reason" onclick="selectLevel('device', 4, 'Alarmado')">Alarmado</button>
+                                    <button class="bubble-btn reason" onclick="selectLevel('device', 4, 'No recibido')">No recibido</button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Bloque Final Super Compacto en 2 Columnas -->
+                        <div id="final-level-device" class="form-container hidden" style="max-width: 100%; margin-top: 0;">
+                            <form onsubmit="submitFinalReport(event, 'device')">
+                                
+                                <!-- FILA 1: Artículos + Destino -->
+                                <div class="form-grid-2col" style="gap: 1.5rem; margin-bottom: 1.5rem;">
+                                    
+                                    <!-- COLUMNA 1: GESTION DE ARTICULOS -->
+                                    <div class="form-group" id="device-models-box" style="background: #fff; border: 1px solid var(--mi-border); padding: 1rem; border-radius: 10px; box-shadow: 0 2px 8px rgba(0,0,0,0.02);">
+                                        <label style="font-weight:700; color:var(--mi-orange); display:flex; align-items:center; gap:6px; margin-bottom:1rem;">
+                                            <i class="fas fa-box-open"></i> Artículos y Cantidad
+                                        </label>
+                                        
+                                        <div style="display: flex; gap: 6px; align-items: flex-end; margin-bottom: 1rem;">
+                                            <div style="flex: 1;">
+                                                <select id="device-selector-dropdown" class="form-control" style="font-size: 12px; height: 35px;">
+                                                    <option value="">Seleccione modelo...</option>
+                                                </select>
+                                                <input type="text" id="device-selector-custom" class="form-control hidden" placeholder="Nombre del artículo..." style="font-size: 12px; height: 35px; border-bottom: 2px solid var(--mi-orange);">
+                                            </div>
+                                            <div style="width: 60px;">
+                                                <input type="number" id="device-quantity-input" class="form-control" min="1" value="1" style="font-size: 13px; height: 35px; text-align: center;" title="Cantidad">
+                                            </div>
+                                            <button type="button" onclick="addDeviceToList()" style="background: var(--mi-orange); color: white; border: none; border-radius: 4px; height: 35px; width: 35px; cursor: pointer; font-weight: bold; font-size: 1.2rem; display: flex; align-items: center; justify-content: center;">+</button>
+                                        </div>
+                                        
+                                        <div id="device-selected-list" style="max-height: 100px; overflow-y: auto; background: #f9f9f9; padding: 0.5rem; border-radius: 6px; display: flex; flex-direction: column; gap: 5px;">
+                                            <p id="no-devices-msg" style="font-style: italic; color: #999; margin: 0; font-size: 11px;">Ningún modelo añadido.</p>
+                                        </div>
+                                    </div>
+
+                                    <!-- COLUMNA 2: LOGISTICA -->
+                                    <div class="form-group">
+                                        <label style="font-weight:600; color:var(--mi-gray-dark); display:flex; align-items:center; gap:6px;">
+                                            <i class="fas fa-truck"></i> ¿Dónde enviar el material? <span style="color:red;">*</span>
+                                        </label>
+                                        <select class="form-control rep-enviar" required style="margin-top: 0.5rem; height: 42px;">
+                                            <option value="" disabled selected>Seleccione destino...</option>
+                                            <option value="Tienda">Tienda</option>
+                                            <option value="GPV">GPV</option>
+                                            <option value="Recoger en almacén">Recoger en almacén</option>
+                                            <option value="No se necesita enviar material">No se necesita enviar material</option>
+                                        </select>
+                                        <div style="margin-top: 1rem; background:#e6f7ff; padding: 0.8rem; border-radius:8px; font-size:12px; color:#0050b3; border:1px solid #91d5ff; display:flex; gap:8px; align-items:center;">
+                                            <i class="fas fa-info-circle" style="font-size:1.1rem;"></i>
+                                            <span>Recuerda añadir al menos 1 artículo en la caja de la izquierda.</span>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- FILA 2: Comentarios + Fotos -->
+                                <div class="form-grid-2col" style="gap: 1.5rem; margin-bottom: 2rem;">
+                                    
+                                    <!-- COLUMNA 1: COMENTARIOS -->
+                                    <div class="form-group">
+                                        <label style="font-weight: 600;"><i class="fas fa-comment-alt"></i> Comentarios</label>
+                                        <textarea class="rep-desc" rows="5" placeholder="Escribe aquí cualquier detalle necesario..." style="margin-top: 0.5rem; resize: none;"></textarea>
+                                    </div>
+
+                                    <!-- COLUMNA 2: FOTOS -->
+                                    <div class="form-group">
+                                        <label style="font-weight: 600;"><i class="fas fa-camera"></i> Reporte fotográfico</label>
+                                        <input type="file" class="rep-files" multiple accept="image/png, image/jpeg, image/jpg, image/heic, image/heif, .heic, .heif, image/*" onchange="handleIncidentPhotos(this, 'device')" style="display: none;" id="dev-file-ghost">
+                                        <label for="dev-file-ghost" style="display: block; background: #f9f9f9; border: 2px dashed var(--mi-border); border-radius: 8px; padding: 1.2rem; margin-top: 0.5rem; text-align: center; cursor:pointer; transition:all 0.3s;" id="drop-zone-device">
+                                            <i class="fas fa-cloud-upload-alt" style="font-size: 1.8rem; color: var(--mi-orange); margin-bottom: 0.4rem;"></i><br>
+                                            <span style="color:#666; font-size:12px; font-weight:600;">Haz clic o arrastra fotos aquí</span>
+                                        </label>
+                                        <div id="incident-thumbnails-device" class="thumbnail-container" style="display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px;"></div>
+                                        <small id="incident-uploading-msg-device" style="display: none; color: var(--mi-orange); font-weight:600;"><i class="fas fa-spinner fa-spin"></i> Subiendo...</small>
+                                    </div>
+                                </div>
+
+                                <button type="submit" class="btn-primary" style="width: 100%; padding: 1rem; font-size: 1.1rem; font-weight: 700;">
+                                    <i class="fas fa-check-circle"></i> Confirmar y Enviar Reporte
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+
+                <div style="border-top: 2px dashed #ddd; margin: 4rem 0;"></div>
+
+                <!-- HISTORIAL MOVIDO ABAJO -->
+                <div class="recent-table" style="margin-bottom: 3rem; background: white; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.05); padding: 20px;">
+                    <div style="display: flex; flex-wrap: wrap; gap: 1rem; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+                        <h3 id="dashboard-table-title" style="margin: 0;"><i class="fa fa-history" style="color: var(--mi-orange); font-size: 1.2rem;"></i> Historial de Incidencias</h3>
+                        
+                        <div style="display: flex; gap: 8px; flex-wrap: nowrap; align-items: center;">
+                            <select id="dash-filter-cuenta" class="capsule-select" style="width: auto !important; min-width: 140px; height: 36px; padding: 0 8px; font-size: 12px;" onchange="filterDashboardTable()">
+                                <option value="all">Todas Cuentas</option>
+                            </select>
+                            <select id="dash-filter-tienda" class="capsule-select" style="width: auto !important; min-width: 140px; height: 36px; padding: 0 8px; font-size: 12px;" onchange="filterDashboardTable()">
+                                <option value="all">Todas Tiendas</option>
+                            </select>
+                            <select id="dash-filter-estado" class="capsule-select" style="width: auto !important; min-width: 120px; height: 36px; padding: 0 8px; font-size: 12px;" onchange="filterDashboardTable()">
+                                <option value="all">Todos Estados</option>
+                                <option value="abierta">Abierta</option>
+                                <option value="pendiente">Pendiente</option>
+                                <option value="solucionado">Solucionado</option>
+                                <option value="cerrada">Cerrado</option>
+                            </select>
+                            <button class="capsule-search-btn" onclick="refreshAllDashboardData()" title="Recargar" style="border-radius:50%; width:36px; height:36px; display:flex; align-items:center; justify-content:center; border:1px solid #ddd; background:white; cursor:pointer; color:#666;">
+                                <i class="fa fa-sync-alt"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <div style="overflow-x: auto;">
+                        <table id="recent-reports-table">
+                            <thead>
+                                <tr>
+                                    <th>Fecha</th>
+                                    <th>Usuario</th>
+                                    <th>Cuenta</th>
+                                    <th>Tienda</th>
+                                    <th>Tipo</th>
+                                    <th>Tiempo</th>
+                                    <th>Estado</th>
+                                    <th style="text-align:center;">Acciones</th>
+                                </tr>
+                            </thead>
+                            <tbody></tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Cuadro de Desglose y Edición de Estado -->
+                <div id="quick-detail-box" class="procedure-container hidden" style="margin-bottom: 3rem; border-left: 5px solid var(--mi-orange); display: none;">
+                    <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 1.5rem;">
+                        <div>
+                            <h3 style="margin: 0; font-size: 1.25rem;">Resumen de Selección</h3>
+                            <small style="color: var(--mi-gray-dark);">Ver u operar la incidencia seleccionada</small>
+                        </div>
+                        <span id="quick-detail-status-badge" style="padding: 0.3rem 0.8rem; border-radius: 50px; font-weight: 600; font-size: 11px; text-transform: uppercase;">ABIERTA</span>
+                    </div>
+                    
+                    <div class="form-grid-2col" style="gap: 1.5rem; margin-bottom: 1.5rem;">
+                        <div>
+                            <p style="margin: 0 0 0.2rem; font-size: 11px; font-weight: 600; color: var(--mi-gray-dark); text-transform: uppercase;">Tienda / Centro</p>
+                            <span id="quick-detail-tienda" style="font-weight: 500; font-size: 14px;">-</span>
+                        </div>
+                        <div>
+                            <p style="margin: 0 0 0.2rem; font-size: 11px; font-weight: 600; color: var(--mi-gray-dark); text-transform: uppercase;">Categoría / Ruta</p>
+                            <span id="quick-detail-tipo" style="font-weight: 500; font-size: 14px;">-</span>
+                        </div>
+                    </div>
+                    
+                    <div style="display: flex; gap: 12px; flex-wrap: wrap;">
+                        <button class="btn btn-secondary" onclick="openDetailsModalFromQuickBox()" style="background: var(--mi-gray-light); color: var(--mi-dark); font-weight: 500; border: none; padding: 0.6rem 1.2rem; border-radius: 6px; cursor: pointer; display: flex; align-items: center; gap: 6px;">
+                            <i class="fa fa-eye"></i> Ver Detalles Completos
+                        </button>
+                        
+                        <!-- BOTÓN INYECTADO: INCIDENCIA (EDITAR) -->
+                        <button id="quick-detail-edit-btn" class="btn" onclick="editReportFromQuickBox()" style="background: #00bcd4; color: white; font-weight: 500; border: none; padding: 0.6rem 1.2rem; border-radius: 6px; cursor: pointer; display: none; align-items: center; gap: 6px;">
+                            <i class="fa fa-pencil-alt"></i> Incidencia
+                        </button>
+                        
+                        <button id="quick-detail-resolve-btn" class="btn" onclick="toggleResolutionArea()" style="background: #1890ff; color: white; font-weight: 500; border: none; padding: 0.6rem 1.2rem; border-radius: 6px; cursor: pointer; display: none; align-items: center; gap: 6px;">
+                            <i class="fa fa-check-circle"></i> Incidencia Resuelta
+                        </button>
+                    </div>
+                    
+                    <div id="quick-detail-resolution-area" style="margin-top: 1.5rem; border-top: 1px dashed var(--mi-border); padding-top: 1.5rem; display: none;">
+                        <h4 style="margin-top: 0; margin-bottom: 1rem; color: #1890ff; font-size: 14px;">Cargar evidencias para marcar como Solucionado</h4>
+                        <div class="form-group" style="margin-bottom: 1rem;">
+                            <label style="font-weight: 600; margin-bottom: 0.5rem; display: block;">Subir Foto de Solución (Obligatorio) <span style="color:red;">*</span></label>
+                            <input type="file" id="resolve-photo-input" accept="image/*" class="form-control" onchange="handleResolutionPhotoUpload(event)" style="padding: 10px;" />
+                        </div>
+                        <div id="resolve-photo-preview-container" style="display: flex; gap: 8px; margin-bottom: 1rem; flex-wrap: wrap;"></div>
+                        <button id="submit-resolution-btn" class="btn" onclick="submitResolution()" style="background: #1890ff; color: white; width: 100%; padding: 0.8rem; border-radius: 6px; border: none; font-weight: 600; cursor: pointer;" disabled>
+                            Confirmar Solucionado
+                        </button>
+                    </div>
+                </div>
+            </section>
+
+            <!-- View: Mensajes & Notificaciones -->
+            <section id="view-mensajes" class="sub-view hidden">
+                <div class="procedure-container">
+                    <div style="display: flex; justify-content: flex-end; align-items: center; margin-bottom: 1.5rem;">
+                        <button onclick="markAllNotificationsRead()" style="background: #f5f5f5; border: 1px solid #ddd; border-radius: 30px; padding: 6px 16px; font-size: 12px; cursor: pointer; font-weight: 600;">Marcar todos leídos</button>
+                    </div>
+                    
+                    <div id="no-msgs-fallback" style="text-align: center; padding: 3rem 0; display: none;">
+                        <i class="fas fa-envelope-open-text" style="font-size: 48px; color: #e0e0e0; margin-bottom: 1rem;"></i>
+                        <p style="color: #999; font-size: 14px;">No tienes notificaciones pendientes.</p>
+                    </div>
+                    
+                    <div id="notifications-list" style="display: flex; flex-direction: column; gap: 16px;">
+                        <!-- Se cargarán dinámicamente vía JS -->
+                    </div>
+                </div>
+            </section>
+
+            <!-- View: Lanzamientos -->
+            <section id="view-lanzamientos" class="sub-view hidden">
+                <!-- CONTENEDOR FLEX DE 2 COLUMNAS (Filtros Izquierda, Tiendas Derecha) -->
+                <div style="display: flex; gap: 2rem; align-items: flex-start; margin-top: 1rem;">
+                    
+                    <!-- COLUMNA IZQUIERDA: FILTROS APILADOS -->
+                    <div id="launch-filter-sidebar" style="width: 200px; flex-shrink: 0; background: white; padding: 24px; border-radius: 16px; box-shadow: var(--shadow-sm); display: flex; flex-direction: column; gap: 1.5rem;">
+                        <div style="display:flex; flex-direction:column;">
+                            <small style="font-size: 10px; color: #999; margin-bottom: 4px; font-weight:700; text-transform:uppercase; letter-spacing:0.5px;">Lanzamiento</small>
+                            <select id="launch-selector" class="capsule-select" style="width: 100%; min-width: unset; height: 40px; font-size: 13px; background:#f8f9fa !important; border-radius:8px !important;" onchange="updateLaunchCascade()">
+                            </select>
+                        </div>
+                        <div style="display:flex; flex-direction:column;">
+                            <small style="font-size: 10px; color: #999; margin-bottom: 4px; font-weight:700; text-transform:uppercase; letter-spacing:0.5px;">Cuenta</small>
+                            <select id="launch-cuenta-selector" class="capsule-select" style="width: 100%; min-width: unset; height: 40px; font-size: 13px; background:#f8f9fa !important; border-radius:8px !important;" onchange="updateLaunchStoresByCascade()" disabled>
+                                <option value="all">Elige...</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- COLUMNA DERECHA: GRID DE TIENDAS -->
+                    <div style="flex: 1;">
+                        <div id="launch-store-grid" class="stats-grid" style="margin-bottom: 0;">
+                            <p style="text-align:center; color:#999; grid-column: 1 / -1; padding: 2rem 0;">Selecciona un lanzamiento para cargar tiendas...</p>
+                        </div>
+                    </div>
+                </div>
+
+                    <!-- Checklist -->
+                    <div id="launch-checklist" class="hidden form-container" style="max-width: 100%; margin-top: 2rem;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+                            <h3 style="margin: 0;">Checklist de Tareas</h3>
+                            <button type="button" class="btn-secondary" onclick="closeLaunchChecklist()" style="padding: 5px 15px; width: auto; font-size: 0.9rem;">← Volver</button>
+                        </div>
+                        <h4 id="launch-checklist-store-title" style="margin-bottom: 1rem; color: var(--primary);"></h4>
+                        <form id="launch-form" onsubmit="submitLaunch(event)">
+                            <!-- Tarea 1: Instalación OK -->
+                            <div id="section-tarea-1" class="form-group task-card" style="padding: 15px; border: 1px solid #ddd; border-radius: 8px; margin-bottom: 15px;">
+                                <label style="display: flex; justify-content: space-between; align-items: center; font-weight: bold; cursor: pointer; margin: 0;">
+                                    <span>1. Instalación realizada correctamente</span>
+                                    <input type="checkbox" id="launch-ok" onchange="toggleLaunchOk(this.checked)" style="width: 20px; height: 20px;">
+                                </label>
+                                
+                                <div id="launch-ok-details" class="hidden" style="margin-top: 15px; padding-top: 15px; border-top: 1px solid #eee;">
+                                    <label style="font-weight: bold; display: block; margin-bottom: 0.5rem;">Fotografía Instalación (Máx 5)</label>
+                                    <input type="file" id="launch-photos-ok" multiple accept="image/png, image/jpeg, image/jpg, image/heic, image/heif, .heic, .heif, image/*" onchange="handleLaunchPhotos(this, 5)">
+                                    <p id="launch-uploading-msg-ok" style="color: var(--primary); display: none; font-size: 0.9rem; margin-top: 5px;">Subiendo a Drive...</p>
+                                    <div id="launch-thumbnails-ok" style="display: flex; gap: 10px; margin-top: 10px; flex-wrap: wrap;"></div>
+                                </div>
+                            </div>
+
+                            <!-- Tarea 2: Incidencia -->
+                            <div id="section-tarea-2" class="form-group task-card" style="padding: 15px; border: 1px solid #ddd; border-radius: 8px; margin-bottom: 15px; background: rgba(255,0,0,0.05); border-left: 4px solid var(--danger);">
+                                <label style="display: flex; justify-content: space-between; align-items: center; font-weight: bold; cursor: pointer; color: var(--danger); margin: 0;">
+                                    <span>2. Hubo alguna incidencia</span>
+                                    <input type="checkbox" id="launch-incident" onchange="toggleLaunchIncident(this.checked)" style="width: 20px; height: 20px;">
+                                </label>
+
+                                <div id="launch-incident-details" class="hidden" style="margin-top: 1rem;">
+                                    <!-- Procedure details -->
+                                    <div id="launch-device-procedure" style="padding: 1rem; background: #fff; border-radius: 8px; border: 1px solid #eee; margin-bottom: 15px;">
+                                        <h4 style="margin-bottom: 1rem; color: var(--danger);">Detalles de la Incidencia</h4>
+                                        <div class="procedure-col" style="width: 100%;">
+                                            <div class="level-box active" data-launch-level="2">
+                                                <span class="level-label">Tipología</span>
+                                                <div class="bubble-group">
+                                                    <button type="button" class="bubble-btn tipology" onclick="selectLaunchLevel(2, 'LDU')">LDU</button>
+                                                    <button type="button" class="bubble-btn tipology" onclick="selectLaunchLevel(2, 'MAQUETA')">MAQUETA</button>
+                                                </div>
+                                            </div>
+                                            <div id="l-device-l3" class="level-box hidden" data-launch-level="3">
+                                                <span class="level-label">Subcategoría</span>
+                                                <div class="bubble-group">
+                                                    <button type="button" class="bubble-btn sub" onclick="selectLaunchLevel(3, 'MESA')">MESA</button>
+                                                    <button type="button" class="bubble-btn sub" onclick="selectLaunchLevel(3, 'MURO')">MURO</button>
+                                                    <button type="button" class="bubble-btn sub" onclick="selectLaunchLevel(3, 'COLUMNA')">COLUMNA</button>
+                                                    <button type="button" class="bubble-btn sub" onclick="selectLaunchLevel(3, 'LINEAL')">LINEAL</button>
+                                                    <button type="button" class="bubble-btn sub" onclick="selectLaunchLevel(3, 'OTROS')">OTROS</button>
+                                                </div>
+                                            </div>
+                                            <div id="l-device-l4" class="level-box hidden" data-launch-level="4">
+                                                <span class="level-label">Motivo</span>
+                                                <div class="bubble-group">
+                                                    <button type="button" class="bubble-btn reason" onclick="selectLaunchLevel(4, 'Dañado')">Dañado</button>
+                                                    <button type="button" class="bubble-btn reason" onclick="selectLaunchLevel(4, 'Incorrecto')">Incorrecto</button>
+                                                    <button type="button" class="bubble-btn reason" onclick="selectLaunchLevel(4, 'Robado')">Robado</button>
+                                                    <button type="button" class="bubble-btn reason" onclick="selectLaunchLevel(4, 'Alarmado')">Alarmado</button>
+                                                    <button type="button" class="bubble-btn reason" onclick="selectLaunchLevel(4, 'No recibido')">No recibido</button>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <!-- Incident Photos & Comments integrated -->
+                                    <div class="form-group" style="margin-bottom: 15px;">
+                                        <label style="font-weight: bold; display: block; margin-bottom: 0.5rem;">Fotografía Incidencia</label>
+                                        <input type="file" id="launch-photos-incident" multiple accept="image/png, image/jpeg, image/jpg, image/heic, image/heif, .heic, .heif, image/*" onchange="handleLaunchPhotos(this)">
+                                        <p id="launch-uploading-msg-incident" style="color: var(--primary); display: none; font-size: 0.9rem; margin-top: 5px;">Subiendo a Drive...</p>
+                                        <div id="launch-thumbnails-incident" style="display: flex; gap: 10px; margin-top: 10px; flex-wrap: wrap;"></div>
+                                    </div>
+
+                                    <div class="form-group">
+                                        <label style="font-weight: bold; display: block; margin-bottom: 0.5rem;">Comentario Incidencia</label>
+                                        <textarea id="launch-comment-incident" class="form-control" rows="3" placeholder="Describe el problema..."></textarea>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <button type="submit" class="btn-primary" style="margin-top: 1rem;" id="btn-submit-launch">Enviar Reporte</button>
+                        </form>
+                    </div>
+
+                    <hr style="margin: 3rem 0; border: 0; border-top: 1px solid #eee;">
+
+                    <!-- HISTORIAL MOVIDO ABAJO -->
+                    <h4 style="margin-bottom: 1rem; color: #666; font-size: 0.9rem;">Historial de Lanzamientos (Reportadas)</h4>
+                    <div class="stats-grid" id="launch-history-grid" style="margin-bottom: 3rem;">
+                        <!-- Cards de historial -->
+                    </div>
+            </section>
+
+            <section id="view-materiales" class="sub-view hidden">
+                <div class="materials-list" id="materials-container">
+                    <!-- Materials will be injected here -->
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <!-- Modal: Editar / Ver Validación de Lanzamiento -->
+    <div id="edit-validation-modal" class="modal-overlay hidden" style="display:none;">
+        <div class="modal-content" style="max-width: 600px; width: 95%;">
+            <div class="modal-header">
+                <h3 id="edit-val-title">Validación de Lanzamiento</h3>
+                <button class="modal-close" onclick="window.closeEditValidationModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="edit-val-form" onsubmit="window.handleEditValidationSubmit(event)">
+                    <input type="hidden" id="edit-val-id">
+                    <input type="hidden" id="edit-val-store">
+                    <input type="hidden" id="edit-val-mode"> <!-- 'edit' | 'resolve' -->
+
+                    <div class="form-grid-2col" style="gap: 10px; margin-bottom: 1rem;">
+                        <div class="modal-detail-item">
+                            <span class="modal-detail-label">Tienda:</span>
+                            <strong id="edit-val-tienda-txt">-</strong>
+                        </div>
+                        <div class="modal-detail-item">
+                            <span class="modal-detail-label">Lanzamiento:</span>
+                            <strong id="edit-val-lanz-txt">-</strong>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label style="font-weight:600;">Comentario / Observación:</label>
+                        <textarea id="edit-val-comentario" class="form-control" rows="3" placeholder="Describe el estado o cambios..."></textarea>
+                    </div>
+
+                    <div class="form-group" style="margin-top:1rem;">
+                        <label style="font-weight:600; display:block; margin-bottom:5px;" id="edit-val-photo-label">Nuevas Fotografías (Sustituirán las anteriores):</label>
+                        <div id="edit-val-current-photos" class="modal-photo-grid" style="margin-bottom:10px; min-height:0;"></div>
+                        
+                        <input type="file" id="edit-val-photos-input" class="form-control" multiple accept="image/*" onchange="window.handleEditValPhotoUpload(this)">
+                        <div id="edit-val-thumbnails" class="thumbnail-container" style="display: flex; flex-wrap: wrap; gap: 10px; margin-top: 10px;"></div>
+                        <small id="edit-val-upload-msg" style="display:none; color:var(--mi-orange); font-weight:500;"><i class="fa fa-spinner fa-spin"></i> Subiendo fotos...</small>
+                    </div>
+
+                    <div style="margin-top: 2rem; display: flex; gap: 10px; justify-content: flex-end;">
+                        <button type="button" class="btn-secondary" onclick="window.closeEditValidationModal()" style="width:auto; padding: 10px 20px;">Cancelar</button>
+                        <button type="submit" id="edit-val-submit-btn" class="btn-primary" style="width:auto; padding: 10px 20px; background:#2ecc71; border-color:#2ecc71;">Guardar Cambios</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal para Desglose de Reporte -->
+    <div id="report-modal" class="modal hidden" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); z-index: 1000; align-items: center; justify-content: center; backdrop-filter: blur(4px); transition: all 0.3s ease;">
+        <div class="modal-content" style="background: #ffffff; padding: 2rem; border-radius: 12px; max-width: 600px; width: 90%; max-height: 85vh; overflow-y: auto; box-shadow: 0 10px 25px rgba(0,0,0,0.2); position: relative; animation: slideIn 0.3s ease;">
+            <span class="close-modal" onclick="closeReportModal()" style="position: absolute; top: 1.2rem; right: 1.5rem; font-size: 1.5rem; cursor: pointer; color: var(--mi-gray-dark); transition: color 0.2s;" onmouseover="this.style.color='var(--mi-orange)'" onmouseout="this.style.color='var(--mi-gray-dark)'">&times;</span>
+            <h3 style="margin-top: 0; margin-bottom: 1.5rem; color: var(--mi-orange); border-bottom: 2px solid var(--mi-border); padding-bottom: 0.5rem; font-size: 1.4rem;">Desglose del Reporte</h3>
+            
+            <div class="modal-body" id="modal-report-details" style="display: flex; flex-direction: column; gap: 1.2rem; font-size: 13px;">
+                <!-- Se rellenará dinámicamente -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal para Historial de Reportes y Lanzamientos (Pop-up en Pantalla) -->
+    <div id="historial-modal" class="modal hidden" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); z-index: 1000; align-items: center; justify-content: center; backdrop-filter: blur(4px); transition: all 0.3s ease;">
+        <div class="modal-content" style="background: #ffffff; padding: 2rem; border-radius: 12px; max-width: 900px; width: 95%; max-height: 85vh; overflow-y: auto; box-shadow: 0 10px 25px rgba(0,0,0,0.2); position: relative; animation: slideIn 0.3s ease;">
+            <span class="close-modal" onclick="document.getElementById('historial-modal').style.display = 'none'; document.getElementById('historial-modal').classList.add('hidden');" style="position: absolute; top: 1.2rem; right: 1.5rem; font-size: 1.5rem; cursor: pointer; color: var(--mi-gray-dark); transition: color 0.2s;" onmouseover="this.style.color='var(--mi-orange)'" onmouseout="this.style.color='var(--mi-gray-dark)'">&times;</span>
+            <h3 id="historial-modal-title" style="margin-top: 0; margin-bottom: 1.5rem; color: var(--mi-orange); border-bottom: 2px solid var(--mi-border); padding-bottom: 0.5rem; font-size: 1.4rem;">Historial Detallado</h3>
+            
+            <input type="text" id="historial-modal-search" placeholder="🔍 Filtrar..." style="width: 200px; padding: 6px 10px; border-radius: 6px; border: 1px solid var(--mi-border); font-size: 12px; outline: none; margin-bottom: 12px; box-sizing: border-box; transition: border-color 0.2s;" oninput="window.filterHistorialModal(this.value)">
+            
+            <div style="overflow-x: auto; margin-top: 1rem;">
+                <table style="width: 100%; border-collapse: collapse; font-size: 13px;">
+                    <thead>
+                        <tr style="border-bottom: 2px solid var(--mi-border); background: var(--mi-bg-gray);">
+                            <th style="padding: 12px; text-align: left;">Fecha/Ref</th>
+                            <th style="padding: 12px; text-align: left;">Usuario</th>
+                            <th style="padding: 12px; text-align: left;">Cuenta</th>
+                            <th style="padding: 12px; text-align: left;">Tienda</th>
+                            <th style="padding: 12px; text-align: left;">Estado</th>
+                            <th style="padding: 12px; text-align: center; min-width: 150px;">Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody id="historial-modal-tbody"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <style>
+    @keyframes slideIn {
+        from { transform: translateY(-20px); opacity: 0; }
+        to { transform: translateY(0); opacity: 1; }
+    }
+    .modal-detail-item {
+        display: flex;
+        flex-direction: column;
+        gap: 0.3rem;
+    }
+    .modal-detail-label {
+        font-weight: 600;
+        color: var(--mi-gray-dark);
+        text-transform: uppercase;
+        font-size: 11px;
+        letter-spacing: 0.5px;
+    }
+    .modal-detail-value {
+        color: var(--mi-dark);
+        line-height: 1.4;
+    }
+    .modal-photo-grid {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        margin-top: 5px;
+    }
+    .modal-photo-thumbnail {
+        width: 100px;
+        height: 100px;
+        object-fit: cover;
+        border-radius: 6px;
+        cursor: pointer;
+        border: 1px solid var(--mi-border);
+        transition: transform 0.2s;
+    }
+    .modal-photo-thumbnail:hover {
+        transform: scale(1.05);
+    }
+    </style>
+
+
+    <script src="main_v127.js"></script>
+</body>
+</html>
