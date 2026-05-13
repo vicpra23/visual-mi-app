@@ -1,915 +1,840 @@
 // ==================================================
-// XIAOMI TRAINER INTRANET - Backend V4.8 (POLISHED ADMIN)
+// XIAOMI VISUAL APP - Backend V5.1 (Fixed Pro)
 // ==================================================
 
 const CONFIG = {
-  REPORTES_SS_ID: "117UB1wEqZg7D_vdmp2lZ-RN3BQHnQZk7HP49YP-0MPo",
-  USUARIOS_SS_ID: "1K0vGOPwteG6ZjNVT7cDaEwIeb3ONcjmNec3-FGlH10g",
+  SS_ID: "1Xht-QU2wRpWNBgT0dqyJkfM9SHD610mhO9y-W3lzonM",
   DRIVE_FOLDER_ID: "14LBhHOVqdGJf2x-02GTrZREuZYxM_GV_",
-  REPORTES_SHEET_NAME: "DATOS",
-  USUARIOS_SHEET_NAME: "USUARIOS",
-  VACACIONES_SHEET_NAME: "VACACIONES",
-  FESTIVOS_SHEET_NAME: "FESTIVOS",
-  DIAS_EXTRAS_SHEET_NAME: "DIAS EXTRAS",
-  MENSAJES_SHEET_NAME: "MENSAJES",
-  PLANIFICACION_SHEET_NAME: "PLANIFICACION",
-  VERSION: "V4.8",
-  ADMINS: ["Training Manager", "Training Coordinator", "Training Creator"]
+  LOCK_TIMEOUT: 15000 
 };
 
-// --- CACHE DE EJECUCIÓN (V1.0) ---
-const _SS_CACHE = {}; 
-function _getValuesCached(ssId, sheetName) {
-  const key = ssId + "_" + sheetName;
-  if (_SS_CACHE[key]) return _SS_CACHE[key];
-  try {
-    const ss = SpreadsheetApp.openById(ssId);
-    const s = ss.getSheetByName(sheetName);
-    if (!s) return [];
-    const d = s.getDataRange().getValues();
-    _SS_CACHE[key] = d;
-    return d;
-  } catch(e) { return []; }
-}
-
 function doGet(e) {
-  const p = e.parameter || {};
-  const action = (p.action || "").toString().trim();
-  const callback = p.callback || "callback";
-  const userParam = (p.user || "").toString().trim();
-  
-  let res = { status: "error", message: "Accion [" + action + "] no encontrada" };
+  const callback = e.parameter.callback;
   try {
-    if (action === "login")             res = attemptLogin(userParam, p.pass);
-    if (action === "getUsersList")      res = getUsersList();
-    if (action === "getVacationData")   res = getVacationData(userParam);
-    if (action === "getAdminData")      res = getAdminData();
-    if (action === "getDashboardStats") res = getDashboardStats(p);
-    if (action === "getReportsHistory")  res = getReportsHistory(p);
-    if (action === "getCitiesList")     res = getCitiesList();
-    if (action === "getFilterMetadata") res = getFilterMetadata();
-    if (action === "getMessages")       res = getMessages(p);
-    if (action === "getWeekly")         res = getWeeklySchedule(p);
-    if (action === "getUsersList")      res = getUsersList();
-    if (action === "getCitiesList")     res = getCitiesList();
-  } catch(err) { res = { status: "error", message: "Backend Error: " + err.toString() }; }
-  return ContentService.createTextOutput(callback + "(" + JSON.stringify(res) + ")").setMimeType(ContentService.MimeType.JAVASCRIPT);
+    const ss = SpreadsheetApp.openById(CONFIG.SS_ID);
+    const action = e.parameter.action;
+    
+    let result;
+    switch (action) {
+      case 'getUserList':
+        result = getUserList(ss);
+        console.log("getUserList result:", result);
+        break;
+      case 'getDashboardData':
+        result = getDashboardData(ss, e.parameter.rol);
+        break;
+      case 'getLaunches':
+        result = getDataFromSheet(ss, 'Lanzamientos');
+        break;
+      case 'getLaunchStatuses':
+        result = getLaunchStatuses(ss, e.parameter.usuario, e.parameter.lanzamiento);
+        break;
+      case 'getDiagnostics':
+        result = getDiagnostics(ss);
+        break;
+      case 'getDevices':
+        result = getDataFromSheet(ss, 'Dispositivos');
+        break;
+      default:
+        result = { success: false, message: 'Acción GET no válida' };
+    }
+    return jsonResponse(result, callback);
+  } catch (err) {
+    return jsonResponse({ success: false, message: 'Error en doGet: ' + err.toString() }, callback);
+  }
 }
 
 function doPost(e) {
   try {
-    const req = JSON.parse(e.postData.contents);
-    let res = { status: "error", message: "Accion no encontrada" };
-    if (req.action === "saveReport")      res = handleSaveReport(req.data, req.photos);
-    if (req.action === "updateReport")    res = updateReport(req);
-    if (req.action === "requestVacation") res = handleRequestVacation(req);
-    if (req.action === "updateRequest")   res = updateRequestStatus(req.id, req.status);
-    if (req.action === "modifyExtra")     res = modifyExtraDays(req.user, req.delta);
-    if (req.action === "markMessageRead") res = handleMarkMessageRead(req);
-    if (req.action === "markAllMessagesRead") res = handleMarkAllMessagesRead(req);
-    if (req.action === "saveAssignment")  res = saveWeeklyAssignment(req);
-    if (req.action === "adminProcessSelection") res = adminProcessSelection(req);
-    return ContentService.createTextOutput(JSON.stringify(res)).setMimeType(ContentService.MimeType.JSON);
-  } catch(err) { return ContentService.createTextOutput(JSON.stringify({ status: "error", message: err.toString() })).setMimeType(ContentService.MimeType.JSON); }
-}
-
-// --- ADMIN FEATURES (PROTECTED) ---
-function getAdminData() {
-  try {
-    const dU = _getValuesCached(CONFIG.USUARIOS_SS_ID, CONFIG.USUARIOS_SHEET_NAME);
-    const dE = _getValuesCached(CONFIG.USUARIOS_SS_ID, CONFIG.DIAS_EXTRAS_SHEET_NAME);
-    const extraMap = {}; 
-    for(let i=1; i<dE.length; i++) {
-       if (!dE[i][0]) continue;
-       const uKey = dE[i][0].toString().trim().toLowerCase();
-       if(uKey) extraMap[uKey] = parseFloat(dE[i][1]) || 0;
+    if (!e || !e.postData || !e.postData.contents) {
+      return jsonResponse({ success: false, message: 'Cuerpo de petición vacío' });
     }
     
-    const dV = _getValuesCached(CONFIG.USUARIOS_SS_ID, CONFIG.VACACIONES_SHEET_NAME);
-    const consumedMap = {}; 
-    for(let i=1; i<dV.length; i++) {
-        const u = dV[i][1].toString().toLowerCase();
-        if(dV[i][5] !== 'Rechazado') {
-            if(!consumedMap[u]) consumedMap[u] = {base:0, extra:0};
-            if(dV[i][4] === 'Vacaciones') consumedMap[u].base += parseFloat(dV[i][6]) || 0;
-            else consumedMap[u].extra += parseFloat(dV[i][6]) || 0;
-        }
+    const ss = SpreadsheetApp.openById(CONFIG.SS_ID);
+    const data = JSON.parse(e.postData.contents);
+    
+    switch (data.action) {
+      case 'login':
+        return jsonResponse(handleLogin(ss, data.email, data.password));
+      case 'submitReport':
+        return jsonResponse(handleSubmitReport(ss, data));
+      case 'submitLaunchChecklist':
+        return jsonResponse(handleSubmitLaunchChecklist(ss, data));
+      case 'uploadFile':
+        return jsonResponse(handleFileUpload(data));
+      case 'resolveIncident':
+        return jsonResponse(resolveIncident(ss, data));
+      case 'getLaunchStatuses':
+        return jsonResponse(getLaunchStatuses(ss, data.usuario, data.lanzamiento));
+      case 'deleteLaunchValidation':
+        return jsonResponse(deleteLaunchValidation(ss, data.id));
+      case 'updateLaunchValidation':
+        return jsonResponse(updateLaunchValidation(ss, data));
+      case 'deleteReport':
+        return jsonResponse(deleteReport(ss, data.id));
+      default:
+        return jsonResponse({ success: false, message: 'Acción POST no válida' });
     }
+  } catch (err) {
+    return jsonResponse({ success: false, message: 'Error en doPost: ' + err.toString() });
+  }
+}
 
-    const allUsers = dU.slice(1).map(r => {
-        const u = r[0].toString().toLowerCase();
-        const cons = consumedMap[u] || {base:0, extra:0};
-        const totalExtra = extraMap[u] || 0;
-        return { user: r[0], name: r[1], sede: r[2], baseAvail: 23 - cons.base, extraAvail: totalExtra - cons.extra, extraTotal: totalExtra };
+function jsonResponse(data, callback) {
+  const output = JSON.stringify(data);
+  if (callback) {
+    return ContentService.createTextOutput(callback + "(" + output + ")")
+      .setMimeType(ContentService.MimeType.JAVASCRIPT);
+  }
+  return ContentService.createTextOutput(output)
+    .setMimeType(ContentService.MimeType.JSON);
+}
+
+function generateUUID(prefix) {
+  return prefix + "-" + Math.random().toString(36).substr(2, 9).toUpperCase();
+}
+
+function getSheetDefensive(ss, name) {
+  const sheets = ss.getSheets();
+  const lowerName = name.toLowerCase().trim();
+  let sheet = ss.getSheetByName(name);
+  if (sheet) return sheet;
+  sheet = sheets.find(s => {
+    const sName = s.getName().toLowerCase().trim();
+    return sName === lowerName || sName.includes(lowerName) || lowerName.includes(sName);
+  });
+  return sheet || null;
+}
+
+function getDataFromSheet(ss, sheetName) {
+  const sheet = getSheetDefensive(ss, sheetName);
+  if (!sheet) return [];
+  const data = getFastValues(sheet);
+  if (data.length <= 1) return [];
+  const headers = data.shift();
+  
+  const tz = ss.getSpreadsheetTimeZone();
+  return data.map(row => {
+    const obj = {};
+    headers.forEach((h, i) => {
+      let val = row[i];
+      if (val instanceof Date) {
+        val = Utilities.formatDate(val, tz, "yyyy-MM-dd");
+      }
+      const key = h.toString().trim();
+      obj[key] = val;
+      obj['col' + i] = val; // Añadimos acceso directo por índice numérico para robustez
     });
-
-    const pending = dV.slice(1).filter(r => r[5] === 'Pendiente').map(r => ({ id: r[7], date: r[0], user: r[1], fechas: r[2], month: r[3], type: r[4], count: r[6] }));
-
-    return { status: "success", allUsers: allUsers, pendingRequests: pending };
-  } catch(e) { return { status: "error", message: e.toString() }; }
+    return obj;
+  });
 }
 
-function getUsersList() {
-  try {
-    const d = _getValuesCached(CONFIG.USUARIOS_SS_ID, CONFIG.USUARIOS_SHEET_NAME);
-    const users = d.slice(1).map(r => ({ user: r[0], name: r[1] }));
-    return { status: "success", data: users };
-  } catch(e) { return { status: "error", message: e.toString() }; }
+function getUserList(ss) {
+  const sheet = getSheetDefensive(ss, 'Usuarios');
+  if (!sheet) return [];
+  const data = getFastValues(sheet);
+  if (data.length <= 1) return [];
+  data.shift();
+  // Estructura: A: Usuario, B: Password, C: Rol
+  return data.map(r => ({ email: r[0], nombre: r[0] })).filter(u => u.email);
 }
 
-function updateRequestStatus(id, status) {
-  try {
-    const ss = SpreadsheetApp.openById(CONFIG.USUARIOS_SS_ID);
-    const s = ss.getSheetByName(CONFIG.VACACIONES_SHEET_NAME);
-    const d = s.getDataRange().getValues();
-    for (let i = 1; i < d.length; i++) {
-        if (d[i][7] === id) { 
-            s.getRange(i + 1, 6).setValue(status);
-            notifyUser(d[i][1], "Tu solicitud de " + (d[i][4]||"Vacaciones") + " (" + d[i][2] + ") ha sido " + (status === "Aprobado" ? "APROBADA ✅" : "RECHAZADA ❌") + ".");
-            return { status: "success" }; 
-        }
-    }
-    return { status: "error", message: "ID no encontrado" };
-  } catch(e) { return { status: "error", message: e.toString() }; } finally { SpreadsheetApp.flush(); }
-}
-
-function modifyExtraDays(user, delta) {
-  try {
-    const ss = SpreadsheetApp.openById(CONFIG.USUARIOS_SS_ID);
-    let s = ss.getSheetByName(CONFIG.DIAS_EXTRAS_SHEET_NAME);
-    if (!s) s = ss.insertSheet(CONFIG.DIAS_EXTRAS_SHEET_NAME);
-    const d = s.getDataRange().getValues();
-    for (let i = 1; i < d.length; i++) {
-      if (d[i][0].toString().toLowerCase() === user.toLowerCase()) {
-        const current = (parseFloat(d[i][1]) || 0);
-        const newVal = Math.max(0, current + delta);
-        s.getRange(i + 1, 2).setValue(newVal);
-        const diff = newVal - current;
-        if(diff !== 0) {
-            // Calcular disponibilidad real para el mensaje
-            let usedE = 0;
-            const dV = _getValuesCached(CONFIG.USUARIOS_SS_ID, CONFIG.VACACIONES_SHEET_NAME);
-            for (let j=1; j<dV.length; j++) {
-              if (dV[j][1].toString().toLowerCase() === user.toLowerCase() && dV[j][4] !== "Vacaciones" && dV[j][5] !== "Rechazado") {
-                 usedE += parseFloat(dV[j][6]) || 0;
-              }
-            }
-            const avail = Math.max(0, newVal - usedE);
-            notifyUser(user, "Se han " + (diff > 0 ? "añadido" : "restado") + " " + Math.abs(diff) + " día(s) extra(s). Tu nuevo saldo disponible es: " + avail + ".");
-        }
-        return { status: "success", newVal: newVal };
-      }
-    }
-    s.appendRow([user, Math.max(0, delta)]);
-    return { status: "success" };
-  } catch(e) { return { status: "error", message: e.toString() }; } finally { SpreadsheetApp.flush(); }
-}
-
-// --- CORE VACATION LOGIC ---
-function getVacationData(user) {
-  if (!user) return { status: "error" };
-  let festivos = [], userSede = "Genérica";
+function handleLogin(ss, email, password) {
+  const sheet = getSheetDefensive(ss, 'Usuarios');
+  if (!sheet) return { success: false, message: 'Error: Hoja Usuarios no encontrada' };
   
-  const dF = _getValuesCached(CONFIG.USUARIOS_SS_ID, CONFIG.FESTIVOS_SHEET_NAME);
-  for (let i = 1; i < dF.length; i++) {
-    if (dF[i][0].toString().trim().toLowerCase() === user.toLowerCase()) {
-      userSede = (dF[i][2] || "Genérica").toString();
-      for (let col = 3; col < dF[i].length; col++) {
-        const dO = parseDateStable(dF[i][col]);
-        if (dO) festivos.push(Utilities.formatDate(dO, Session.getScriptTimeZone(), "yyyy-MM-dd"));
-      }
-      break;
-    }
-  }
-
-  let extra = 0;
-  const dE = _getValuesCached(CONFIG.USUARIOS_SS_ID, CONFIG.DIAS_EXTRAS_SHEET_NAME);
-  for (let i=1; i<dE.length; i++) if (dE[i][0].toString().toLowerCase() === user.toLowerCase()) { extra = parseFloat(dE[i][1]) || 0; break; }
-
-  let uB = 0, uE = 0, history = [];
-  const dV = _getValuesCached(CONFIG.USUARIOS_SS_ID, CONFIG.VACACIONES_SHEET_NAME);
-  for (let i = 1; i < dV.length; i++) {
-    if (dV[i][1].toString().toLowerCase() === user.toLowerCase()) {
-      const status = dV[i][5], count = parseFloat(dV[i][6]) || 0, type = dV[i][4];
-      if (status !== "Rechazado") { if (type === "Vacaciones") uB += count; else uE += count; }
-      history.push({ id: dV[i][7], date: dV[i][0], fechas: dV[i][2], month: dV[i][3], type: type, status: status, count: count });
-    }
-  }
-  return { status: "success", stats: { baseTotal: 23, extraTotal: extra, usedBase: uB, usedExtra: uE, sede: userSede }, festivos: festivos, history: history };
-}
-
-function handleRequestVacation(req) {
-  try {
-    const ss = SpreadsheetApp.openById(CONFIG.USUARIOS_SS_ID);
-    let sV = ss.getSheetByName(CONFIG.VACACIONES_SHEET_NAME) || ss.insertSheet(CONFIG.VACACIONES_SHEET_NAME);
-    const groups = {};
-    req.dates.forEach(dStr => {
-      const d = new Date(dStr);
-      const mLabel = ["Enero","Febrero","Marzo","Abril","Mayo","Junio","Julio","Agosto","Septiembre","Octubre","Noviembre","Diciembre"][d.getMonth()] + " " + d.getFullYear();
-      if (!groups[mLabel]) groups[mLabel] = []; groups[mLabel].push(dStr);
-    });
-    for (let m in groups) {
-      const s = groups[m].sort();
-      const label = s.length>1 ? ("Del "+formatDateS(s[0])+" al "+formatDateS(s[s.length-1])) : ("Día "+formatDateS(s[0]));
-      sV.appendRow([ new Date(), req.user, label, m, req.type, "Pendiente", s.length, "REQ_"+Date.now() ]);
-      notifyAdmins("Nueva solicitud de " + req.user + " (" + req.type + "): " + label, req.user);
-    }
-    return { status: "success" };
-  } catch(e) { return { status: "error", message: e.toString() }; }
-}
-
-function parseDateStable(v) {
-  if (v instanceof Date && !isNaN(v.getTime())) return v;
-  if (!v) return null;
-  const s = v.toString();
-  const d = new Date(s); if (!isNaN(d.getTime())) return d;
-  const p = s.split(/[-\/]/);
-  if (p.length === 3) {
-    var dd, mm, yy;
-    if (p[0].length === 4) { yy = parseInt(p[0]); mm = parseInt(p[1]); dd = parseInt(p[2]); }
-    else { dd = parseInt(p[0]); mm = parseInt(p[1]); yy = parseInt(p[2]); }
-    if (yy < 100) yy += 2000;
-    return new Date(yy, mm - 1, dd);
-  }
-  return null;
-}
-
-function formatDateS(iso) { 
-    const p = iso.split("-").map(Number);
-    return Utilities.formatDate(new Date(p[0], p[1]-1, p[2]), Session.getScriptTimeZone(), "dd/MM/yy"); 
-}
-
-// --- DASHBOARD / LOGIN (PROTECTED - DO NOT MODIFY) ---
-function attemptLogin(u, p) {
-  const d = _getValuesCached(CONFIG.USUARIOS_SS_ID, CONFIG.USUARIOS_SHEET_NAME);
-  const up = (p || "").toString().trim();
-  for (let i = 1; i < d.length; i++) {
-    if ((d[i][0] || "").toString().trim().toLowerCase() === u.toLowerCase() && (d[i][3] || "").toString().trim() === up) {
-      const isAdmin = CONFIG.ADMINS.some(function(a){ return d[i][0].toString().toLowerCase() === a.toLowerCase(); }) || /Manager|Coordinator|Creator/i.test(d[i][0]);
-      return { status: "success", user: d[i][0], name: d[i][1], sede: d[i][2], role: isAdmin ? "Admin" : "User" };
-    }
-  }
-  return { status: "error", message: "Credenciales incorrectas" };
-}
-
-function getUsersList() {
-  const d = _getValuesCached(CONFIG.USUARIOS_SS_ID, CONFIG.USUARIOS_SHEET_NAME);
-  return { status: "success", data: d.slice(1).map(function(r){return r[0].toString();}).filter(Boolean) };
-}
-
-function getDashboardStats(p) {
-  const now = new Date();
-  const todayMonth = now.getMonth();
-  const d = _getValuesCached(CONFIG.REPORTES_SS_ID, CONFIG.REPORTES_SHEET_NAME);
+  const data = getFastValues(sheet);
+  data.shift();
   
-  const target = (p.targetUser || "Total").toString().trim();
-  const targetWeeksStr = (p.weeks || p.week || "").toString().trim();
-  const targetMonth = (p.month || "Todos").toString().trim();
-  const targetYear = (p.year || "Todos").toString().trim();
-  const targetDevice = (p.device || "todos").toString().trim().toLowerCase();
-
-  // Extraer números de semana (robustez contra "Semana 17" o "17")
-  let selectedWeeks = [];
-  if (targetWeeksStr) {
-    const matches = targetWeeksStr.match(/\d+/g);
-    if (matches) selectedWeeks = matches.map(Number);
-  }
-  
-  if (selectedWeeks.length === 0 && targetMonth === "Todos") selectedWeeks = [getWeekNumber(now)];
-
-  const mNames = ["Enero","Febrero","Marzo","Abril","Mayo","Junio","Julio","Agosto","Septiembre","Octubre","Noviembre","Diciembre"];
-
-  let tS=0, tA=0, tH=0, count=0; // Semanales
-  let mS={}; // Semanales (Donut)
-  let monthlyWS = {}; // Mensuales (Bar Chart)
-  
-  let statsByAccount = {}; 
-  let statsByTrainer = {};
-  let availableWeeks = new Set();
-
-  for (var i=1; i<d.length; i++) {
-    var dO = parseDateStable(d[i][2]); if (!dO) continue;
-    var rowYear = dO.getFullYear();
-    var rowMonth = dO.getMonth();
-    var rowWeek = getWeekNumber(dO);
-
-    // 1. Filtro Global (Año/Mes/Dispositivo) para que afecte a TODO el dashboard
-    if (targetYear !== "Todos" && rowYear.toString() !== targetYear) continue;
-    if (targetMonth !== "Todos" && mNames[rowMonth] !== targetMonth) continue;
-    if (targetDevice !== "todos") {
-        const mobiles = (d[i][14]||"").toString().toLowerCase();
-        const eco = (d[i][15]||"").toString().toLowerCase();
-        if (mobiles.indexOf(targetDevice) === -1 && eco.indexOf(targetDevice) === -1) continue;
-    }
-
-    // Registrar semana disponible (FILTRADO por mes si aplica para el dropdown dinámico)
-    if (targetMonth === "Todos" || mNames[rowMonth] === targetMonth) {
-        availableWeeks.add(rowWeek);
-    }
-
-    // Filtro de Usuario
-    const matchesUser = (target === "Total" || (d[i][1]||"").toString().trim() === target);
-    
-    var ses=parseFloat(d[i][6])||0, alu=parseFloat(d[i][7])||0, hor=parseFloat(d[i][9])||0;
-    var trainer = (d[i][1]||"Desconocido").toString().trim();
-    var cuenta = (d[i][3]||"Otros").toString().trim();
-
-    // Lógica SEMANAL (Totales, Donut, Admin Widgets)
-    // Si selectedWeeks está vacío, significa que queremos ver TODO el mes seleccionado (o el año)
-    if (selectedWeeks.length === 0 || selectedWeeks.includes(rowWeek)) {
-      if (matchesUser) {
-        tS+=ses; tA+=alu; tH+=hor; count++;
-        var met=(d[i][5]||"Otros").toString().trim(); mS[met]=(mS[met]||0)+hor;
-      }
+  // r[0]: Usuario, r[1]: Password, r[2]: Rol
+  const user = data.find(r => String(r[0]).trim().toLowerCase() === String(email).trim().toLowerCase() && String(r[1]).trim() === String(password).trim());
+  if (user) {
+    const storesSheet = getSheetDefensive(ss, 'Tiendas');
+    let userStores = [];
+    let debugInfo = {};
+    if (storesSheet) {
+      const sData = getFastValues(storesSheet);
+      const headers = sData.shift();
+      const userRole = String(user[2] || '').trim().toUpperCase();
+      const isAdmin = userRole === 'ADMIN' || userRole === 'ADMINISTRADOR';
+      const cleanEmail = String(email || '').trim().toLowerCase();
       
-      if (matchesUser) {
-        if(!statsByAccount[cuenta]) statsByAccount[cuenta] = { sesiones:0, alumnos:0 };
-        statsByAccount[cuenta].sesiones += ses;
-        statsByAccount[cuenta].alumnos += alu;
-        
-        if(!statsByTrainer[trainer]) statsByTrainer[trainer] = { sesiones:0, alumnos:0 };
-        statsByTrainer[trainer].sesiones += ses;
-        statsByTrainer[trainer].alumnos += alu;
-      }
-    }
-
-    // Lógica MENS (Bar Chart) - Basado en el mes filtrado o todos los del año
-    if (matchesUser && (targetMonth === "Todos" || rowMonth === mNames.indexOf(targetMonth))) {
-      if(!monthlyWS[rowWeek]) monthlyWS[rowWeek] = { sesiones:0, alumnos:0 };
-      monthlyWS[rowWeek].sesiones += ses;
-      monthlyWS[rowWeek].alumnos += alu;
-    }
-  }
-  
-  var sW = Object.keys(monthlyWS).sort((a,b)=>a-b);
-  
-  return { 
-    status:"success", 
-    totalSesiones:tS, 
-    totalAlumnos:tA, 
-    totalHoras:tH.toFixed(1), 
-    currentWeekData:{count:count, week: selectedWeeks.join(',')}, 
-    chartLabels:sW.length > 0 ? sW.map(w=>"Sem "+w) : ["Sin Datos"], 
-    chartSesiones:sW.length > 0 ? sW.map(w=>monthlyWS[w].sesiones) : [0], 
-    chartAlumnos:sW.length > 0 ? sW.map(w=>monthlyWS[w].alumnos) : [0], 
-    pieLabels:Object.keys(mS), 
-    pieData:Object.values(mS),
-    adminStats: {
-        byAccount: statsByAccount,
-        byTrainer: statsByTrainer
-    },
-    availableWeeks: Array.from(availableWeeks).sort((a,b) => a-b)
-  };
-}
-
-function getReportsHistory(p) {
-  try {
-    const target = (p.targetUser || "").toString().trim();
-    const limit = parseInt(p.limit) || 20;
-    
-    // Filtros específicos
-    const weekFilter = p.week ? parseInt(p.week) : null;
-    const monthFilter = (p.month || "").toString().trim();
-    const accountFilter = (p.account || "").toString().trim();
-    const deviceFilter = (p.device || "").toString().trim().toLowerCase();
-    const methodologyFilter = (p.methodology || "").toString().trim();
-    const query = (p.q || "").toString().trim().toLowerCase();
-    
-    const d = _getValuesCached(CONFIG.REPORTES_SS_ID, CONFIG.REPORTES_SHEET_NAME);
-    const result = [];
-    const mNames = ["Enero","Febrero","Marzo","Abril","Mayo","Junio","Julio","Agosto","Septiembre","Octubre","Noviembre","Diciembre"];
-
-    const availableFilters = { weeks: new Set(), months: new Set(), accounts: new Set(), methods: new Set(), devices: new Set() };
-
-    // Pasada para poblar filtros disponibles para este usuario
-    for (var j=1; j<d.length; j++) {
-        const rowTrainer = (d[j][1]||"").toString().trim();
-        if (!target || rowTrainer === target) {
-            const dO = parseDateStable(d[j][2]);
-            if (dO) {
-                const rowMonth = mNames[dO.getMonth()];
-                const rowWeek = getWeekNumber(dO);
-
-                // Popular filtros siempre con los datos del usuario
-                availableFilters.accounts.add((d[j][3]||"Otros").toString().trim());
-                availableFilters.methods.add((d[j][5]||"Otros").toString().trim());
-                
-                // Vinculación: Los filtros de Mes/Semana/Dispositivo se retroalimentan
-                // Si el usuario ya filtró por mes, solo mostramos semanas de ese mes
-                if (monthFilter === "Todos" || rowMonth === monthFilter) {
-                    availableFilters.weeks.add(rowWeek);
-                }
-                if (weekFilter === null || rowWeek == weekFilter) {
-                    availableFilters.months.add(rowMonth);
-                }
-
-                const devs = ((d[j][14]||"") + ", " + (d[j][15]||"")).split(",");
-                devs.forEach(dev => {
-                    const clean = dev.trim();
-                    if(clean && clean !== "-" && clean !== "undefined") availableFilters.devices.add(clean);
-                });
-            }
-        }
-    }
-
-    // Pasada para obtener el historial filtrado (inversa para limit reciente)
-    for (let i = d.length - 1; i >= 1; i--) {
-      if (target && (d[i][1]||"").toString().trim() !== target) continue;
+      userStores = sData.filter(r => {
+        if (isAdmin) return true;
+        const storeUser = String(r[3] || '').trim().toLowerCase(); // Columna D (índice 3) es USUARIO
+        return storeUser === cleanEmail;
+      }).map(r => ({
+        nombre: r[2],  // Columna C (índice 2) es Tienda (Nombre)
+        cuenta: r[1],  // Columna B (índice 1) es Cuenta
+        rms: r[0] || '' // Columna A (índice 0) es Codigo RMS
+      }));
       
-      const dO = parseDateStable(d[i][2]);
-      if (!dO) continue;
-      
-      if (weekFilter && weekFilter !== "Todos" && getWeekNumber(dO) != weekFilter) continue;
-      if (monthFilter && monthFilter !== "Todos" && mNames[dO.getMonth()] !== monthFilter) continue;
-      if (accountFilter && accountFilter !== "Todos" && (d[i][3]||"").toString().trim() !== accountFilter) continue;
-      if (methodologyFilter && methodologyFilter !== "Todos" && (d[i][5]||"").toString().trim() !== methodologyFilter) continue;
-      if (deviceFilter && deviceFilter !== "todos") {
-        const mobiles = (d[i][14]||"").toString().toLowerCase();
-        const eco = (d[i][15]||"").toString().toLowerCase();
-        if (mobiles.indexOf(deviceFilter) === -1 && eco.indexOf(deviceFilter) === -1) continue;
-      }
-
-      if (query) {
-        const rowStr = [Utilities.formatDate(dO, Session.getScriptTimeZone(), "dd/MM/yyyy"), d[i][3], d[i][10], d[i][14], d[i][15], d[i][16]].join(" ").toLowerCase();
-        if (rowStr.indexOf(query) === -1) continue;
-      }
-      
-      result.push({
-        rowIdx: i + 1,
-        id: d[i][18] || ("R_" + dO.getTime() + "_" + i),
-        timestamp: d[i][0], trainer: d[i][1], fecha: d[i][2], cuenta: d[i][3], metodologia: d[i][5],
-        sesiones: d[i][6], alumnos: d[i][7], duracion: d[i][9], tiendas: d[i][10], dispositivos: d[i][14], comentarios: d[i][16]
-      });
-      if (result.length >= limit) break;
+      debugInfo = {
+        isAdmin: isAdmin,
+        userRole: userRole,
+        cleanEmail: cleanEmail,
+        totalStoresInSheet: sData.length,
+        headers: headers,
+        sampleRow: sData[0] || []
+      };
     }
     
     return { 
-      status: "success", 
-      data: result,
-      availableFilters: {
-          weeks: Array.from(availableFilters.weeks).sort((a,b) => b-a),
-          months: Array.from(availableFilters.months).sort((a,b) => mNames.indexOf(a) - mNames.indexOf(b)),
-          accounts: Array.from(availableFilters.accounts).sort(),
-          methods: Array.from(availableFilters.methods).sort(),
-          devices: Array.from(availableFilters.devices).sort()
-      }
+      success: true, 
+      user: { 
+        nombre: user[0], 
+        email: user[0], 
+        rol: user[2],
+        tiendas: userStores
+      },
+      debug: debugInfo
     };
-  } catch(e) { return { status: "error", message: e.toString() }; }
+  }
+  return { success: false, message: 'Usuario o contraseña incorrectos' };
 }
 
-function updateReport(p) {
-  try {
-    const data = p.data;
-    const rowIdx = parseInt(p.rowIdx);
-    const s = SpreadsheetApp.openById(CONFIG.REPORTES_SS_ID).getSheetByName(CONFIG.REPORTES_SHEET_NAME);
-    
-    // Verificamos que el rowIdx sea válido y coincida el usuario (seguridad básica)
-    const currentRow = s.getRange(rowIdx, 1, 1, 2).getValues()[0];
-    if (currentRow[1] !== data.trainer && !CONFIG.ADMINS.includes(data.trainer)) {
-        return { status: "error", message: "No tienes permiso para editar este reporte." };
-    }
-
-    // Actualizamos la fila (manteniendo el timestamp original o actualizando?)
-    // El usuario dijo "Sobreescribe", mantendremos el timestamp original en Col 1
-    const rowData = [
-      currentRow[0], // Original timestamp
-      data.trainer,
-      data.fecha,
-      data.cuenta,
-      data.distribuidor,
-      data.metodologia,
-      data.sesiones,
-      data.alumnos,
-      data.provincia,
-      data.duracion,
-      data.tiendas || "0",
-      data.perfil,
-      data.ciudad,
-      data.contenidos,
-      data.dispositivos,
-      data.dispositivos_no_movil,
-      data.comentarios,
-      p.photos || "" // Si enviamos nuevas fotos se sobreescriben las URLs
-    ];
-    
-    s.getRange(rowIdx, 1, 1, rowData.length).setValues([rowData]);
-    return { status: "success" };
-  } catch(e) { return { status: "error", message: e.toString() }; }
-}
-
-function getWeekNumber(d) {
-  var d2 = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
-  d2.setUTCDate(d2.getUTCDate() + 4 - (d2.getUTCDay() || 7));
-  return Math.ceil((((d2 - new Date(Date.UTC(d2.getUTCFullYear(), 0, 1))) / 86400000) + 1) / 7);
-}
-
-function getCitiesList() {
-  const d = _getValuesCached(CONFIG.REPORTES_SS_ID, CONFIG.REPORTES_SHEET_NAME);
-  return { status:"success", data:Array.from(new Set(d.slice(1).map(r=>(r[12]||"").toString().trim()).filter(Boolean))) };
-}
-
-function getFilterMetadata() {
-  const d = _getValuesCached(CONFIG.REPORTES_SS_ID, CONFIG.REPORTES_SHEET_NAME);
-  var ys = new Set(), ms = new Set(), devs = new Set(), accounts = new Set(), methodologies = new Set();
-  var mNames = ["Enero","Febrero","Marzo","Abril","Mayo","Junio","Julio","Agosto","Septiembre","Octubre","Noviembre","Diciembre"];
+function getDashboardData(ss, rol) {
+  const mobSheet = getSheetDefensive(ss, 'Reporte mobiliario');
+  const devSheet = getSheetDefensive(ss, 'Reporte dispositivo');
   
-  for (var i=1; i<d.length; i++) {
-    var dO = parseDateStable(d[i][2]);
-    if(dO) { ys.add(dO.getFullYear().toString()); ms.add(mNames[dO.getMonth()]); }
-    
-    if(d[i][3]) accounts.add(d[i][3].toString().trim());
-    if(d[i][5]) methodologies.add(d[i][5].toString().trim());
-    
-    // Unificar dispositivos (Col 15 y 16)
-    var d1 = (d[i][14]||"").toString().split(',');
-    var d2 = (d[i][15]||"").toString().split(',');
-    d1.concat(d2).forEach(item => {
-      var t = item.trim();
-      if(t && t !== "0") devs.add(t);
+  let mobReports = getFastValues(mobSheet);
+  let devReports = getFastValues(devSheet);
+  
+  let allReports = [];
+  let openTotal = 0;
+  let pendingTotal = 0;
+  
+  const tz = ss.getSpreadsheetTimeZone();
+
+  // 1. Procesar Mobiliario
+  if (mobReports.length > 1) {
+    mobReports.shift();
+    mobReports.forEach(r => {
+      if (!r[0]) return; 
+      const est = String(r[11] || '').trim().toLowerCase(); 
+      if (est === 'abierta') openTotal++;
+      if (est === 'pendiente') pendingTotal++;
+      
+      allReports.push({
+        id: r[0],
+        fecha: r[1] instanceof Date ? Utilities.formatDate(r[1], tz, "yyyy-MM-dd HH:mm:ss") : r[1],
+        usuario: r[2],
+        cuenta: r[3],
+        tienda: r[4],
+        categoria: 'Mobiliario',
+        subcategoria: r[7],
+        enviar: r[8],
+        motivo: r[9],
+        descripcion: r[10], 
+        estado: r[11],  
+        tiempo: r[12],  
+        fotos: r[13] || '',
+        tipo: `Mobiliario: ${r[7] || ''} > ${r[9] || ''}`
+      });
     });
   }
-  
-  return { 
-    status:"success", 
-    data: { 
-      years: Array.from(ys).sort().reverse(), 
-      months: Array.from(ms), 
-      accounts: Array.from(accounts).sort(),
-      methodologies: Array.from(methodologies).sort(),
-      devices: Array.from(devs).sort()
-    } 
+
+  // 2. Procesar Dispositivo: AGRUPAR POR ID
+  if (devReports.length > 1) {
+    devReports.shift();
+    const devMap = {};
+    
+    devReports.forEach(r => {
+      if (!r[0]) return;
+      const id = r[0];
+      const item = {
+        tipoReporte: r[2] || '',
+        tipologia: r[8] || '',
+        modelo: r[9] || '',
+        codigoDispositivo: r[10] || '',
+        cantidad: r[11] || 1
+      };
+      
+      if (!devMap[id]) {
+        const est = String(r[16] || '').trim().toLowerCase();
+        if (est === 'abierta') openTotal++;
+        if (est === 'pendiente') pendingTotal++;
+        
+        devMap[id] = {
+          id: id,
+          fecha: r[1] instanceof Date ? Utilities.formatDate(r[1], tz, "yyyy-MM-dd HH:mm:ss") : r[1],
+          usuario: r[3],
+          cuenta: r[4],
+          tienda: r[5],
+          categoria: 'Dispositivo',
+          tipologia: r[8] || '', 
+          subcategoria: r[12],
+          enviar: r[13],
+          motivo: r[14],
+          descripcion: r[15],
+          estado: r[16],
+          tiempo: r[17],
+          fotos: r[18] || '',
+          dispositivos: [item],
+          // Armar texto del tipo dinámico
+          tipo: `Dispositivo: ${r[12] || ''} > ${r[14] || ''}`
+        };
+      } else {
+        devMap[id].dispositivos.push(item);
+      }
+    });
+    
+    // Volcar a allReports
+    Object.keys(devMap).forEach(k => allReports.push(devMap[k]));
+  }
+
+  // Invertir para tener últimos primero por defecto en array separado de las incidencias de lanzamiento
+  allReports = allReports.reverse();
+
+  const incSheet = getSheetDefensive(ss, 'Incidencias Lanzamientos');
+  let incidentStats = { total: 0, abiertos: 0, pendientes: 0 };
+  let mappedIncidents = [];
+  if (incSheet) {
+    const incData = getFastValues(incSheet);
+    if (incData.length > 1) {
+      incData.shift();
+      incidentStats.total = incData.length;
+      incData.forEach(row => {
+        const estado = String(row[8] || '').toLowerCase(); // Index 8 is Estado
+        if (estado.includes('abiert') || estado.includes('open')) incidentStats.abiertos++;
+        if (estado.includes('pendient')) incidentStats.pendientes++;
+      });
+      
+      mappedIncidents = incData.map(r => {
+        return {
+          id: r[0],
+          fecha: r[1] instanceof Date ? Utilities.formatDate(r[1], tz, "yyyy-MM-dd HH:mm:ss") : r[1],
+          usuario: r[2],
+          cuenta: r[3],
+          tienda: r[4],
+          tipo: 'Lanzamiento: ' + (r[6] || ''),
+          descripcion: r[7],
+          estado: r[8],
+          tiempo: r[9],
+          fotos: r[10] || ''
+        };
+      });
+    }
+  }
+
+  const valSheet = getSheetDefensive(ss, 'Validaciones de Lanzamiento');
+  let launchStats = { total: 0, realizadas: 0, pendientes: 0, conIncidente: 0 };
+  if (valSheet) {
+    const valData = getFastValues(valSheet);
+    if (valData.length > 1) {
+      valData.shift();
+      launchStats.realizadas = valData.length;
+    }
+    launchStats.conIncidente = incidentStats.total;
+  }
+
+  // Combinar reportes e incidentes de lanzamiento
+  let combined = [...allReports, ...mappedIncidents];
+  combined.sort((a, b) => {
+    const dateA = new Date(String(a.fecha).replace(/-/g, '/'));
+    const dateB = new Date(String(b.fecha).replace(/-/g, '/'));
+    return dateB - dateA;
+  });
+
+  return {
+    totalReports: allReports.length + incidentStats.total,
+    pendingReports: openTotal + pendingTotal + incidentStats.abiertos + incidentStats.pendientes,
+    recentReports: combined,
+    incidentStats: incidentStats,
+    launchStats: launchStats
   };
 }
 
-function handleSaveReport(data, photos) {
-  const s = SpreadsheetApp.openById(CONFIG.REPORTES_SS_ID).getSheetByName(CONFIG.REPORTES_SHEET_NAME);
-  var photoUrls = [];
-  if (photos && photos.length > 0) {
-    var folder = DriveApp.getFolderById(CONFIG.DRIVE_FOLDER_ID);
-    for (var i=0; i<photos.length; i++) {
-        var p = photos[i];
-        if (p && p.base64Data) {
-            var splitted = p.base64Data.split(',');
-            var base64 = splitted.length > 1 ? splitted[1] : splitted[0];
-            var blob;
-            try {
-                blob = Utilities.newBlob(Utilities.base64Decode(base64), p.mimeType || "image/jpeg", p.name || ("photo_" + i + ".jpg"));
-                var file = folder.createFile(blob);
-                photoUrls.push(file.getUrl());
-            } catch(e) {}
+function getLaunchStatuses(ss, usuario, lanzamiento) {
+  const valSheet = getSheetDefensive(ss, 'Validaciones de Lanzamiento');
+  const statuses = {};
+  
+  const tz = ss.getSpreadsheetTimeZone();
+  
+  if (valSheet) {
+    const data = getFastValues(valSheet);
+    data.shift();
+    data.forEach(r => {
+      if (usuario && String(r[2] || '').trim().toLowerCase() !== String(usuario).trim().toLowerCase()) return; 
+      if (lanzamiento && String(r[12] || '').trim().toLowerCase() !== String(lanzamiento).trim().toLowerCase()) return; 
+      
+      // Mapear objeto completo
+      const isOk = String(r[6] || '').trim().toUpperCase() === 'OK';
+      statuses[r[4]] = {
+        id: r[0],
+        fecha: r[1] instanceof Date ? Utilities.formatDate(r[1], tz, "yyyy-MM-dd") : r[1],
+        usuario: r[2],
+        cuenta: r[3],
+        tienda: r[4],
+        rms: r[5],
+        instalacionOk: r[6],
+        comentario: r[7],
+        fotos: r[8] || '',
+        lanzamiento: r[12],
+        estado: isOk ? 'Realizado' : 'Incidente' // Usamos la columna de validación para el estado maestro
+      };
+    });
+  }
+  
+  // Sobrescribir/Priorizar incidentes si hay fila abierta en incidencias
+  const incSheet = getSheetDefensive(ss, 'Incidencias Lanzamientos');
+  if (incSheet) {
+    const data = getFastValues(incSheet);
+    data.shift();
+    data.forEach(r => {
+      if (usuario && String(r[2] || '').trim().toLowerCase() !== String(usuario).trim().toLowerCase()) return;
+      if (lanzamiento && String(r[12] || '').trim().toLowerCase() !== String(lanzamiento).trim().toLowerCase()) return;
+      
+      const statusInc = String(r[8] || '').trim().toLowerCase();
+      // Solo si el incidente sigue Abierto o Pendiente lo forzamos
+      if (statusInc.includes('abiert') || statusInc.includes('pendient')) {
+         // Si no existía en Validaciones lo creamos temporalmente para la vista
+         if (!statuses[r[4]]) {
+           statuses[r[4]] = {
+              tienda: r[4],
+              cuenta: r[3],
+              lanzamiento: r[12]
+           };
+         }
+         statuses[r[4]].estado = 'Incidente'; 
+         statuses[r[4]].incId = r[0]; // Guardamos enlace a la incidencia por si hace falta
+      }
+    });
+  }
+  
+  return statuses;
+}
+
+function handleSubmitReport(ss, data) {
+  const lock = LockService.getScriptLock();
+  try {
+    lock.waitLock(CONFIG.LOCK_TIMEOUT);
+    
+    // 1. Datos maestros compartidos
+    let cuenta = '';
+    let rms = '';
+    let owner = '';
+    const storesSheet = getSheetDefensive(ss, 'Tiendas');
+    if (storesSheet) {
+      const storesData = getFastValues(storesSheet);
+      storesData.shift(); 
+      const storeRow = storesData.find(r => String(r[2]).trim().toLowerCase() === String(data.tienda).trim().toLowerCase());
+      if (storeRow) {
+        rms = storeRow[0] || '';
+        cuenta = storeRow[1] || '';
+        owner = storeRow[3] || ''; 
+      }
+    }
+    const finalUser = owner || data.usuario || '';
+    const now = new Date();
+    const finalPhotos = Array.isArray(data.photos) ? data.photos.join('\n') : (data.photos || '');
+    
+    const isFurniture = String(data.categoria).toLowerCase() === 'mobiliario';
+    const updateId = data.updateId || '';
+    
+    // LOGICA DE EDICIÓN: Si estamos editando, borramos el rastro previo para machacar los datos limpiamente
+    if (updateId) {
+      const sheetNames = ['Reporte mobiliario', 'Reporte dispositivo'];
+      sheetNames.forEach(sn => {
+        const sh = getSheetDefensive(ss, sn);
+        if (sh) {
+          const vals = getFastValues(sh);
+          // Recorrer del revés para borrar filas de forma segura sin mover índices de las que quedan arriba
+          for (let i = vals.length - 1; i >= 1; i--) {
+            if (String(vals[i][0]).trim() === String(updateId).trim()) {
+              sh.deleteRow(i + 1);
+            }
+          }
         }
+      });
+    }
+    
+    // Mantenemos el ID original si estamos editando, sino generamos uno nuevo
+    const finalId = updateId || generateUUID(isFurniture ? 'REP_M' : 'REP_D');
+    
+    if (isFurniture) {
+      const sheet = getSheetDefensive(ss, 'Reporte mobiliario');
+      if (!sheet) return { success: false, message: 'Hoja "Reporte mobiliario" no encontrada' };
+      
+      // Columnas: ID, Fecha, Usuario, Cuenta, Tienda, Código RMS, Categoría, Subcategoría, Enviar, Motivo, Comentario, Estado, Tiempo, Fotos
+      const row = [
+        finalId,
+        now,
+        finalUser,
+        cuenta,
+        data.tienda || '',
+        rms,
+        data.categoria,
+        data.subcategoria || '',
+        data.enviar || '',  // Donde enviar
+        data.motivo || '',
+        data.descripcion || '',
+        'Abierta',
+        0,
+        finalPhotos
+      ];
+      sheet.appendRow(row);
+      
+    } else {
+      // Flujo Dispositivo: Iterar sobre array de dispositivos
+      const sheet = getSheetDefensive(ss, 'Reporte dispositivo');
+      if (!sheet) return { success: false, message: 'Hoja "Reporte dispositivo" no encontrada' };
+      
+      const deviceList = data.dispositivos || [];
+      if (deviceList.length === 0) return { success: false, message: 'No se seleccionaron dispositivos.' };
+      
+      deviceList.forEach(item => {
+        // Columnas: ID (0), Fecha (1), Tipo Reporte (2), Usuario (3), Cuenta (4), Tienda (5), Código RMS (6), Categoría (7), Tipología (8), Modelo (9), Código Dispositivo (10), Cantidad (11), Subcategoría (12), Enviar (13), Motivo (14), Comentario (15), Estado (16), Tiempo (17), Fotos (18)
+        const row = [
+          finalId,
+          now,
+          item.tipoReporte || '', // Nuevo campo Tipo Reporte extraído de frontend
+          finalUser,
+          cuenta,
+          data.tienda || '',
+          rms,
+          data.categoria,
+          data.tipologia || '',
+          item.modelo || '',
+          item.codigoDispositivo || '',
+          item.cantidad || 1,
+          data.subcategoria || '',
+          data.enviar || '', 
+          data.motivo || '',
+          data.descripcion || '',
+          'Abierta',
+          0,
+          finalPhotos
+        ];
+        sheet.appendRow(row);
+      });
+    }
+    
+    return { success: true };
+  } catch (e) {
+    return { success: false, message: 'Error (Lock/Write): ' + e.toString() };
+  } finally {
+    lock.releaseLock();
+  }
+}
+
+function handleSubmitLaunchChecklist(ss, data) {
+  const lock = LockService.getScriptLock();
+  try {
+    lock.waitLock(CONFIG.LOCK_TIMEOUT);
+    const valSheet = getSheetDefensive(ss, 'Validaciones de Lanzamiento');
+    const incSheet = getSheetDefensive(ss, 'Incidencias Lanzamientos');
+    
+    // Buscar el dueño (USUARIO) de la Tienda en la hoja 'Tiendas'
+    let owner = '';
+    const storesSheet = getSheetDefensive(ss, 'Tiendas');
+    if (storesSheet) {
+      const storesData = getFastValues(storesSheet);
+      storesData.shift(); // remover cabecera
+      const storeRow = storesData.find(r => String(r[2]).trim().toLowerCase() === String(data.tienda).trim().toLowerCase());
+      if (storeRow) {
+        owner = storeRow[3] || ''; // Columna D: USUARIO asignado a la tienda
+      }
+    }
+    
+    const finalUser = owner || data.usuario || '';
+    
+    // 1. Fila para Validaciones de Lanzamiento (9 columnas):
+    // ID (0), Fecha (1), Columna C: Usuario (2), Cuenta (3), Tienda (4), Código RMS (5), ¿Instalación OK? (6), Comentario (7), Fotos (8)
+    const valRow = [
+      generateUUID('VAL'),                      // ID (0)
+      new Date(),                               // Fecha (1)
+      finalUser,                                // Usuario (dueño de la tienda) (2)
+      data.cuenta || '',                        // Cuenta (3)
+      data.tienda || '',                        // Tienda (4)
+      data.rms || '',                           // Código RMS (5)
+      data.instalacionOk ? 'OK' : 'Error',      // ¿Instalación OK? (6)
+      data.descripcion || '',                   // Comentario (7)
+      Array.isArray(data.photos) ? data.photos.join('\n') : (data.photos || ''), // Fotos (8)
+      '',                                       // (9)
+      '',                                       // (10)
+      '',                                       // (11)
+      data.lanzamiento || ''                    // Lanzamiento (12)
+    ];
+    
+    // 2. Fila para Incidencias Lanzamientos (13 columnas):
+    // ID (0), Fecha (1), Usuario (2), Cuenta (3), Tienda (4), Código RMS (5), Ruta Incidencia (6), Comentario (7), Estado (8), Tiempo (9), Fotos (10), Lanzamiento (12)
+    const incRow = [
+      generateUUID('INC'),                      // ID (0)
+      new Date(),                               // Fecha (1)
+      finalUser,                                // Usuario (dueño de la tienda) (2)
+      data.cuenta || '',                        // Cuenta (3)
+      data.tienda || '',                        // Tienda (4)
+      data.rms || '',                           // Código RMS (5)
+      data.incidentPath || '',                  // Ruta Incidencia (6)
+      data.descripcion || '',                   // Comentario (7)
+      'Abierta',                                // Estado (Empieza en Abierta) (8)
+      new Date().toLocaleTimeString(),          // Tiempo (9)
+      Array.isArray(data.photos) ? data.photos.join('\n') : (data.photos || ''), // Fotos (10)
+      '',                                       // (11)
+      data.lanzamiento || ''                    // Lanzamiento (12)
+    ];
+    
+    if (valSheet) valSheet.appendRow(valRow);
+    if (data.isIncident && incSheet) incSheet.appendRow(incRow);
+    
+    return { success: true };
+  } catch (e) {
+    return { success: false, message: 'Error (Lock/Write): ' + e.toString() };
+  } finally {
+    lock.releaseLock();
+  }
+}
+
+function handleFileUpload(data) {
+  try {
+    const folder = DriveApp.getFolderById(CONFIG.DRIVE_FOLDER_ID);
+    const blob = Utilities.newBlob(Utilities.base64Decode(data.base64), data.mimeType, data.fileName);
+    const file = folder.createFile(blob);
+    
+    // Intento defensivo de compartir por políticas de dominio corporativo (Salesland)
+    try {
+      file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
+    } catch (sharingError) {
+      try {
+        file.setSharing(DriveApp.Access.DOMAIN_WITH_LINK, DriveApp.Permission.VIEW);
+      } catch (domError) {
+        // Si el administrador bloquea todo tipo de compartido, omitimos y continuamos para no tirar error
+      }
+    }
+    
+    return { 
+      success: true, 
+      url: file.getUrl(),
+      fileId: file.getId()
+    };
+  } catch (e) {
+    return { success: false, error: e.toString() };
+  }
+}
+
+// ==================================================
+// UTILITY: Convertir contraseñas a SHA-256
+// Ejecuta esta función manualmente desde Apps Script 
+// para encriptar las contraseñas actuales de la hoja Usuarios.
+// ==================================================
+function hashAllPasswords() {
+  const ss = SpreadsheetApp.openById(CONFIG.SS_ID);
+  const sheet = getSheetDefensive(ss, 'Usuarios');
+  if (!sheet) return;
+  
+  const data = getFastValues(sheet);
+  for (let i = 1; i < data.length; i++) {
+    const plainPass = String(data[i][1] || '').trim();
+    // Solo hashea si la contraseña no parece estar ya hasheada (un hash SHA-256 tiene 64 caracteres)
+    if (plainPass && plainPass.length < 60) {
+      const rawHash = Utilities.computeDigest(Utilities.DigestAlgorithm.SHA_256, plainPass);
+      let txtHash = '';
+      for (let j = 0; j < rawHash.length; j++) {
+        let hashVal = rawHash[j];
+        if (hashVal < 0) {
+          hashVal += 256;
+        }
+        if (hashVal.toString(16).length == 1) {
+          txtHash += '0';
+        }
+        txtHash += hashVal.toString(16);
+      }
+      // Sobrescribe la columna B (índice 2 en formato R1C1) con el Hash
+      sheet.getRange(i + 1, 2).setValue(txtHash);
     }
   }
-  var urlsString = photoUrls.join("\n");
-  s.appendRow([ new Date(), data.trainer, data.fecha, data.cuenta, data.distribuidor, data.metodologia, data.sesiones, data.alumnos, data.provincia, data.duracion, data.tiendas || "0", data.perfil, data.ciudad, data.contenidos, data.dispositivos, data.dispositivos_no_movil, data.comentarios, urlsString ]);
-  return { status:"success" };
 }
 
-function getMessages(p) {
+function getDiagnostics(ss) {
+  const sheets = ss.getSheets();
+  const info = {};
+  sheets.forEach(s => {
+    const name = s.getName();
+    const data = getFastValues(s);
+    info[name] = {
+      totalRows: data.length,
+      columnsCount: data[0] ? data[0].length : 0,
+      headers: data[0] || [],
+      firstRow: data[1] || []
+    };
+  });
+  return { success: true, sheets: info };
+}
+
+function resolveIncident(ss, data) {
+  const lock = LockService.getScriptLock();
   try {
-    const target = (p.targetUser || "").toString().trim().toLowerCase();
-    const ss = SpreadsheetApp.openById(CONFIG.USUARIOS_SS_ID);
-    const smsg = ss.getSheetByName(CONFIG.MENSAJES_SHEET_NAME) || ss.insertSheet(CONFIG.MENSAJES_SHEET_NAME);
-    const d = smsg.getDataRange().getValues();
-    const result = [];
-    for (let i = 1; i < d.length; i++) {
-        const rowTo = (d[i][2] || "").toString().toLowerCase();
-        const isAdmin = CONFIG.ADMINS.some(a => a.toLowerCase() === target) || /Manager|Coordinator|Creator/i.test(target);
-        
-        // Match personal messages OR group Admin messages if user is admin
-        const matches = (rowTo === target) || (isAdmin && rowTo === "admin");
-        
-        if (matches) {
-            result.push({
-                id: d[i][0],
-                date: d[i][1],
-                to: d[i][2],
-                from: d[i][3],
-                text: d[i][4],
-                read: d[i][5] === true || (d[i][5] && d[i][5].toString().toUpperCase() === "TRUE")
-            });
+    lock.waitLock(15000);
+    
+    const id = data.id;
+    const status = data.estado || data.status || 'Solucionado';
+    const newPhotos = Array.isArray(data.photos) ? data.photos.join('\n') : (data.photos || '');
+    
+    // 1. Buscar en pestaña 'Reporte mobiliario'
+    const mobSheet = getSheetDefensive(ss, 'Reporte mobiliario');
+    if (mobSheet) {
+      const reports = getFastValues(mobSheet);
+      for (let i = 1; i < reports.length; i++) {
+        if (reports[i][0] === id) {
+          mobSheet.getRange(i + 1, 12).setValue(status); // Columna L (índice 11) es Estado
+          if (newPhotos) {
+            const oldPhotos = reports[i][13] || ''; // Columna N (índice 13) es Fotos
+            const combinedPhotos = oldPhotos ? oldPhotos + '\n' + newPhotos : newPhotos;
+            mobSheet.getRange(i + 1, 14).setValue(combinedPhotos);
+          }
+          return { success: true };
         }
-    }
-    return { status: "success", data: result.reverse() };
-  } catch(e) { return { status: "error", message: e.toString() }; }
-}
-
-function handleMarkMessageRead(p) {
-    const msgId = p.msgId;
-    const ss = SpreadsheetApp.openById(CONFIG.USUARIOS_SS_ID);
-    const smsg = ss.getSheetByName(CONFIG.MENSAJES_SHEET_NAME);
-    if (!smsg) return { status: "error", message: "No sheet" };
-    const d = smsg.getDataRange().getValues();
-    for (let i = 1; i < d.length; i++) {
-      if (d[i][0].toString() === msgId.toString()) {
-        smsg.getRange(i+1, 6).setValue("TRUE");
-        SpreadsheetApp.flush();
-        return { status: "success" };
       }
     }
-    return { status: "error", message: "Not found ID" };
-}
 
-function handleMarkAllMessagesRead(p) {
-    try {
-        const target = (p.user || "").toString().trim().toLowerCase();
-        const ss = SpreadsheetApp.openById(CONFIG.USUARIOS_SS_ID);
-        const smsg = ss.getSheetByName(CONFIG.MENSAJES_SHEET_NAME);
-        if (!smsg) return { status: "success" };
-        const d = smsg.getDataRange().getValues();
-        const isAdmin = CONFIG.ADMINS.some(a => a.toLowerCase() === target) || /Manager|Coordinator|Creator/i.test(target);
-        
-        for (let i = 1; i < d.length; i++) {
-            const rowTo = (d[i][2] || "").toString().toLowerCase();
-            const matches = (rowTo === target) || (isAdmin && rowTo === "admin");
-            if (matches && d[i][5].toString().toUpperCase() !== "TRUE") {
-                smsg.getRange(i+1, 6).setValue("TRUE");
-            }
+    // 2. Buscar en pestaña 'Reporte dispositivo'
+    const devSheet = getSheetDefensive(ss, 'Reporte dispositivo');
+    if (devSheet) {
+      const reports = getFastValues(devSheet);
+      let foundAny = false;
+      for (let i = 1; i < reports.length; i++) {
+        if (reports[i][0] === id) {
+          foundAny = true;
+          devSheet.getRange(i + 1, 17).setValue(status); // Columna Q (índice 16) es Estado
+          if (newPhotos) {
+            const oldPhotos = reports[i][18] || ''; // Columna S (índice 18) es Fotos
+            const combinedPhotos = oldPhotos ? oldPhotos + '\n' + newPhotos : newPhotos;
+            devSheet.getRange(i + 1, 19).setValue(combinedPhotos);
+          }
         }
-        SpreadsheetApp.flush();
-        return { status: "success" };
-    } catch(e) { return { status: "error", message: e.toString() }; }
-}
-
-function notifyAdmins(text, fromUser) {
-    try {
-        // No notificar si el que pide ya es Admin (él mismo lo ve en su panel)
-        const isAdmin = CONFIG.ADMINS.some(a => a.toLowerCase() === fromUser.toLowerCase()) || /Manager|Coordinator|Creator/i.test(fromUser);
-        if (isAdmin) return;
-
-        const ss = SpreadsheetApp.openById(CONFIG.USUARIOS_SS_ID);
-        let smsg = ss.getSheetByName(CONFIG.MENSAJES_SHEET_NAME);
-        if (!smsg) smsg = ss.insertSheet(CONFIG.MENSAJES_SHEET_NAME);
-        if (smsg.getLastRow() === 0) smsg.appendRow(["ID", "Date", "ToUser", "FromUser", "Text", "Read"]);
-        
-        // Un solo mensaje para todo el grupo Admin (estado compartido)
-        smsg.appendRow([ Date.now() + Math.floor(Math.random()*1000), new Date(), "Admin", fromUser, text, "FALSE" ]);
-    } catch(e) {}
-}
-
-function notifyUser(user, text) {
-    try {
-        const target = user.trim().toLowerCase();
-        const isAdmin = CONFIG.ADMINS.some(a => a.toLowerCase() === target) || /Manager|Coordinator|Creator/i.test(target);
-        if (isAdmin) return;
-
-        const ss = SpreadsheetApp.openById(CONFIG.USUARIOS_SS_ID);
-        let smsg = ss.getSheetByName(CONFIG.MENSAJES_SHEET_NAME);
-        if (!smsg) smsg = ss.insertSheet(CONFIG.MENSAJES_SHEET_NAME);
-        
-        smsg.appendRow([ Date.now() + Math.floor(Math.random()*1000), new Date(), user, "System", text, "FALSE" ]);
-    } catch(e) {}
-}
-
-function notifyAllUsers(text) {
-    try {
-        const dU = _getValuesCached(CONFIG.USUARIOS_SS_ID, CONFIG.USUARIOS_SHEET_NAME);
-        dU.slice(1).forEach(r => {
-            const user = r[0].toString();
-            notifyUser(user, text);
-        });
-    } catch(e) {}
-}
-
-// --- CALENDAR WEEKLY LOGIC ---
-function getWeeklySchedule(p) {
-  try {
-    const start = p.start, end = p.end;
-    
-    const dPlan = _getValuesCached(CONFIG.USUARIOS_SS_ID, CONFIG.PLANIFICACION_SHEET_NAME);
-    const dVacas = _getValuesCached(CONFIG.USUARIOS_SS_ID, CONFIG.VACACIONES_SHEET_NAME);
-    const dFest = _getValuesCached(CONFIG.USUARIOS_SS_ID, CONFIG.FESTIVOS_SHEET_NAME);
-    const users = getUsersList().data || [];
-
-    // 2. Procesar Planificación
-    const scheduleByDay = {};
-    for (let i = 1; i < dPlan.length; i++) {
-        const dO = parseDateStable(dPlan[i][2]);
-        if (!dO) continue;
-        const dStr = Utilities.formatDate(dO, Session.getScriptTimeZone(), "yyyy-MM-dd");
-        if (dStr >= start && dStr <= end) {
-            if (!scheduleByDay[dStr]) scheduleByDay[dStr] = {};
-            const u = (dPlan[i][1]||"").toString();
-            if (!u) continue;
-            if (!scheduleByDay[dStr][u]) scheduleByDay[dStr][u] = [];
-            scheduleByDay[dStr][u].push({ id: dPlan[i][0], text: dPlan[i][3], category: dPlan[i][4] });
-        }
+      }
+      if (foundAny) return { success: true };
     }
-
-    // 3. Procesar Festivos y Vacaciones en bloque (Mapas por usuario normalizado)
-    const blocks = {};
-    const normalizedBlocks = {}; // Map lowercase name to data object
     
-    users.forEach(u => {
-      const data = { vacationInfo: [], festivos: [] };
-      blocks[u] = data;
-      normalizedBlocks[u.trim().toLowerCase()] = data;
+    // 2. Buscar en pestaña 'Incidencias Lanzamientos'
+    const incSheet = getSheetDefensive(ss, 'Incidencias Lanzamientos');
+    if (incSheet) {
+      const incs = getFastValues(incSheet);
+      for (let i = 1; i < incs.length; i++) {
+        if (incs[i][0] === id) {
+          incSheet.getRange(i + 1, 9).setValue(status); // Columna I (índice 8) es Estado
+          if (newPhotos) {
+            const oldPhotos = incs[i][10] || ''; // Columna K (índice 10) es Fotos
+            const combinedPhotos = oldPhotos ? oldPhotos + '\n' + newPhotos : newPhotos;
+            incSheet.getRange(i + 1, 11).setValue(combinedPhotos);
+          }
+          return { success: true };
+        }
+      }
+    }
+    
+    return { success: false, error: 'ID de reporte no encontrado' };
+  } catch (e) {
+    return { success: false, error: e.toString() };
+  } finally {
+    lock.releaseLock();
+  }
+}
+
+/**
+ * Borra una validación de la hoja de excel por ID.
+ */
+function deleteLaunchValidation(ss, id) {
+  const lock = LockService.getScriptLock();
+  try {
+    lock.waitLock(CONFIG.LOCK_TIMEOUT);
+    const sheet = getSheetDefensive(ss, 'Validaciones de Lanzamiento');
+    if (!sheet) return { success: false, error: 'Hoja no encontrada' };
+    
+    const data = getFastValues(sheet);
+    for (let i = 1; i < data.length; i++) {
+      if (String(data[i][0]) === String(id)) {
+        sheet.deleteRow(i + 1);
+        return { success: true };
+      }
+    }
+    return { success: false, error: 'ID no encontrado en validaciones.' };
+  } catch (e) {
+    return { success: false, error: e.toString() };
+  } finally {
+    lock.releaseLock();
+  }
+}
+
+/**
+ * Actualiza un registro de validación (Comentario, Fotos, Estado).
+ */
+function updateLaunchValidation(ss, data) {
+  const lock = LockService.getScriptLock();
+  try {
+    lock.waitLock(CONFIG.LOCK_TIMEOUT);
+    const sheet = getSheetDefensive(ss, 'Validaciones de Lanzamiento');
+    if (!sheet) return { success: false, error: 'Hoja no encontrada' };
+    
+    const sheetData = getFastValues(sheet);
+    for (let i = 1; i < sheetData.length; i++) {
+      if (String(sheetData[i][0]) === String(data.id)) {
+        // Si envían fotos, las sobrescribimos o anexamos? Asumo sobrescribir para esta edición
+        if (data.fotos) sheet.getRange(i + 1, 9).setValue(data.fotos); // Col I (índice 8)
+        if (data.comentario !== undefined) sheet.getRange(i + 1, 8).setValue(data.comentario); // Col H (índice 7)
+        
+        // Actualizar Instalación OK status (Columna G -> Indice 6)
+        if (data.instalacionOk) sheet.getRange(i + 1, 7).setValue(data.instalacionOk); // 'OK' o 'Error'
+        
+        return { success: true };
+      }
+    }
+    return { success: false, error: 'ID no encontrado para actualizar.' };
+  } catch (e) {
+    return { success: false, error: e.toString() };
+  } finally {
+    lock.releaseLock();
+  }
+}
+
+/**
+ * Borra permanentemente un reporte de la hoja correspondiente por su ID
+ */
+function deleteReport(ss, id) {
+  if (!id) return { success: false, error: 'ID requerido' };
+  const lock = LockService.getScriptLock();
+  try {
+    lock.waitLock(CONFIG.LOCK_TIMEOUT);
+    const sheetsToCheck = ['Reporte mobiliario', 'Reporte dispositivo', 'Incidencias Lanzamientos'];
+    let deletedAny = false;
+    sheetsToCheck.forEach(sn => {
+      const sheet = getSheetDefensive(ss, sn);
+      if (!sheet) return;
+      const vals = getFastValues(sheet);
+      for (let i = vals.length - 1; i >= 1; i--) {
+        if (String(vals[i][0]).trim() === String(id).trim()) {
+          sheet.deleteRow(i + 1);
+          deletedAny = true;
+        }
+      }
     });
-
-    // Mapear Festivos
-    for (let i = 1; i < dFest.length; i++) {
-        const uKey = (dFest[i][0]||"").toString().trim().toLowerCase();
-        if (normalizedBlocks[uKey]) {
-            for (let col = 3; col < dFest[i].length; col++) {
-                const dO = parseDateStable(dFest[i][col]);
-                if (dO) {
-                    const fStr = Utilities.formatDate(dO, Session.getScriptTimeZone(), "yyyy-MM-dd");
-                    if (fStr >= start && fStr <= end) {
-                        normalizedBlocks[uKey].festivos.push(fStr);
-                        normalizedBlocks[uKey][fStr] = "FESTIVO";
-                    }
-                }
-            }
-        }
-    }
-
-    // Mapear Vacaciones
-    for (let i = 1; i < dVacas.length; i++) {
-        const uName = (dVacas[i][1]||"").toString().trim();
-        const uKey = uName.toLowerCase();
-        const status = dVacas[i][5];
-        if (normalizedBlocks[uKey] && (status === "Aprobado" || status === "Pendiente")) {
-            normalizedBlocks[uKey].vacationInfo.push({ fechas: dVacas[i][2], status: status });
-        }
-    }
-
-    return { status: "success", schedule: scheduleByDay, blocks: blocks };
-  } catch(e) { return { status: "error", message: "getWeekly error: " + e.toString() }; }
+    return deletedAny ? { success: true } : { success: false, error: 'No encontrado' };
+  } catch (e) { return { success: false, error: e.toString() }; } finally { lock.releaseLock(); }
 }
 
-function adminProcessSelection(req) {
-  try {
-    const action = req.opAction; 
-    
-    if (action === 'notify_materials') {
-        notifyAllUsers("Nuevos materiales disponibles en tu repositorio.");
-        return { status: "success" };
-    }
-
-    const ss = SpreadsheetApp.openById(CONFIG.USUARIOS_SS_ID);
-    const s = ss.getSheetByName(CONFIG.VACACIONES_SHEET_NAME);
-    const userNorm = req.user.trim().toLowerCase();
-    const results = [];
-
-    if (action === 'remove') {
-      const d = s.getDataRange().getValues();
-      const datesToRemove = req.dates; // already in "YYYY-MM-DD" format
-      
-      const toISO = (dateObj) => {
-          return dateObj.getFullYear() + "-" + String(dateObj.getMonth() + 1).padStart(2, '0') + "-" + String(dateObj.getDate()).padStart(2, '0');
-      };
-
-      let rowsToDelete = [];
-      let newIndividualDays = [];
-
-      for (let i = d.length - 1; i >= 1; i--) {
-        if (d[i][1].toString().trim().toLowerCase() !== userNorm) continue;
-        const rangeStr = d[i][2].toString();
-        const type = d[i][4];
-        
-        const matches = rangeStr.match(/(\d{1,2})\/(\d{1,2})\/(\d{2,4})/g);
-        if (!matches) continue;
-        
-        const parseMatch = (str) => {
-            const p = str.split('/');
-            let y = parseInt(p[2]); if(y < 100) y += 2000;
-            return new Date(y, parseInt(p[1]) - 1, parseInt(p[0]));
-        };
-
-        const startDate = parseMatch(matches[0]);
-        const endDate = matches.length > 1 ? parseMatch(matches[matches.length - 1]) : startDate;
-        
-        let daysInRow = [];
-        let cur = new Date(startDate.getFullYear(), startDate.getMonth(), startDate.getDate());
-        let curEnd = new Date(endDate.getFullYear(), endDate.getMonth(), endDate.getDate());
-        
-        while(cur.getTime() <= curEnd.getTime()) {
-           daysInRow.push(new Date(cur.getTime()));
-           cur.setDate(cur.getDate()+1);
-        }
-
-        let removedAny = false;
-        let daysToKeep = [];
-
-        daysInRow.forEach(day => {
-            const beingRemoved = datesToRemove.includes(toISO(day));
-            if (beingRemoved) removedAny = true;
-            else daysToKeep.push(day);
-        });
-
-        if (removedAny) {
-            rowsToDelete.push(i + 1);
-            daysToKeep.forEach(day => newIndividualDays.push({date: day, type: type, originalDateVal: d[i][0]}));
-        }
-      }
-
-      rowsToDelete.forEach(rowIdx => s.deleteRow(rowIdx));
-
-      // AUTO-LIMPIEZA: Marcar mensajes de "Nueva solicitud" de este usuario como leídos
-      const smsg = ss.getSheetByName(CONFIG.MENSAJES_SHEET_NAME);
-      if (smsg) {
-          const dMsg = smsg.getDataRange().getValues();
-          for (let i = 1; i < dMsg.length; i++) {
-              if (dMsg[i][2] === "Admin" && dMsg[i][4].includes(req.user) && dMsg[i][5].toString().toUpperCase() === "FALSE") {
-                  smsg.getRange(i+1, 6).setValue("TRUE");
-              }
-          }
-      }
-
-      const mNames = ["Enero","Febrero","Marzo","Abril","Mayo","Junio","Julio","Agosto","Septiembre","Octubre","Noviembre","Diciembre"];
-      newIndividualDays.forEach(obj => {
-          const dObj = obj.date;
-          const label = "Día " + Utilities.formatDate(dObj, Session.getScriptTimeZone(), "dd/MM/yy");
-          const mLabel = mNames[dObj.getMonth()] + " " + dObj.getFullYear();
-          const id = "ADM_" + Date.now() + "_" + Math.floor(Math.random()*1000);
-          s.appendRow([obj.originalDateVal, req.user, label, mLabel, obj.type, "Aprobado", 1, id]);
-      });
-
-      SpreadsheetApp.flush();
-      notifyUser(req.user, `Admin ha ELIMINADO vacaciones/días extra de tu calendario para: ${req.dates.join(", ")}.`);
-      return { status: "success", action: "removed" };
-    } else {
-      // AÑADIR (Vacaciones o Extras)
-      const type = (action === 'add_vacation') ? 'Vacaciones' : 'Dias Extras';
-      const mNames = ["Enero","Febrero","Marzo","Abril","Mayo","Junio","Julio","Agosto","Septiembre","Octubre","Noviembre","Diciembre"];
-      
-      const groups = {};
-      req.dates.forEach(dStr => {
-          const d = parseDateStable(dStr);
-          if(d) {
-              const mLabel = mNames[d.getMonth()] + " " + d.getFullYear();
-              if(!groups[mLabel]) groups[mLabel] = [];
-              groups[mLabel].push(dStr); 
-          }
-      });
-      
-      for (let m in groups) {
-          const sDates = groups[m].sort();
-          let label = "";
-          if (sDates.length > 1) {
-              const d0 = parseDateStable(sDates[0]);
-              const d1 = parseDateStable(sDates[sDates.length - 1]);
-              label = "Del " + Utilities.formatDate(d0, Session.getScriptTimeZone(), "dd/MM/yy") + " al " + Utilities.formatDate(d1, Session.getScriptTimeZone(), "dd/MM/yy");
-          } else {
-              const dObj = parseDateStable(sDates[0]);
-              label = "Día " + Utilities.formatDate(dObj, Session.getScriptTimeZone(), "dd/MM/yy");
-          }
-          const id = "ADM_" + Date.now() + "_" + Math.floor(Math.random()*1000);
-          s.appendRow([new Date(), req.user, label, m, type, "Aprobado", sDates.length, id]);
-      }
-
-      notifyUser(req.user, `Admin ha ASIGNADO ${type} en tu calendario para: ${req.dates.join(", ")}.`);
-      SpreadsheetApp.flush();
-      return { status: "success", action: "added" };
-    }
-  } catch(e) { return { status: "error", message: e.toString() }; }
-}
-
-function notifyUser(toUser, text, fromUser) {
-    try {
-        const ss = SpreadsheetApp.openById(CONFIG.USUARIOS_SS_ID);
-        let smsg = ss.getSheetByName(CONFIG.MENSAJES_SHEET_NAME);
-        if (!smsg) smsg = ss.insertSheet(CONFIG.MENSAJES_SHEET_NAME);
-        smsg.appendRow([ Date.now() + Math.floor(Math.random()*1000), new Date(), toUser, fromUser || "System", text, "FALSE" ]);
-    } catch(e) {}
-}
-
-function saveWeeklyAssignment(req) {
-  try {
-    const ss = SpreadsheetApp.openById(CONFIG.USUARIOS_SS_ID);
-    const s = ss.getSheetByName(CONFIG.PLANIFICACION_SHEET_NAME);
-    // Borramos existentes para ese user/dia para reescribir
-    const d = s.getDataRange().getValues();
-    for (let i = d.length - 1; i >= 1; i--) {
-        const dStr = Utilities.formatDate(new Date(d[i][2]), Session.getScriptTimeZone(), "yyyy-MM-dd");
-        if (d[i][1] === req.user && dStr === req.date) {
-            s.deleteRow(i + 1);
-        }
-    }
-    // Añadimos nuevos
-    if (req.items && req.items.length > 0) {
-      req.items.forEach(it => {
-        s.appendRow([Date.now(), req.user, req.date, it.text, it.category, req.modifiedBy || '']);
-      });
-      SpreadsheetApp.flush();
-      notifyUser(req.user, "Se ha actualizado tu planificación semanal.");
-      return { status: "success" };
-    }
-  } catch(e) { return { status: "error", message: e.toString() }; } finally { SpreadsheetApp.flush(); }
-}
-
-
-function parseDateStable(val) {
-  if (!val) return null;
-  if (val instanceof Date) return val;
-  try {
-    const s = val.toString();
-    if (s.indexOf('/') > -1) {
-      const p = s.split('/');
-      let y = parseInt(p[2]); if (y < 100) y += 2000;
-      return new Date(y, parseInt(p[1]) - 1, parseInt(p[0]));
-    }
-    const d = new Date(val);
-    return isNaN(d.getTime()) ? null : d;
-  } catch(e) { return null; }
+/**
+ * LEE LOS DATOS A VELOCIDAD DE LA LUZ EVITANDO FILAS FANTASMA
+ * Esta función busca la última fila REAL en lugar de confiar en getDataRange()
+ * que puede atascarse si el excel tiene celdas vacías con bordes o formato.
+ */
+function getFastValues(sheet) {
+  if (!sheet) return [];
+  const lastCol = sheet.getLastColumn();
+  if (lastCol === 0) return [];
+  
+  // 1. Leemos SOLO la Columna A entera (muy rápido, incluso con miles de filas)
+  const colA = sheet.getRange(1, 1, sheet.getMaxRows(), 1).getValues();
+  
+  // 2. Encontrar la última fila con contenido REAL empezando desde el final
+  let lastRow = colA.length;
+  while (lastRow > 0 && String(colA[lastRow - 1][0] || '').trim() === "") {
+    lastRow--;
+  }
+  
+  // Si no hay datos, devolver vacío
+  if (lastRow === 0) return [];
+  
+  // 3. Leemos el rango EXACTO de datos reales. Instantáneo.
+  return sheet.getRange(1, 1, lastRow, lastCol).getValues();
 }
