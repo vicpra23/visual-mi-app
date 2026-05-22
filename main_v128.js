@@ -3,7 +3,7 @@
  */
 
 const APP_CONFIG = {
-    scriptUrl: 'https://script.google.com/macros/s/AKfycbwz7QtzY7LpygHmYiXjownS3SjTGX8BwwhMF59ZD112ngBd4oZB7TMXW4XHMzDLIoUHNA/exec',
+    scriptUrl: 'https://script.google.com/macros/s/AKfycbxJ_MCbYEmGbxKeh5t8rtH-uCPY_ZO_iBJFj5l8N6kUGLWQq4nLnLAqLp2sJBABwX2i1A/exec',
     currentUser: null,
     currentReport: {
         category: '',
@@ -16,6 +16,150 @@ const APP_CONFIG = {
     incidentUploadedPhotos: [],
     deviceCatalog: [], // Lista global bajada de 'Dispositivos'
     currentSelectedDevices: [] // Buffer temporal del reporte actual
+};
+
+// --- MOTOR UNIVERSAL DE COMPRESIÓN Y RENDERIZADO (Baja Cobertura & CDN) ---
+window.getGoogleDriveThumbnail = function(url) {
+    if (!url) return '';
+    const str = String(url);
+    if (str.includes('drive.google.com')) {
+        const match = str.match(/\/file\/d\/([^\/]+)/) || str.match(/id=([^\&]+)/);
+        if (match && match[1]) {
+            // Usamos el CDN universal lh3 de Google, inmune al bloqueo de cookies de terceros
+            return `https://lh3.googleusercontent.com/d/${match[1]}=w300`;
+        }
+    }
+    return url;
+};
+
+window.getCompressedBase64 = async function(file, maxWidth = 1200, maxHeight = 1200, quality = 0.7) {
+    // Si no es imagen, retornamos el base64 directo sin compresión
+    if (!file.type || !file.type.startsWith('image/')) {
+        return new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.readAsDataURL(file);
+            reader.onload = () => resolve(reader.result.split(',')[1] || reader.result);
+            reader.onerror = error => reject(error);
+        });
+    }
+    // Algoritmo de compresión en el cliente vía HTML5 Canvas
+    return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.readAsDataURL(file);
+        reader.onload = (event) => {
+            const img = new Image();
+            img.src = event.target.result;
+            img.onload = () => {
+                let width = img.width;
+                let height = img.height;
+                if (width > height) {
+                    if (width > maxWidth) {
+                        height = Math.round((height * maxWidth) / width);
+                        width = maxWidth;
+                    }
+                } else {
+                    if (height > maxHeight) {
+                        width = Math.round((width * maxHeight) / height);
+                        height = maxHeight;
+                    }
+                }
+                const canvas = document.createElement('canvas');
+                canvas.width = width;
+                canvas.height = height;
+                const ctx = canvas.getContext('2d');
+                ctx.drawImage(img, 0, 0, width, height);
+                // Forzamos calidad reducida en JPEG para velocidad instantánea
+                const compressedBase64 = canvas.toDataURL('image/jpeg', quality);
+                resolve(compressedBase64.split(',')[1] || compressedBase64);
+            };
+            img.onerror = (err) => reject(err);
+        };
+        reader.onerror = (err) => reject(err);
+    });
+};
+
+// --- SISTEMA PREMIUM DE NOTIFICACIONES Y ALERTAS ---
+window.showToast = function(msg, type = 'info') {
+    let container = document.getElementById('custom-toast-container');
+    if (!container) {
+        container = document.createElement('div');
+        container.id = 'custom-toast-container';
+        container.className = 'custom-toast-container';
+        document.body.appendChild(container);
+    }
+    const toast = document.createElement('div');
+    toast.className = `custom-toast toast-${type}`;
+    let icon = 'fa-info-circle';
+    if (type === 'success') icon = 'fa-check-circle';
+    if (type === 'error') icon = 'fa-exclamation-circle';
+    
+    toast.innerHTML = `
+        <i class="fas ${icon}"></i>
+        <div style="flex:1">${msg}</div>
+    `;
+    container.appendChild(toast);
+    
+    setTimeout(() => {
+        toast.classList.add('slide-out');
+        setTimeout(() => toast.remove(), 400);
+    }, 4000);
+};
+
+// Sobrescribir alert tradicional con Toast ultra moderno
+window.alert = function(msg) {
+    if (!msg) return;
+    let type = 'info';
+    const lowerMsg = String(msg).toLowerCase();
+    if (lowerMsg.includes('éxito') || lowerMsg.includes('exito') || lowerMsg.includes('correcto') || lowerMsg.includes('guardad')) {
+        type = 'success';
+    } else if (lowerMsg.includes('error') || lowerMsg.includes('fallo') || lowerMsg.includes('no se found')) {
+        type = 'error';
+    }
+    window.showToast(msg, type);
+};
+
+// Diálogo de Confirmación Promificado 100% Premium
+window.showConfirm = function(title, message, isDanger = true) {
+    return new Promise((resolve) => {
+        const overlay = document.createElement('div');
+        overlay.className = 'custom-confirm-overlay';
+        
+        const iconHtml = isDanger 
+            ? '<div class="confirm-icon-box"><i class="fas fa-trash-alt"></i></div>'
+            : '<div class="confirm-icon-box primary"><i class="fas fa-exclamation-circle"></i></div>';
+            
+        const btnClass = isDanger ? 'confirm-btn-danger' : 'confirm-btn-primary';
+        const actionText = isDanger ? 'Eliminar' : 'Aceptar';
+        
+        overlay.innerHTML = `
+            <div class="custom-confirm-card">
+                ${iconHtml}
+                <h3 class="confirm-title">${title}</h3>
+                <p class="confirm-message">${message}</p>
+                <div class="confirm-actions-row">
+                    <button class="confirm-btn confirm-btn-cancel" id="confirm-cancel">Cancelar</button>
+                    <button class="confirm-btn ${btnClass}" id="confirm-proceed">${actionText}</button>
+                </div>
+            </div>
+        `;
+        
+        document.body.appendChild(overlay);
+        
+        requestAnimationFrame(() => {
+            overlay.classList.add('visible');
+        });
+        
+        const cleanup = (value) => {
+            overlay.classList.remove('visible');
+            setTimeout(() => {
+                overlay.remove();
+                resolve(value);
+            }, 300);
+        };
+        
+        overlay.querySelector('#confirm-cancel').onclick = () => cleanup(false);
+        overlay.querySelector('#confirm-proceed').onclick = () => cleanup(true);
+    });
 };
 
 // Helper global para comparaciones a prueba de fallos (quita acentos, mayúsculas, espacios)
@@ -135,6 +279,10 @@ async function showView(viewName) {
         
         // Cargar data según vista
         if (viewName === 'dashboard' || viewName === 'reportes') loadDashboard();
+        if (viewName === 'mensajes') {
+            window.loadMessagingUsers();
+            window.loadUserInbox();
+        }
         if (viewName === 'lanzamientos') {
             const userRole = String(APP_CONFIG.currentUser?.rol || '').trim().toUpperCase();
             const isAdmin = userRole === 'ADMIN' || userRole === 'ADMINISTRADOR';
@@ -177,7 +325,6 @@ async function showView(viewName) {
             }
         }
         if (viewName === 'materiales') loadMaterials();
-        if (viewName === 'mensajes') renderNotificationsView();
     }
 }
 window.refreshAllDashboardData = async function() {
@@ -427,10 +574,9 @@ function renderDashboardTable(reports) {
         row.onclick = () => showQuickBox(r);
         
         const actionTd = row.querySelector('td:last-child');
-        actionTd.style.display = 'flex';
-        actionTd.style.gap = '8px';
-        actionTd.style.justifyContent = 'center';
-        actionTd.style.alignItems = 'center';
+        const flexWrapper = document.createElement('div');
+        flexWrapper.className = 'table-actions-wrapper';
+        actionTd.appendChild(flexWrapper);
         
         // Circular Button "Ver"
         const verBtn = document.createElement('button');
@@ -441,7 +587,7 @@ function renderDashboardTable(reports) {
             e.stopPropagation();
             window.showReportDetails(r);
         };
-        actionTd.appendChild(verBtn);
+        flexWrapper.appendChild(verBtn);
 
         // BOTONES DE GESTIÓN UNIVERSAL: Editar (para ABIERTA y PENDIENTE) y Eliminar solo para estado ABIERTA
         if (est === 'abierta' || est === 'pendiente') {
@@ -455,7 +601,7 @@ function renderDashboardTable(reports) {
                 e.stopPropagation();
                 window.jumpToCreateReportForStore(r); 
             };
-            actionTd.appendChild(editBtn);
+            flexWrapper.appendChild(editBtn);
 
             if (est === 'abierta') {
                 // Botón Eliminar (Basura roja)
@@ -466,11 +612,11 @@ function renderDashboardTable(reports) {
                 delBtn.title = 'Eliminar este reporte permanentemente';
                 delBtn.onclick = async (e) => {
                     e.stopPropagation();
-                    if (confirm('¿Seguro que deseas ELIMINAR este reporte permanentemente? Esta acción no se puede deshacer.')) {
+                    if (await window.showConfirm('¿Eliminar Reporte?', '¿Seguro que deseas ELIMINAR este reporte permanentemente? Esta acción no se puede deshacer.', true)) {
                         await window.deleteDashboardReport(r.id);
                     }
                 };
-                actionTd.appendChild(delBtn);
+                flexWrapper.appendChild(delBtn);
             }
         }
         
@@ -485,7 +631,7 @@ function renderDashboardTable(reports) {
                 e.stopPropagation();
                 window.showQuickBox(r);
             };
-            actionTd.appendChild(resBtn);
+            flexWrapper.appendChild(resBtn);
         }
 
         // Special Admin Direct Buttons in dashboard table row
@@ -503,7 +649,7 @@ function renderDashboardTable(reports) {
                     e.stopPropagation();
                     await window.changeIncidentStatus(r.id, 'Pendiente');
                 };
-                actionTd.appendChild(repairBtn);
+                flexWrapper.appendChild(repairBtn);
             } else if (est === 'solucionado') {
                 const reviewBtn = document.createElement('button');
                 reviewBtn.className = 'action-btn-circle';
@@ -519,7 +665,7 @@ function renderDashboardTable(reports) {
                         if (revBtn) revBtn.click();
                     }, 250);
                 };
-                actionTd.appendChild(reviewBtn);
+                flexWrapper.appendChild(reviewBtn);
             }
         }
         
@@ -542,13 +688,7 @@ window.showReportDetails = function(report) {
                 <span class="modal-detail-label">Fotos Cargadas:</span>
                 <div class="modal-photo-grid">
                     ${urls.map(url => {
-                        let directUrl = url;
-                        if (url.includes('drive.google.com')) {
-                            const match = url.match(/\/file\/d\/([^\/]+)/) || url.match(/id=([^\&]+)/);
-                            if (match) {
-                                directUrl = `https://drive.google.com/thumbnail?sz=w300&id=${match[1]}`;
-                            }
-                        }
+                        const directUrl = window.getGoogleDriveThumbnail(url);
                         return `<img src="${directUrl}" class="modal-photo-thumbnail" onclick="window.open('${url}', '_blank')" title="Clic para ampliar" />`;
                     }).join('')}
                 </div>
@@ -592,13 +732,7 @@ window.showReportDetails = function(report) {
                         <p style="font-weight:600; margin-top:0; margin-bottom:10px; font-size:12px; color:var(--mi-gray-dark);">Nuevas Fotos Subidas (Resolución):</p>
                         <div class="modal-photo-grid" style="margin-bottom:15px;">
                             ${reviewPhotos.map(url => {
-                                let directUrl = url;
-                                if (url.includes('drive.google.com')) {
-                                    const match = url.match(/\/file\/d\/([^\/]+)/) || url.match(/id=([^\&]+)/);
-                                    if (match) {
-                                        directUrl = `https://drive.google.com/thumbnail?sz=w300&id=${match[1]}`;
-                                    }
-                                }
+                                const directUrl = window.getGoogleDriveThumbnail(url);
                                 return `<img src="${directUrl}" class="modal-photo-thumbnail" onclick="window.open('${url}', '_blank')" title="Clic para ampliar" />`;
                             }).join('')}
                         </div>
@@ -679,8 +813,20 @@ window.deleteDashboardReport = async function(id) {
         });
         
         if (res && res.success) {
+            // 1. UI Optimista: Quitar el reporte de la caché local inmediatamente
+            if (Array.isArray(APP_CONFIG.dashboardReports)) {
+                APP_CONFIG.dashboardReports = APP_CONFIG.dashboardReports.filter(item => String(item.id) !== String(id));
+            }
+            
+            // 2. Forzar el re-renderizado de la tabla y stats al instante con la caché limpia
+            if (typeof renderDashboardFromData === 'function') {
+                renderDashboardFromData(APP_CONFIG.dashboardReports);
+            }
+            
+            // Mostrar el toast premium de éxito
             alert('Reporte eliminado correctamente.');
-            // Recargar el dashboard inmediatamente
+            
+            // 3. Re-sincronizar silenciosamente en segundo plano con el servidor por consistencia
             if (typeof loadDashboard === 'function') {
                 loadDashboard(); 
             }
@@ -789,13 +935,8 @@ window.showQuickBox = function(report) {
     if (fileInput) fileInput.value = '';
     if (previewContainer) previewContainer.innerHTML = '';
     
-    box.style.display = 'block';
+    box.style.display = 'flex';
     box.classList.remove('hidden');
-    
-    // Timeout de seguridad para garantizar que si se cerró un modal, el navegador recalculó el layout antes de hacer scroll
-    setTimeout(() => {
-        box.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    }, 200);
 };
 
 window.toggleResolutionArea = function() {
@@ -1024,12 +1165,7 @@ window.jumpToCreateReportForStore = function(customReport = null) {
                             wrap.dataset.url = picUrl;
 
                             // Convertir link de drive a vista previa real para el IMG
-                            let previewUrl = picUrl;
-                            const matchId = picUrl.match(/\/d\/([^\/]+)/);
-                            if (matchId && matchId[1]) {
-                                // Usamos el endpoint de thumbnail oficial que funciona universalmente en IMG
-                                previewUrl = `https://drive.google.com/thumbnail?sz=w220&id=${matchId[1]}`;
-                            }
+                            const previewUrl = window.getGoogleDriveThumbnail(picUrl);
 
                             wrap.innerHTML = `
                                 <img src="${previewUrl}" style="width: 100%; height: 100%; object-fit: cover;" onerror="this.onerror=null;this.src='https://via.placeholder.com/80x80?text=FOTO';">
@@ -1076,54 +1212,85 @@ window.cancelEditMode = function() {
 
 window.handleResolutionPhotoUpload = async function(event) {
     const input = event.target;
-    const files = input.files;
-    if (!files || files.length === 0) return;
+    const files = Array.from(input.files || []);
+    if (files.length === 0) return;
     
     const previewContainer = document.getElementById('resolve-photo-preview-container');
     const submitBtn = document.getElementById('submit-resolution-btn');
     
+    submitBtn.disabled = true;
     if (previewContainer) {
-        previewContainer.innerHTML = '<span style="color:var(--mi-orange);font-weight:500;"><i class="fa fa-spinner fa-spin"></i> Subiendo foto obligatoria a Drive...</span>';
+        previewContainer.innerHTML = `
+            <div style="color:var(--mi-orange); font-weight:600; display:flex; align-items:center; gap:8px; margin-bottom:10px; font-size:12px; width:100%;">
+                <i class="fa fa-spinner fa-spin" style="font-size:1.1rem;"></i> Subiendo ${files.length} foto(s) a Drive... Espera, por favor.
+            </div>
+        `;
     }
     
-    submitBtn.disabled = true;
-    
-    const file = files[0];
-    const reader = new FileReader();
-    reader.onload = async function(e) {
-        const base64 = e.target.result.split(',')[1];
-        const mimeType = file.type;
-        
-        const extension = file.name.split('.').pop() || 'jpg';
-        const formattedDate = new Date().toISOString().slice(0, 10);
-        const tiendaSanitized = String(window.selectedReportForQuickBox.tienda || 'Tienda').replace(/[^a-z0-9]/gi, '_');
-        const customFileName = `${tiendaSanitized}_${formattedDate}_SOLUCIONADO.${extension}`;
-        
+    let successCount = 0;
+    let failCount = 0;
+
+    // Iteramos sobre todos los archivos seleccionados por el usuario
+    for (let i = 0; i < files.length; i++) {
+        const file = files[i];
         try {
+            const isImg = file.type && file.type.startsWith('image/');
+            const base64 = await window.getCompressedBase64(file);
+            const mimeType = isImg ? 'image/jpeg' : file.type;
+            const extension = isImg ? 'jpg' : (file.name.split('.').pop() || 'bin');
+            const formattedDate = new Date().toISOString().slice(0, 10);
+            const userRaw = APP_CONFIG.currentUser?.email || 'Usuario';
+            const userClean = String(userRaw).split('@')[0].trim().toUpperCase().replace(/[^A-Z0-9]/g, '_');
+            const tiendaSanitized = String(window.selectedReportForQuickBox?.tienda || 'Tienda').trim().toUpperCase().replace(/[^A-Z0-9]/g, '_');
+            
+            // Sufijo de conteo si hay varias fotos para mantener el orden lógico y evitar sobreescrituras fortuitas
+            const uniqueSuffix = files.length > 1 ? `_${i + 1}` : '';
+            const customFileName = `${userClean}_${tiendaSanitized}_${formattedDate}_SOLUCIONADO${uniqueSuffix}.${extension}`;
+
             const res = await callApi({
                 action: 'uploadFile',
                 base64: base64,
                 mimeType: mimeType,
                 fileName: customFileName
             });
-            
+
             if (res && res.success && res.url) {
                 window.uploadedResolutionPhotos.push(res.url);
-                previewContainer.innerHTML = `
-                    <div style="display:flex;align-items:center;gap:6px;background:#e6f7ff;border:1px solid #91d5ff;padding:4px 10px;border-radius:4px;color:#1890ff;font-size:12px;font-weight:500;">
-                        <i class="fa fa-check-circle" style="color:#52c41a;"></i> Foto subida con éxito: ${customFileName}
-                    </div>
-                `;
-                submitBtn.disabled = false;
+                successCount++;
             } else {
-                previewContainer.innerHTML = `<span style="color:red;font-weight:500;">Error al subir: ${res.message || 'Error desconocido'}</span>`;
+                failCount++;
             }
         } catch (err) {
-            console.error(err);
-            previewContainer.innerHTML = '<span style="color:red;font-weight:500;">Error de red al subir foto.</span>';
+            console.error("Fallo de subida en iteración:", err);
+            failCount++;
         }
-    };
-    reader.readAsDataURL(file);
+    }
+
+    // Renderizamos el feedback definitivo para el usuario
+    if (previewContainer) {
+        previewContainer.innerHTML = '';
+        
+        if (successCount > 0) {
+            const successBox = document.createElement('div');
+            successBox.style.cssText = "background:#e6f7ff; border:1px solid #91d5ff; padding:8px 12px; border-radius:8px; color:#1890ff; font-size:12px; font-weight:600; margin-bottom:8px; display:flex; align-items:center; gap:8px; width:100%;";
+            successBox.innerHTML = `<i class="fa fa-check-circle" style="color:#52c41a; font-size:1.2rem;"></i> ¡${successCount} foto(s) subida(s) con éxito!`;
+            previewContainer.appendChild(successBox);
+        }
+        
+        if (failCount > 0) {
+            const errorBox = document.createElement('div');
+            errorBox.style.cssText = "background:#fff2f0; border:1px solid #ffccc7; padding:8px 12px; border-radius:8px; color:#ff4d4f; font-size:12px; font-weight:600; margin-bottom:8px; display:flex; align-items:center; gap:8px; width:100%;";
+            errorBox.innerHTML = `<i class="fa fa-exclamation-circle" style="font-size:1.2rem;"></i> ${failCount} foto(s) no se pudieron cargar.`;
+            previewContainer.appendChild(errorBox);
+        }
+    }
+
+    // Habilitamos el botón final si tenemos al menos una foto válida cargada
+    if (window.uploadedResolutionPhotos.length > 0) {
+        submitBtn.disabled = false;
+    } else {
+        submitBtn.disabled = true;
+    }
 };
 
 window.submitResolution = async function() {
@@ -1147,8 +1314,22 @@ window.submitResolution = async function() {
         
         if (res && res.success) {
             alert('¡Incidencia resuelta con éxito! Pasada a color azul (Solucionado).');
+            
+            // Ocultar modal de resolución flotante
             const box = document.getElementById('quick-detail-box');
-            if (box) box.style.display = 'none';
+            if (box) {
+                box.style.display = 'none';
+                box.classList.add('hidden');
+            }
+            
+            // Ocultar también el modal del historial subyacente si estaba abierto
+            const histModal = document.getElementById('historial-modal');
+            if (histModal) {
+                histModal.style.display = 'none';
+                histModal.classList.add('hidden');
+            }
+            
+            // Recargar dashboard para actualizar métricas y tabla
             await loadDashboard();
         } else {
             alert('Error al resolver la incidencia: ' + (res.error || 'Error desconocido'));
@@ -1306,10 +1487,11 @@ window.renderHistorialRows = function(items, isLanzamientos) {
         } 
         // --- LÓGICA ESTÁNDAR REPORTES INCIDENCIAS ---
         else {
-            actionTd.style.display = 'flex';
-            actionTd.style.gap = '8px';
-            actionTd.style.justifyContent = 'center';
-            actionTd.style.alignItems = 'center';
+            actionTd.style.display = 'table-cell'; // Asegurar modo tabla-celda puro
+            
+            const flexWrapper = document.createElement('div');
+            flexWrapper.className = 'table-actions-wrapper';
+            actionTd.appendChild(flexWrapper);
 
             // 1. Circular Button "Ver"
             const verBtn = document.createElement('button');
@@ -1321,7 +1503,7 @@ window.renderHistorialRows = function(items, isLanzamientos) {
                 modal.style.display = 'none';
                 window.showReportDetails(r);
             };
-            actionTd.appendChild(verBtn);
+            flexWrapper.appendChild(verBtn);
 
             // 2. BOTONES DE GESTIÓN UNIVERSAL: Editar (para ABIERTA y PENDIENTE) y Eliminar solo para estado ABIERTA
             if (rawEst === 'abierta' || rawEst === 'abierto' || rawEst === 'pendiente') {
@@ -1336,7 +1518,7 @@ window.renderHistorialRows = function(items, isLanzamientos) {
                     modal.style.display = 'none';
                     window.jumpToCreateReportForStore(r); 
                 };
-                actionTd.appendChild(editBtn);
+                flexWrapper.appendChild(editBtn);
 
                 if (rawEst === 'abierta' || rawEst === 'abierto') {
                     // Botón Eliminar (Basura roja)
@@ -1347,12 +1529,12 @@ window.renderHistorialRows = function(items, isLanzamientos) {
                     delBtn.title = 'Eliminar este reporte permanentemente';
                     delBtn.onclick = async (e) => {
                         e.stopPropagation();
-                        if (confirm('¿Seguro que deseas ELIMINAR este reporte permanentemente? Esta acción no se puede deshacer.')) {
+                        if (await window.showConfirm('¿Eliminar Reporte?', '¿Seguro que deseas ELIMINAR este reporte permanentemente? Esta acción no se puede deshacer.', true)) {
                             modal.style.display = 'none';
                             await window.deleteDashboardReport(r.id);
                         }
                     };
-                    actionTd.appendChild(delBtn);
+                    flexWrapper.appendChild(delBtn);
                 }
             }
             
@@ -1365,10 +1547,9 @@ window.renderHistorialRows = function(items, isLanzamientos) {
                 resBtn.title = 'Marcar como Solucionado';
                 resBtn.onclick = (e) => {
                     e.stopPropagation();
-                    modal.style.display = 'none';
                     window.showQuickBox(r);
                 };
-                actionTd.appendChild(resBtn);
+                flexWrapper.appendChild(resBtn);
             }
             
             // 4. Permisos Admin
@@ -1386,7 +1567,7 @@ window.renderHistorialRows = function(items, isLanzamientos) {
                         modal.style.display = 'none';
                         await window.changeIncidentStatus(r.id, 'Pendiente');
                     };
-                    actionTd.appendChild(repBtn);
+                    flexWrapper.appendChild(repBtn);
                 } else if (rawEst === 'solucionado') {
                     const revBtn = document.createElement('button');
                     revBtn.className = 'action-btn-circle';
@@ -1402,7 +1583,7 @@ window.renderHistorialRows = function(items, isLanzamientos) {
                             if (adminRev) adminRev.click();
                         }, 250);
                     };
-                    actionTd.appendChild(revBtn);
+                    flexWrapper.appendChild(revBtn);
                 }
             }
         }
@@ -1475,7 +1656,7 @@ window.filterToIncidents = function() {
 
 window.filterToAllReports = function() {
     if (!APP_CONFIG.dashboardReports) return;
-    window.showHistorialModal('Historial de Reportes Generales', APP_CONFIG.dashboardReports, false);
+    window.showHistorialModal('Historial de Reportes Totales', APP_CONFIG.dashboardReports, false);
 };
 
 async function loadLaunchesForDashboard() {
@@ -1705,6 +1886,11 @@ function startApp(forceDashboard = false) {
             link.classList.remove('active');
         }
     });
+    
+    // Pre-cargar correspondencia en segundo plano para hidratar badge de mensajes
+    setTimeout(() => {
+        if (typeof window.loadUserInbox === 'function') window.loadUserInbox();
+    }, 1000);
 }
 
 function filterStoresByAccount(type, cuenta) {
@@ -2145,19 +2331,21 @@ async function handleIncidentPhotos(input, type) {
         container.appendChild(wrapper);
         
         try {
-            const ext = file.name.split('.').pop().toLowerCase() || 'jpg';
-            const base64 = await fileToBase64(file);
+            const isImg = file.type && file.type.startsWith('image/');
+            const ext = isImg ? 'jpg' : (file.name.split('.').pop().toLowerCase() || 'bin');
+            const base64 = await window.getCompressedBase64(file);
+            const userRaw = APP_CONFIG.currentUser?.email || 'Usuario';
+            const userClean = String(userRaw).split('@')[0].trim().toUpperCase().replace(/[^A-Z0-9]/g, '_');
             const storeRaw = APP_CONFIG.currentReport?.centro || 'Tienda';
-            const storeClean = String(storeRaw).trim().toUpperCase().replace(/[^A-Z0-9]/g, '_').substring(0, 30);
-            const catLabel = type === 'furniture' ? 'MOBILIARIO' : 'DISPOSITIVO';
+            const storeClean = String(storeRaw).trim().toUpperCase().replace(/[^A-Z0-9]/g, '_');
             const dateStr = new Date().toISOString().slice(0, 10);
             const shortTime = Date.now().toString().slice(-4);
-            const customFileName = `${storeClean}_${catLabel}_${dateStr}_${shortTime}.${ext}`;
+            const customFileName = `${userClean}_${storeClean}_${dateStr}_INCIDENCIA_${shortTime}.${ext}`;
 
             const uploadRes = await callApi({
                 action: 'uploadFile',
                 fileName: customFileName,
-                mimeType: file.type || 'image/jpeg',
+                mimeType: isImg ? 'image/jpeg' : (file.type || 'image/jpeg'),
                 base64: base64
             });
             
@@ -2494,7 +2682,7 @@ async function callApi(data) {
         return mockApi(data);
     }
 
-    const isRead = !['submitReport', 'uploadFile', 'submitLaunchChecklist', 'login', 'resolveIncident', 'deleteReport'].includes(data.action);
+    const isRead = !['submitReport', 'uploadFile', 'submitLaunchChecklist', 'login', 'resolveIncident', 'deleteReport', 'sendMessage', 'markMessageRead', 'deleteLaunchValidation', 'updateLaunchValidation', 'getMessages', 'getMessagingUsers'].includes(data.action);
 
     if (isRead) {
         // ESTRATEGIA HÍBRIDA INTELIGENTE V5
@@ -2505,6 +2693,8 @@ async function callApi(data) {
             for (let key in data) {
                 queryParams.push(encodeURIComponent(key) + '=' + encodeURIComponent(data[key]));
             }
+            // Cache Buster para forzar lectura real sin dependencias de CDNs intermedias
+            queryParams.push('_nocache=' + Date.now());
             const fullUrl = queryUrl + queryParams.join('&');
 
             console.log('📡 Probando Fetch Nativo ->', data.action);
@@ -2559,6 +2749,7 @@ async function callApi(data) {
                     params.push(encodeURIComponent(key) + '=' + encodeURIComponent(data[key]));
                 }
                 params.push('callback=' + callbackName);
+                params.push('_nocache=' + Date.now()); // Evitar cacheo de la etiqueta de script
                 
                 script.src = url + params.join('&');
                 document.body.appendChild(script);
@@ -2889,13 +3080,26 @@ window.loadLaunchStores = async function() {
             });
             if (launch) {
                 const keys = Object.keys(launch);
-                let cKey = keys.find(k => k.toLowerCase().includes('cuenta') || k.toLowerCase().includes('cuentas'));
-                if (!cKey && keys.length > 1) cKey = keys[1];
+                // Búsqueda híbrida inteligente: intentamos columna de Tiendas y si no caemos a Cuentas
+                const tKey = keys.find(k => k.toLowerCase().includes('tienda') || k.toLowerCase().includes('tiendas'));
+                const cKey = keys.find(k => k.toLowerCase().includes('cuenta') || k.toLowerCase().includes('cuentas'));
                 
-                const cuentaVal = cKey ? String(launch[cKey]) : '';
-                if (cuentaVal) {
-                    const allowedAccounts = String(cuentaVal).split(',').map(s => s.trim().toLowerCase());
-                    tiendas = tiendas.filter(t => t.cuenta && allowedAccounts.includes(t.cuenta.toLowerCase()));
+                if (tKey) {
+                    const tiendasVal = String(launch[tKey] || '').trim();
+                    if (tiendasVal) {
+                        const allowedStores = tiendasVal.split(',').map(s => s.trim().toLowerCase());
+                        tiendas = tiendas.filter(t => {
+                            const nameMatch = t.nombre && allowedStores.includes(String(t.nombre).trim().toLowerCase());
+                            const rmsMatch = t.rms && allowedStores.includes(String(t.rms).trim().toLowerCase());
+                            return nameMatch || rmsMatch;
+                        });
+                    }
+                } else if (cKey) {
+                    const cuentaVal = String(launch[cKey] || '').trim();
+                    if (cuentaVal) {
+                        const allowedAccounts = cuentaVal.split(',').map(s => s.trim().toLowerCase());
+                        tiendas = tiendas.filter(t => t.cuenta && allowedAccounts.includes(String(t.cuenta).trim().toLowerCase()));
+                    }
                 }
             }
         }
@@ -3126,18 +3330,21 @@ window.handleLaunchPhotos = async function(input, maxFiles = 99) {
         container.appendChild(wrapper);
         
         try {
-            const ext = file.name.split('.').pop().toLowerCase() || 'jpg';
-            const base64 = await fileToBase64(file);
+            const isImg = file.type && file.type.startsWith('image/');
+            const ext = isImg ? 'jpg' : (file.name.split('.').pop().toLowerCase() || 'bin');
+            const base64 = await window.getCompressedBase64(file);
+            const userRaw = APP_CONFIG.currentUser?.email || 'Usuario';
+            const userClean = String(userRaw).split('@')[0].trim().toUpperCase().replace(/[^A-Z0-9]/g, '_');
             const storeRaw = APP_CONFIG.currentReport?.centro || 'Tienda';
-            const storeClean = String(storeRaw).trim().toUpperCase().replace(/[^A-Z0-9]/g, '_').substring(0, 30);
+            const storeClean = String(storeRaw).trim().toUpperCase().replace(/[^A-Z0-9]/g, '_');
             const dateStr = new Date().toISOString().slice(0, 10);
             const shortTime = Date.now().toString().slice(-4);
-            const customFileName = `${storeClean}_LANZAMIENTO_${dateStr}_${shortTime}.${ext}`;
+            const customFileName = `${userClean}_${storeClean}_${dateStr}_LANZAMIENTO_${shortTime}.${ext}`;
 
             const uploadRes = await callApi({
                 action: 'uploadFile',
                 fileName: customFileName,
-                mimeType: file.type || 'image/jpeg',
+                mimeType: isImg ? 'image/jpeg' : (file.type || 'image/jpeg'),
                 base64: base64
             });
             
@@ -3319,11 +3526,7 @@ window.openLaunchValidationEditor = function(meta, mode) {
             const grid = document.createElement('div');
             grid.className = 'modal-photo-grid';
             grid.innerHTML = urls.map(u => {
-                let final = u;
-                if (u.includes('drive.google.com')) {
-                     const match = u.match(/\/file\/d\/([^\/]+)/) || u.match(/id=([^\&]+)/);
-                      if (match) final = `https://drive.google.com/thumbnail?sz=w300&id=${match[1]}`;
-                }
+                const final = window.getGoogleDriveThumbnail(u);
                 return `<img src="${final}" style="width:60px; height:60px; object-fit:cover; border-radius:4px; cursor:pointer; border:1px solid #ccc;" onclick="window.open('${u}','_blank')" title="Ver original"/>`;
             }).join('');
             currPhotos.appendChild(grid);
@@ -3373,19 +3576,27 @@ window.handleEditValPhotoUpload = async function(input) {
     
     for (let f of files) {
         try {
-            const b64 = await toBase64(f);
+            const isImg = f.type && f.type.startsWith('image/');
+            const base64 = await window.getCompressedBase64(f);
+            const userRaw = APP_CONFIG.currentUser?.email || 'Usuario';
+            const userClean = String(userRaw).split('@')[0].trim().toUpperCase().replace(/[^A-Z0-9]/g, '_');
+            const storeClean = String(tienda).trim().toUpperCase().replace(/[^A-Z0-9]/g, '_');
+            const dateStr = new Date().toISOString().slice(0, 10);
+            const shortTime = Date.now().toString().slice(-4);
+            const ext = isImg ? 'jpg' : (f.name.split('.').pop() || 'bin');
+            
             const res = await callApi({
                 action: 'uploadFile',
-                file: b64.split(',')[1],
-                mimeType: f.type,
-                fileName: `${tienda.replace(/[^a-z0-9]/gi,'_')}_EDIT_${Date.now()}_${f.name}`
+                base64: base64,
+                mimeType: isImg ? 'image/jpeg' : (f.type || 'image/jpeg'),
+                fileName: `${userClean}_${storeClean}_${dateStr}_LANZAMIENTO_EDIT_${shortTime}.${ext}`
             });
             
             if (res && res.success) {
                 window.editValPhotosBuffer.push(res.url);
                 const thumb = document.createElement('div');
                 thumb.style.cssText = 'width:50px; height:50px; background:#eee; position:relative; border-radius:4px; border:1px solid #2ecc71; overflow:hidden;';
-                thumb.innerHTML = `<img src="${res.url.includes('drive.google.com') ? `https://drive.google.com/thumbnail?sz=w300&id=${res.url.match(/\/file\/d\/([^\/]+)/)?.[1]}` : res.url}" style="width:100%; height:100%; object-fit:cover;">`;
+                thumb.innerHTML = `<img src="${window.getGoogleDriveThumbnail(res.url)}" style="width:100%; height:100%; object-fit:cover;">`;
                 container.appendChild(thumb);
             }
         } catch (e) {
@@ -3457,7 +3668,7 @@ window.handleEditValidationSubmit = async function(e) {
  */
 window.deleteLaunchValidationHandler = async function(id) {
     if (!id) return;
-    const conf = confirm("¿Estás seguro de que deseas eliminar este reporte permanentemente? Esta acción borrará la fila del Excel.");
+    const conf = await window.showConfirm("¿Eliminar Validación?", "¿Estás seguro de que deseas eliminar este reporte permanentemente? Esta acción borrará la fila del Excel.", true);
     if (!conf) return;
     
     try {
@@ -3572,6 +3783,7 @@ function checkStatusChanges(reports) {
                 newState: currentEst,
                 tipo: r.tipo || 'Reporte',
                 timestamp: new Date().toLocaleString(),
+                timeMs: Date.now(),
                 read: false
             };
             foundChanges.push(change);
@@ -3631,15 +3843,28 @@ function triggerNotificationAlert(changes) {
 }
 
 function updateNavBadge() {
-    const notifications = JSON.parse(localStorage.getItem('xiaomi_notifications') || '[]');
-    const unreadCount = notifications.filter(n => !n.read).length;
     const badge = document.getElementById('msg-nav-badge');
     if (!badge) return;
     
-    if (unreadCount > 0) {
-        badge.textContent = unreadCount > 99 ? '99+' : unreadCount;
+    // 1. Mensajes de chat no leídos de la base de datos
+    const currentUser = String(APP_CONFIG.currentUser?.email || '').toLowerCase();
+    const unreadChatCount = (window.inboxMessages || []).filter(m => 
+        String(m.destinatario || '').toLowerCase() === currentUser && 
+        String(m.leido || '').trim().toLowerCase() !== 'leído'
+    ).length;
+    
+    // 2. Notificaciones del sistema no leídas de localStorage
+    const systemNotifs = JSON.parse(localStorage.getItem('xiaomi_notifications') || '[]');
+    const unreadSystemCount = systemNotifs.filter(n => !n.read).length;
+    
+    const totalCount = unreadChatCount + unreadSystemCount;
+    
+    if (totalCount > 0) {
+        badge.textContent = totalCount > 99 ? '99+' : totalCount;
+        badge.style.display = 'flex';
         badge.classList.add('active');
     } else {
+        badge.style.display = 'none';
         badge.classList.remove('active');
     }
 }
@@ -3765,3 +3990,391 @@ window.markAllNotificationsRead = function() {
 
 // Iniciar chequeo al arrancar (Badge)
 setTimeout(updateNavBadge, 1000);
+
+
+// ==============================================================
+// --- MÓDULO DE MENSAJERÍA INTERNA (ANTIGRAVITY PREMIUM) ---
+// ==============================================================
+
+window.inboxMessages = [];
+window.activeInboxFilter = 'recibidos';
+
+window.updateCharCounter = function(el) {
+    const counter = document.getElementById('msg-char-counter');
+    if (counter) {
+        counter.textContent = `${el.value.length} / 200`;
+        if (el.value.length >= 200) {
+            counter.style.color = '#ff4d4f';
+        } else {
+            counter.style.color = '#aaa';
+        }
+    }
+};
+
+window.loadMessagingUsers = async function() {
+    const select = document.getElementById('msg-destinatario');
+    if (!select) return;
+    
+    try {
+        const res = await callApi({ action: 'getMessagingUsers' });
+        if (res && res.success && res.users) {
+            const userRole = String(APP_CONFIG.currentUser?.rol || '').trim().toUpperCase();
+            const isCurrentUserAdmin = userRole === 'ADMIN' || userRole === 'ADMINISTRADOR';
+            
+            // Si el usuario actual es Admin, carga a los usuarios Estándar.
+            // Si el usuario actual es Estándar, carga a los Admins.
+            const filteredUsers = res.users.filter(u => {
+                const targetIsAdmin = u.rol === 'ADMIN' || u.rol === 'ADMINISTRADOR';
+                if (isCurrentUserAdmin) {
+                    // Mostrar todos excepto Admins (para mandarle a estandars)
+                    return !targetIsAdmin;
+                } else {
+                    // Mostrar solo Admins
+                    return targetIsAdmin;
+                }
+            });
+            
+            select.innerHTML = '<option value="" disabled selected>Selecciona destinatario...</option>';
+            filteredUsers.forEach(u => {
+                const opt = document.createElement('option');
+                opt.value = u.email;
+                opt.textContent = `${u.email} (${isCurrentUserAdmin ? 'Estándar' : 'Administrador'})`;
+                select.appendChild(opt);
+            });
+            
+            if (filteredUsers.length === 0) {
+                select.innerHTML = '<option value="" disabled selected>Sin destinatarios disponibles.</option>';
+            }
+        } else {
+            const errReason = res ? (res.message || res.error || JSON.stringify(res)) : 'Sin respuesta del servidor';
+            console.error("Error de API:", errReason);
+            select.innerHTML = `<option value="" disabled selected>Error: ${errReason}</option>`;
+        }
+    } catch (err) {
+        console.error("Excepción de carga de contactos:", err);
+        select.innerHTML = `<option value="" disabled selected>Error de red: ${err.message || err}</option>`;
+    }
+};
+
+window.handleSendMessage = async function(e) {
+    e.preventDefault();
+    const destInput = document.getElementById('msg-destinatario');
+    const textInput = document.getElementById('msg-texto');
+    const submitBtn = document.getElementById('msg-submit-btn');
+    
+    if (!destInput.value || !textInput.value.trim()) {
+        alert("Por favor completa todos los campos.");
+        return;
+    }
+    
+    const originalContent = submitBtn.innerHTML;
+    submitBtn.disabled = true;
+    submitBtn.innerHTML = '<i class="fa fa-spinner fa-spin"></i> Enviando...';
+    
+    try {
+        const res = await callApi({
+            action: 'sendMessage',
+            remitente: APP_CONFIG.currentUser.email,
+            destinatario: destInput.value,
+            mensaje: textInput.value.trim()
+        });
+        
+        if (res && res.success) {
+            alert("¡Mensaje enviado con éxito!");
+            textInput.value = '';
+            window.updateCharCounter(textInput);
+            // Recargar bandeja automáticamente
+            await window.loadUserInbox();
+        } else {
+            alert("Error al enviar mensaje: " + (res.error || 'Error desconocido'));
+        }
+    } catch (err) {
+        console.error(err);
+        alert("Error al comunicar con el servidor de mensajería.");
+    } finally {
+        submitBtn.disabled = false;
+        submitBtn.innerHTML = originalContent;
+    }
+};
+
+window.loadUserInbox = async function() {
+    const loader = document.getElementById('inbox-loader');
+    const list = document.getElementById('inbox-list');
+    const fallback = document.getElementById('no-inbox-fallback');
+    
+    if (loader) loader.style.display = 'block';
+    if (list) list.style.display = 'none';
+    if (fallback) fallback.style.display = 'none';
+    
+    try {
+        const res = await callApi({
+            action: 'getMessages',
+            email: APP_CONFIG.currentUser.email
+        });
+        
+        if (res && res.success) {
+            window.inboxMessages = res.messages || [];
+            window.lastInboxResponse = res; // Guardamos metadatos de depuración para el panel visual
+            window.renderInboxList(window.activeInboxFilter);
+            updateNavBadge();
+        } else {
+            if (list) list.innerHTML = '<p style="color:red; text-align:center; font-size:12px;">Error cargando bandeja.</p>';
+        }
+    } catch (err) {
+        console.error("Error crítico en inbox loader:", err);
+        if (list) list.innerHTML = `
+            <div style="text-align:center; padding:20px; color:#cf1322; font-size:12px; background:#fff1f0; border:1px solid #ffa39e; border-radius:8px; margin:10px;">
+                <i class="fas fa-exclamation-circle" style="font-size:20px; margin-bottom:8px;"></i><br>
+                <strong>Error de Conexión:</strong><br>${err.message || err.toString()}<br>
+                <small style="color:#888; margin-top:5px; display:block;">Por favor reporta esta traza técnica.</small>
+            </div>
+        `;
+        if (list) list.style.display = 'block';
+    } finally {
+        if (loader) loader.style.display = 'none';
+        if (list) list.style.display = 'flex';
+    }
+};
+
+window.filterInbox = function(filterType, btn) {
+    window.activeInboxFilter = filterType;
+    
+    // Alternar estilos visuales del selector píldora
+    document.querySelectorAll('.inbox-filter-pill').forEach(p => {
+        p.style.background = 'transparent';
+        p.style.color = '#666';
+        p.style.boxShadow = 'none';
+    });
+    
+    btn.style.background = 'white';
+    btn.style.color = 'var(--mi-orange)';
+    btn.style.boxShadow = '0 2px 5px rgba(0,0,0,0.05)';
+    
+    window.renderInboxList(filterType);
+};
+
+window.renderInboxList = function(filterType) {
+    const list = document.getElementById('inbox-list');
+    const fallback = document.getElementById('no-inbox-fallback');
+    if (!list) return;
+    
+    const currentUser = String(APP_CONFIG.currentUser.email).toLowerCase();
+    
+    // --- CONSTRUCCIÓN DEL FEED AGREGADO Y CRONOLÓGICO ---
+    let combinedFeed = [];
+    
+    if (filterType === 'recibidos') {
+        // 1. Mensajes de Chat Recibidos de base de datos
+        const chatMsgs = (window.inboxMessages || [])
+            .filter(m => String(m.destinatario || '').trim().toLowerCase() === currentUser.trim())
+            .map(m => ({
+                id: m.id,
+                time: new Date(m.fecha).getTime() || 0,
+                formattedDate: isNaN(new Date(m.fecha)) ? 'Fecha Desconocida' : new Date(m.fecha).toLocaleDateString('es-ES', {day:'2-digit', month:'2-digit', year:'numeric', hour:'2-digit', minute:'2-digit'}),
+                isRead: m.leido === 'Leído',
+                type: 'chat',
+                sender: m.remitente,
+                content: m.mensaje,
+                original: m
+            }));
+            
+        // 2. Notificaciones del Sistema Locales
+        const sysNotifs = JSON.parse(localStorage.getItem('xiaomi_notifications') || '[]')
+            .map(n => {
+                let parseTime = n.timeMs || 0;
+                if (!parseTime) {
+                    const d = new Date(n.timestamp);
+                    parseTime = isNaN(d.getTime()) ? 0 : d.getTime();
+                }
+                return {
+                    id: n.id,
+                    time: parseTime,
+                    formattedDate: n.timestamp,
+                    isRead: n.read,
+                    type: 'sistema',
+                    sender: 'SISTEMA',
+                    original: n
+                };
+            });
+            
+        // Mezclar ambos arreglos y ordenar cronológicamente de más reciente a más antiguo
+        combinedFeed = [...chatMsgs, ...sysNotifs];
+        combinedFeed.sort((a, b) => b.time - a.time);
+        
+    } else {
+        // Para la pestaña Enviados, solo chat saliente del usuario activo
+        combinedFeed = (window.inboxMessages || [])
+            .filter(m => String(m.remitente || '').trim().toLowerCase() === currentUser.trim())
+            .map(m => ({
+                id: m.id,
+                time: new Date(m.fecha).getTime() || 0,
+                formattedDate: isNaN(new Date(m.fecha)) ? 'Fecha Desconocida' : new Date(m.fecha).toLocaleDateString('es-ES', {day:'2-digit', month:'2-digit', year:'numeric', hour:'2-digit', minute:'2-digit'}),
+                isRead: true, 
+                type: 'chat',
+                sender: m.destinatario,
+                content: m.mensaje,
+                original: m
+            }));
+            
+        combinedFeed.sort((a, b) => b.time - a.time);
+    }
+    
+    // Manejo de vista vacía (Producción)
+    if (combinedFeed.length === 0) {
+        list.innerHTML = '';
+        if (fallback) {
+            fallback.style.display = 'block';
+            const diagPara = fallback.querySelector('p');
+            if (diagPara) {
+                diagPara.innerHTML = '<span style="color: #999; font-size: 13px; font-weight: 500;">No hay mensajes en este filtro.</span>';
+            }
+        }
+        return;
+    }
+    if (fallback) fallback.style.display = 'none';
+    
+    // --- RENDERIZADO DINÁMICO UNIFICADO ---
+    list.innerHTML = combinedFeed.map(item => {
+        const peerLabel = filterType === 'recibidos' ? 'De:' : 'Para:';
+        
+        // CASO A: CHAT DIRECTO BIDIRECCIONAL
+        if (item.type === 'chat') {
+            const borderLeftColor = filterType === 'recibidos' ? (item.isRead ? '#ddd' : 'var(--mi-orange)') : '#1890ff';
+            const badgeBg = filterType === 'recibidos' ? (item.isRead ? '#f0f0f0' : '#fff2e8') : '#e6f7ff';
+            const badgeTextColor = filterType === 'recibidos' ? (item.isRead ? '#8c8c8c' : '#fa541c') : '#1890ff';
+            const badgeText = filterType === 'recibidos' ? (item.isRead ? 'Leído' : 'Nuevo Chat') : 'Enviado';
+            
+            const markReadTrigger = (filterType === 'recibidos' && !item.isRead) ? `onclick="window.markInboxMessageRead('${item.id}', this)"` : '';
+            const cursorStyle = (filterType === 'recibidos' && !item.isRead) ? 'cursor: pointer;' : '';
+            
+            return `
+                <div ${markReadTrigger} class="message-card chat-item" style="background:#ffffff; border-radius: 8px; padding: 14px; box-shadow: 0 2px 8px rgba(0,0,0,0.04); display:flex; flex-direction:column; gap:8px; transition:all 0.2s; ${cursorStyle} border: 1px solid #f0f0f0; border-left: 4px solid ${borderLeftColor}; margin-bottom: 10px;">
+                    <div style="display:flex; justify-content:space-between; align-items:center;">
+                        <span style="font-size:11px; font-weight:700; color:var(--mi-gray-dark); text-transform:uppercase;">
+                            ${peerLabel} <span style="color:var(--mi-black); text-transform:none; background:#f0f2f5; padding: 2px 8px; border-radius:4px; font-weight:600;">${item.sender}</span>
+                        </span>
+                        <span style="background:${badgeBg}; color:${badgeTextColor}; font-size:10px; font-weight:700; padding:2px 10px; border-radius:20px;">${badgeText}</span>
+                    </div>
+                    <p style="margin:4px 0; font-size:13px; line-height:1.5; color:#333; word-break:break-word;">${item.content}</p>
+                    <div style="display:flex; justify-content:flex-end; align-items:center;">
+                        <small style="font-size:10px; color:#aaa;"><i class="far fa-clock"></i> ${item.formattedDate}</small>
+                    </div>
+                </div>
+            `;
+        }
+        
+        // CASO B: ALERTAS DEL SISTEMA AUTOMÁTICAS
+        if (item.type === 'sistema') {
+            const n = item.original;
+            let iconClass = 'fa-exchange-alt';
+            let colorClass = '#ffa940';
+            const nState = String(n.newState || '').toUpperCase();
+            if (nState.includes('SOLUCIONADO')) { iconClass = 'fa-check-circle'; colorClass = '#52c41a'; }
+            if (nState.includes('PENDIENTE')) { iconClass = 'fa-hourglass-half'; colorClass = '#faad14'; }
+            if (nState.includes('CERRAD')) { iconClass = 'fa-lock'; colorClass = '#bfbfbf'; }
+            
+            const borderLeft = item.isRead ? '#ddd' : colorClass;
+            const unreadBg = item.isRead ? '#ffffff' : '#fafafa';
+            
+            return `
+                <div class="message-card msg-notification-item ${item.isRead ? '' : 'unread'}" style="background:${unreadBg}; border-radius: 8px; padding: 14px; box-shadow: 0 2px 8px rgba(0,0,0,0.04); display:flex; gap:14px; border: 1px solid #f0f0f0; border-left: 4px solid ${borderLeft}; margin-bottom: 10px;">
+                    <div style="width:36px; height:36px; border-radius:50%; background:${colorClass}1a; color:${colorClass}; display:flex; align-items:center; justify-content:center; flex-shrink:0; font-size:16px;">
+                        <i class="fas ${iconClass}"></i>
+                    </div>
+                    <div style="flex:1; display:flex; flex-direction:column; gap:4px;">
+                        <div style="display:flex; justify-content:space-between; align-items:center;">
+                            <span style="font-size:11px; font-weight:700; color:var(--mi-gray-dark); text-transform:uppercase;">
+                                De: <span style="color:#c41d7f; background:#fff0f6; padding: 2px 8px; border-radius:4px; font-weight:700; border: 1px solid #ffd6e7;">${item.sender}</span>
+                            </span>
+                            <span style="background:#f5f5f5; color:#8c8c8c; font-size:10px; font-weight:700; padding:2px 10px; border-radius:20px;">Sistema</span>
+                        </div>
+                        <strong style="font-size:13px; color:var(--mi-black); margin-top:2px;">Cambio de Estado: ${n.newState}</strong>
+                        <p style="margin:2px 0; font-size:12px; color:#555; line-height:1.4;">
+                            La incidencia en <strong>${n.tienda}</strong> pasó de <span style="text-decoration: line-through; opacity: 0.7;">${n.oldState}</span> a <strong>${n.newState}</strong>.
+                        </p>
+                        <small style="display:block; color:var(--mi-gray-dark); font-size:10px; margin-bottom: 4px;">Categoría: ${n.tipo}</small>
+                        
+                        <div style="display:flex; justify-content:space-between; align-items:center; margin-top:8px;">
+                            <div style="display:flex; gap:8px;">
+                                <button onclick="window.handleSystemGo('${n.tipo}', '${n.lanzamientoId || ''}', '${n.tienda}')" style="background:var(--mi-orange); color:white; border:none; padding:6px 12px; border-radius:4px; font-size:10px; font-weight:600; cursor:pointer; display:flex; align-items:center; gap:4px;">
+                                    <i class="fas fa-external-link-alt"></i> Ir a Sección
+                                </button>
+                                ${!item.isRead ? `
+                                <button onclick="window.handleSystemMarkRead('${n.id}')" style="background:#ffffff; color:#555; border:1px solid #ddd; padding:6px 12px; border-radius:4px; font-size:10px; font-weight:600; cursor:pointer; display:flex; align-items:center; gap:4px;">
+                                    <i class="fas fa-check"></i> Leído
+                                </button>
+                                ` : ''}
+                            </div>
+                            <small style="font-size:10px; color:#aaa;"><i class="far fa-clock"></i> ${item.formattedDate}</small>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+    }).join('');
+};
+
+window.markInboxMessageRead = async function(msgId, cardEl) {
+    // Optimistic UI: marcado instantáneo sin lag visual
+    if (cardEl) {
+        cardEl.style.borderColor = '#f0f0f0';
+        cardEl.style.borderLeftColor = '#ddd';
+        cardEl.style.cursor = 'default';
+        const badge = cardEl.querySelector('span[style*="background"]');
+        if (badge) {
+            badge.style.background = '#f0f0f0';
+            badge.style.color = '#8c8c8c';
+            badge.textContent = 'Leído';
+        }
+        cardEl.removeAttribute('onclick');
+    }
+    
+    const localMsg = window.inboxMessages.find(m => m.id === msgId);
+    if (localMsg) localMsg.leido = 'Leído';
+    
+    // Actualizar el contador visual de la barra de navegación instantáneamente
+    updateNavBadge();
+    
+    try {
+        await callApi({
+            action: 'markMessageRead',
+            messageId: msgId
+        });
+    } catch (err) {
+        console.error("Fallo al persistir leído en servidor:", err);
+    }
+};
+
+
+// ==============================================================
+// --- CALLBACKS GLOBALES PARA NOTIFICACIONES DE SISTEMA ---
+// ==============================================================
+
+window.handleSystemGo = function(tipo, lanzamientoId, tienda) {
+    if (String(tipo).toLowerCase().includes('lanzamiento')) {
+        window._pendingQuickLaunch = lanzamientoId || null;
+        window._pendingQuickStore = tienda || null;
+        showView('lanzamientos');
+    } else {
+        showView('dashboard');
+        setTimeout(() => {
+            const targetRow = Array.from(document.querySelectorAll('#recent-reports-table tbody tr'))
+                                  .find(tr => tr.innerText.includes(tienda));
+            if (targetRow) targetRow.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }, 800);
+    }
+};
+
+window.handleSystemMarkRead = function(id) {
+    let notifications = JSON.parse(localStorage.getItem('xiaomi_notifications') || '[]');
+    const idx = notifications.findIndex(n => n.id === id);
+    if (idx !== -1) {
+        notifications[idx].read = true;
+        localStorage.setItem('xiaomi_notifications', JSON.stringify(notifications));
+    }
+    // Recalcular y refrescar UI instantáneamente
+    updateNavBadge();
+    window.renderInboxList('recibidos');
+};
+
+

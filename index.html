@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Xiaomi Visual | Dashboard</title>
-    <link rel="stylesheet" href="style_v127.css">
+    <link rel="stylesheet" href="style_v128.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script>
@@ -101,7 +101,7 @@
                     <!-- Big Hero Left: Total Global Reports -->
                     <div class="hero-stat-card" onclick="openDashboardModal('all')" style="cursor: pointer; background: linear-gradient(135deg, #fff 0%, #f9f9f9 100%); padding: 2rem;">
                         <span id="stat-total" class="hero-val" style="color: var(--mi-black);">0</span>
-                        <small style="margin-top: 1rem; font-weight: 600; color: var(--mi-orange); letter-spacing: 0.5px;">Reportes Generales</small>
+                        <small style="margin-top: 1rem; font-weight: 600; color: var(--mi-orange); letter-spacing: 0.5px;">Reportes Totales</small>
                     </div>
 
                     <!-- Quad Grid Right: Incident Focus (Remapped to User Spec) -->
@@ -437,70 +437,67 @@
                     </div>
                 </div>
 
-                <!-- Cuadro de Desglose y Edición de Estado -->
-                <div id="quick-detail-box" class="procedure-container hidden" style="margin-bottom: 3rem; border-left: 5px solid var(--mi-orange); display: none;">
-                    <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 1.5rem;">
-                        <div>
-                            <h3 style="margin: 0; font-size: 1.25rem;">Resumen de Selección</h3>
-                            <small style="color: var(--mi-gray-dark);">Ver u operar la incidencia seleccionada</small>
-                        </div>
-                        <span id="quick-detail-status-badge" style="padding: 0.3rem 0.8rem; border-radius: 50px; font-weight: 600; font-size: 11px; text-transform: uppercase;">ABIERTA</span>
-                    </div>
-                    
-                    <div class="form-grid-2col" style="gap: 1.5rem; margin-bottom: 1.5rem;">
-                        <div>
-                            <p style="margin: 0 0 0.2rem; font-size: 11px; font-weight: 600; color: var(--mi-gray-dark); text-transform: uppercase;">Tienda / Centro</p>
-                            <span id="quick-detail-tienda" style="font-weight: 500; font-size: 14px;">-</span>
-                        </div>
-                        <div>
-                            <p style="margin: 0 0 0.2rem; font-size: 11px; font-weight: 600; color: var(--mi-gray-dark); text-transform: uppercase;">Categoría / Ruta</p>
-                            <span id="quick-detail-tipo" style="font-weight: 500; font-size: 14px;">-</span>
-                        </div>
-                    </div>
-                    
-                    <div style="display: flex; gap: 12px; flex-wrap: wrap;">
-                        <button class="btn btn-secondary" onclick="openDetailsModalFromQuickBox()" style="background: var(--mi-gray-light); color: var(--mi-dark); font-weight: 500; border: none; padding: 0.6rem 1.2rem; border-radius: 6px; cursor: pointer; display: flex; align-items: center; gap: 6px;">
-                            <i class="fa fa-eye"></i> Ver Detalles Completos
-                        </button>
-                        
-                        <!-- BOTÓN INYECTADO: INCIDENCIA (EDITAR) -->
-                        <button id="quick-detail-edit-btn" class="btn" onclick="editReportFromQuickBox()" style="background: #00bcd4; color: white; font-weight: 500; border: none; padding: 0.6rem 1.2rem; border-radius: 6px; cursor: pointer; display: none; align-items: center; gap: 6px;">
-                            <i class="fa fa-pencil-alt"></i> Incidencia
-                        </button>
-                        
-                        <button id="quick-detail-resolve-btn" class="btn" onclick="toggleResolutionArea()" style="background: #1890ff; color: white; font-weight: 500; border: none; padding: 0.6rem 1.2rem; border-radius: 6px; cursor: pointer; display: none; align-items: center; gap: 6px;">
-                            <i class="fa fa-check-circle"></i> Incidencia Resuelta
-                        </button>
-                    </div>
-                    
-                    <div id="quick-detail-resolution-area" style="margin-top: 1.5rem; border-top: 1px dashed var(--mi-border); padding-top: 1.5rem; display: none;">
-                        <h4 style="margin-top: 0; margin-bottom: 1rem; color: #1890ff; font-size: 14px;">Cargar evidencias para marcar como Solucionado</h4>
-                        <div class="form-group" style="margin-bottom: 1rem;">
-                            <label style="font-weight: 600; margin-bottom: 0.5rem; display: block;">Subir Foto de Solución (Obligatorio) <span style="color:red;">*</span></label>
-                            <input type="file" id="resolve-photo-input" accept="image/*" class="form-control" onchange="handleResolutionPhotoUpload(event)" style="padding: 10px;" />
-                        </div>
-                        <div id="resolve-photo-preview-container" style="display: flex; gap: 8px; margin-bottom: 1rem; flex-wrap: wrap;"></div>
-                        <button id="submit-resolution-btn" class="btn" onclick="submitResolution()" style="background: #1890ff; color: white; width: 100%; padding: 0.8rem; border-radius: 6px; border: none; font-weight: 600; cursor: pointer;" disabled>
-                            Confirmar Solucionado
-                        </button>
-                    </div>
-                </div>
             </section>
 
             <!-- View: Mensajes & Notificaciones -->
             <section id="view-mensajes" class="sub-view hidden">
-                <div class="procedure-container">
-                    <div style="display: flex; justify-content: flex-end; align-items: center; margin-bottom: 1.5rem;">
-                        <button onclick="markAllNotificationsRead()" style="background: #f5f5f5; border: 1px solid #ddd; border-radius: 30px; padding: 6px 16px; font-size: 12px; cursor: pointer; font-weight: 600;">Marcar todos leídos</button>
+                <div class="form-grid-2col" style="gap: 2rem; margin-top: 1rem; grid-template-columns: 1fr 2fr;">
+                    <!-- COLUMNA IZQUIERDA: REDACTAR -->
+                    <div class="procedure-container" style="margin-bottom: 0; align-self: flex-start; position: sticky; top: 20px;">
+                        <h3 style="margin-top: 0; margin-bottom: 1.5rem; font-size: 1.1rem; color: var(--mi-black); border-bottom: 2px solid var(--mi-orange); padding-bottom: 8px; display: inline-block;">
+                            <i class="fas fa-pen-nib" style="color: var(--mi-orange); margin-right: 6px;"></i> Redactar Mensaje
+                        </h3>
+                        
+                        <form id="msg-compose-form" onsubmit="handleSendMessage(event)">
+                            <div class="form-group" style="margin-bottom: 1.25rem;">
+                                <label style="font-weight:600; margin-bottom: 0.4rem; font-size: 12px; display: block; color: var(--mi-gray-dark);">Enviar a:</label>
+                                <select id="msg-destinatario" class="form-control" required style="width: 100%; height: 42px; border-radius: 8px; border: 1px solid var(--mi-border); background: #fafafa;">
+                                    <option value="" disabled selected>Cargando destinatarios...</option>
+                                </select>
+                            </div>
+                            
+                            <div class="form-group" style="margin-bottom: 1.5rem; position: relative;">
+                                <label style="font-weight:600; margin-bottom: 0.4rem; font-size: 12px; display: block; color: var(--mi-gray-dark);">Contenido (Max. 200 caracteres):</label>
+                                <textarea id="msg-texto" class="form-control" required maxlength="200" oninput="updateCharCounter(this)" placeholder="Escribe tu mensaje aquí..." style="width: 100%; height: 120px; border-radius: 8px; border: 1px solid var(--mi-border); padding: 12px; font-family: inherit; resize: none; background: #fafafa; font-size:13px;"></textarea>
+                                <small id="msg-char-counter" style="position: absolute; bottom: -18px; right: 5px; font-size: 10px; color: #aaa; font-weight: 600;">0 / 200</small>
+                            </div>
+                            
+                            <button type="submit" id="msg-submit-btn" class="btn-primary" style="background: var(--mi-orange); width: 100%; height: 42px; border-radius: 8px; font-weight: 600; cursor: pointer; border: none; display: flex; align-items: center; justify-content: center; gap: 8px; color: white; transition: transform 0.15s ease;">
+                                <i class="fas fa-paper-plane"></i> Enviar Mensaje
+                            </button>
+                        </form>
                     </div>
                     
-                    <div id="no-msgs-fallback" style="text-align: center; padding: 3rem 0; display: none;">
-                        <i class="fas fa-envelope-open-text" style="font-size: 48px; color: #e0e0e0; margin-bottom: 1rem;"></i>
-                        <p style="color: #999; font-size: 14px;">No tienes notificaciones pendientes.</p>
-                    </div>
-                    
-                    <div id="notifications-list" style="display: flex; flex-direction: column; gap: 16px;">
-                        <!-- Se cargarán dinámicamente vía JS -->
+                    <!-- COLUMNA DERECHA: BANDEJA DE ENTRADA -->
+                    <div class="procedure-container" style="margin-bottom: 0; min-height: 400px;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--mi-border); padding-bottom: 1rem; margin-bottom: 1.5rem;">
+                            <h3 style="margin: 0; font-size: 1.1rem;">Bandeja de Mensajes</h3>
+                            
+                            <!-- Filtros Píldora -->
+                            <div style="display: flex; gap: 8px; background: #f0f2f5; padding: 4px; border-radius: 30px;">
+                                <button type="button" onclick="filterInbox('recibidos', this)" class="inbox-filter-pill active" style="border: none; background: white; padding: 5px 14px; border-radius: 20px; font-size: 11px; font-weight: 600; cursor: pointer; box-shadow: 0 2px 5px rgba(0,0,0,0.05); color: var(--mi-orange);">Recibidos</button>
+                                <button type="button" onclick="filterInbox('enviados', this)" class="inbox-filter-pill" style="border: none; background: transparent; padding: 5px 14px; border-radius: 20px; font-size: 11px; font-weight: 600; cursor: pointer; color: #666;">Enviados</button>
+                            </div>
+                        </div>
+                        
+                        <!-- Fallback sin mensajes -->
+                        <div id="no-inbox-fallback" style="text-align: center; padding: 5rem 0; display: none;">
+                            <div style="width: 70px; height: 70px; background: #f5f5f5; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 1.2rem;">
+                                <i class="fas fa-inbox" style="font-size: 32px; color: #ccc;"></i>
+                            </div>
+                            <p style="color: #999; font-size: 13px; font-weight: 500; margin: 0;">No hay mensajes en este filtro.</p>
+                        </div>
+                        
+                        <!-- Cargador Visual -->
+                        <div id="inbox-loader" style="text-align: center; padding: 4rem 0;">
+                            <i class="fa fa-spinner fa-spin" style="font-size: 2rem; color: var(--mi-orange); margin-bottom: 10px;"></i>
+                            <p style="color:#888; font-size:12px; font-weight:600;">Consultando correspondencia...</p>
+                        </div>
+                        
+                        <!-- Listado Dinámico -->
+                        <div id="inbox-list" style="display: flex; flex-direction: column; gap: 12px; max-height: 600px; overflow-y: auto; padding-right: 5px;">
+                            <!-- Mensajes insertados por JS -->
+                        </div>
                     </div>
                 </div>
             </section>
@@ -758,9 +755,137 @@
     .modal-photo-thumbnail:hover {
         transform: scale(1.05);
     }
+
+    /* --- TOAST BANNER LATERAL --- */
+    #toast-container {
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        z-index: 10000;
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+        pointer-events: none;
+        max-width: 380px;
+        width: 90%;
+    }
+    .premium-toast {
+        pointer-events: auto;
+        background: #ffffff;
+        border-left: 5px solid var(--mi-orange);
+        border-radius: 10px;
+        padding: 16px 20px;
+        box-shadow: 0 12px 35px rgba(0,0,0,0.15);
+        display: flex;
+        align-items: flex-start;
+        gap: 14px;
+        animation: slideInRight 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+        transition: all 0.3s ease;
+        border: 1px solid rgba(0,0,0,0.05);
+    }
+    .premium-toast.hide {
+        animation: slideOutRight 0.3s ease forwards;
+    }
+    .toast-icon {
+        font-size: 22px;
+        color: var(--mi-orange);
+        margin-top: 2px;
+    }
+    .toast-content {
+        flex: 1;
+    }
+    .toast-title {
+        font-weight: 600;
+        font-size: 14px;
+        color: var(--mi-text-dark);
+        margin-bottom: 4px;
+    }
+    .toast-text {
+        font-size: 13px;
+        color: var(--mi-gray-dark);
+        line-height: 1.4;
+    }
+    .toast-close {
+        font-size: 16px;
+        color: #ccc;
+        cursor: pointer;
+        border: none;
+        background: none;
+        padding: 0;
+        margin-left: 8px;
+        transition: color 0.2s;
+    }
+    .toast-close:hover {
+        color: #888;
+    }
+
+    @keyframes slideInRight {
+        0% { opacity: 0; transform: translateX(120%) translateY(-10px); }
+        100% { opacity: 1; transform: translateX(0) translateY(0); }
+    }
+    @keyframes slideOutRight {
+        0% { opacity: 1; transform: translateX(0); }
+        100% { opacity: 0; transform: translateX(60px); filter: blur(3px); }
+    }
     </style>
 
 
-    <script src="main_v127.js"></script>
+    <!-- Modal Exclusivo para Marcar como Solucionado (Flotante Universal) -->
+    <div id="quick-detail-box" class="modal hidden" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); z-index: 10002; align-items: center; justify-content: center; backdrop-filter: blur(5px); transition: all 0.3s ease;">
+        <div class="modal-content" style="background: #ffffff; padding: 2rem; border-radius: 20px; max-width: 480px; width: 90%; max-height: 85vh; overflow-y: auto; box-shadow: 0 20px 60px rgba(0,0,0,0.2); position: relative; animation: slideIn 0.3s ease; border-left: 5px solid var(--mi-orange);">
+            <span class="close-modal" onclick="document.getElementById('quick-detail-box').style.display = 'none'; document.getElementById('quick-detail-box').classList.add('hidden');" style="position: absolute; top: 1.2rem; right: 1.5rem; font-size: 1.5rem; cursor: pointer; color: var(--mi-gray-dark); transition: color 0.2s;" onmouseover="this.style.color='var(--mi-orange)'" onmouseout="this.style.color='var(--mi-gray-dark)'">&times;</span>
+            
+            <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 1.5rem; border-bottom: 1px solid var(--mi-border); padding-bottom: 1rem;">
+                <div>
+                    <h3 style="margin: 0; font-size: 1.25rem; color: var(--mi-black);">Resumen de Selección</h3>
+                    <small style="color: var(--mi-gray-dark);">Marcar incidencia como resuelta</small>
+                </div>
+                <span id="quick-detail-status-badge" style="padding: 0.3rem 0.8rem; border-radius: 50px; font-weight: 600; font-size: 11px; text-transform: uppercase;">PENDIENTE</span>
+            </div>
+            
+            <div class="form-grid-2col" style="gap: 1rem; margin-bottom: 1.5rem;">
+                <div>
+                    <p style="margin: 0 0 0.2rem; font-size: 11px; font-weight: 600; color: var(--mi-gray-dark); text-transform: uppercase;">Tienda / Centro</p>
+                    <span id="quick-detail-tienda" style="font-weight: 500; font-size: 14px;">-</span>
+                </div>
+                <div>
+                    <p style="margin: 0 0 0.2rem; font-size: 11px; font-weight: 600; color: var(--mi-gray-dark); text-transform: uppercase;">Categoría / Ruta</p>
+                    <span id="quick-detail-tipo" style="font-weight: 500; font-size: 14px;">-</span>
+                </div>
+            </div>
+            
+            <div style="display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 1.5rem;">
+                <button class="btn btn-secondary" onclick="openDetailsModalFromQuickBox()" style="background: var(--mi-gray-light); color: var(--mi-dark); font-weight: 500; border: none; padding: 0.6rem 1.2rem; border-radius: 6px; cursor: pointer; display: flex; align-items: center; gap: 6px;">
+                    <i class="fa fa-eye"></i> Ver Detalles
+                </button>
+                
+                <button id="quick-detail-edit-btn" class="btn" onclick="editReportFromQuickBox()" style="background: #00bcd4; color: white; font-weight: 500; border: none; padding: 0.6rem 1.2rem; border-radius: 6px; cursor: pointer; display: none; align-items: center; gap: 6px;">
+                    <i class="fa fa-pencil-alt"></i> Editar
+                </button>
+                
+                <button id="quick-detail-resolve-btn" class="btn" onclick="toggleResolutionArea()" style="background: #1890ff; color: white; font-weight: 500; border: none; padding: 0.6rem 1.2rem; border-radius: 6px; cursor: pointer; display: none; align-items: center; gap: 6px;">
+                    <i class="fa fa-check-circle"></i> Resolver
+                </button>
+            </div>
+            
+            <div id="quick-detail-resolution-area" style="margin-top: 0; border-top: 1px dashed var(--mi-border); padding-top: 1.5rem; display: none;">
+                <h4 style="margin-top: 0; margin-bottom: 1rem; color: #1890ff; font-size: 14px;">Cargar evidencias para solucionar</h4>
+                <div class="form-group" style="margin-bottom: 1rem;">
+                    <label style="font-weight: 600; margin-bottom: 0.5rem; display: block; font-size: 12px;">Subir Foto de Solución (Obligatorio) <span style="color:red;">*</span></label>
+                    <input type="file" id="resolve-photo-input" multiple accept="image/*" class="form-control" onchange="handleResolutionPhotoUpload(event)" style="padding: 8px; font-size: 12px;" />
+                </div>
+                <div id="resolve-photo-preview-container" style="display: flex; gap: 8px; margin-bottom: 1rem; flex-wrap: wrap;"></div>
+                <button id="submit-resolution-btn" class="btn" onclick="submitResolution()" style="background: #1890ff; color: white; width: 100%; padding: 0.8rem; border-radius: 8px; border: none; font-weight: 600; cursor: pointer;" disabled>
+                    Confirmar Solucionado
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Contenedor Global para Banners de Notificación Latentes -->
+    <div id="toast-container"></div>
+
+    <script src="main_v128.js"></script>
 </body>
+</html>
 </html>

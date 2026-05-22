@@ -4,7 +4,7 @@
 
 const CONFIG = {
   SS_ID: "1Xht-QU2wRpWNBgT0dqyJkfM9SHD610mhO9y-W3lzonM",
-  DRIVE_FOLDER_ID: "14LBhHOVqdGJf2x-02GTrZREuZYxM_GV_",
+  DRIVE_FOLDER_ID: "1e5uJurcqaTgDGfgHlp2vKyWmpOFhV_-U",
   LOCK_TIMEOUT: 15000 
 };
 
@@ -34,6 +34,12 @@ function doGet(e) {
         break;
       case 'getDevices':
         result = getDataFromSheet(ss, 'Dispositivos');
+        break;
+      case 'getMessagingUsers':
+        result = getMessagingUsers(ss);
+        break;
+      case 'getMessages':
+        result = getUserMessages(ss, e.parameter.email);
         break;
       default:
         result = { success: false, message: 'Acción GET no válida' };
@@ -72,6 +78,14 @@ function doPost(e) {
         return jsonResponse(updateLaunchValidation(ss, data));
       case 'deleteReport':
         return jsonResponse(deleteReport(ss, data.id));
+      case 'getMessagingUsers':
+        return jsonResponse(getMessagingUsers(ss));
+      case 'sendMessage':
+        return jsonResponse(sendInstantMessage(ss, data));
+      case 'getMessages':
+        return jsonResponse(getUserMessages(ss, data.email));
+      case 'markMessageRead':
+        return jsonResponse(markInstantMessageRead(ss, data.messageId));
       default:
         return jsonResponse({ success: false, message: 'Acción POST no válida' });
     }
@@ -434,16 +448,24 @@ function handleSubmitReport(ss, data) {
     
     // LOGICA DE EDICIÓN: Si estamos editando, borramos el rastro previo para machacar los datos limpiamente
     if (updateId) {
+      Logger.log("🛠️ [EDIT MODE] Intentando sobreescribir reporte ID: " + updateId);
       const sheetNames = ['Reporte mobiliario', 'Reporte dispositivo'];
       sheetNames.forEach(sn => {
         const sh = getSheetDefensive(ss, sn);
         if (sh) {
           const vals = getFastValues(sh);
+          let countDeleted = 0;
           // Recorrer del revés para borrar filas de forma segura sin mover índices de las que quedan arriba
           for (let i = vals.length - 1; i >= 1; i--) {
-            if (String(vals[i][0]).trim() === String(updateId).trim()) {
+            const rowId = String(vals[i][0] || '').trim().toUpperCase();
+            const searchId = String(updateId).trim().toUpperCase();
+            if (rowId === searchId && searchId !== "") {
               sh.deleteRow(i + 1);
+              countDeleted++;
             }
+          }
+          if (countDeleted > 0) {
+            Logger.log("✅ Filas borradas en '" + sn + "': " + countDeleted);
           }
         }
       });
@@ -469,7 +491,7 @@ function handleSubmitReport(ss, data) {
         data.enviar || '',  // Donde enviar
         data.motivo || '',
         data.descripcion || '',
-        'Abierta',
+        data.estado || 'Abierta',
         0,
         finalPhotos
       ];
@@ -502,7 +524,7 @@ function handleSubmitReport(ss, data) {
           data.enviar || '', 
           data.motivo || '',
           data.descripcion || '',
-          'Abierta',
+          data.estado || 'Abierta',
           0,
           finalPhotos
         ];
@@ -592,23 +614,33 @@ function handleFileUpload(data) {
     const blob = Utilities.newBlob(Utilities.base64Decode(data.base64), data.mimeType, data.fileName);
     const file = folder.createFile(blob);
     
+    const fileSize = file.getSize();
+    Logger.log("📁 [FILE UPLOAD] Archivo creado con éxito: '" + data.fileName + "' (" + fileSize + " bytes) en ID: " + file.getId());
+    
+    let sharingWarning = "";
     // Intento defensivo de compartir por políticas de dominio corporativo (Salesland)
     try {
       file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
+      Logger.log("✅ Compartido públicamente: Anyone with link.");
     } catch (sharingError) {
       try {
         file.setSharing(DriveApp.Access.DOMAIN_WITH_LINK, DriveApp.Permission.VIEW);
+        Logger.log("⚠️ Bloqueo Público. Compartido en dominio corporativo: Domain with link.");
       } catch (domError) {
-        // Si el administrador bloquea todo tipo de compartido, omitimos y continuamos para no tirar error
+        sharingWarning = "POLITICA_BLOQUEADA: El administrador de Google Workspace restringe el compartido externo de archivos programáticamente.";
+        Logger.log("🚨 ERROR CRÍTICO COMPARTIDO: " + sharingWarning);
       }
     }
     
     return { 
       success: true, 
       url: file.getUrl(),
-      fileId: file.getId()
+      fileId: file.getId(),
+      size: fileSize,
+      warning: sharingWarning
     };
   } catch (e) {
+    Logger.log("❌ ERROR en handleFileUpload: " + e.toString());
     return { success: false, error: e.toString() };
   }
 }
@@ -837,4 +869,128 @@ function getFastValues(sheet) {
   
   // 3. Leemos el rango EXACTO de datos reales. Instantáneo.
   return sheet.getRange(1, 1, lastRow, lastCol).getValues();
+}
+
+// ==================================================
+// NUEVO: MÓDULO PREMIUM DE MENSAJERÍA INTERNA
+// ==================================================
+
+function getOrCreateMessagesSheet(ss) {
+  let sheet = ss.getSheetByName('Mensajes');
+  if (!sheet) {
+    sheet = ss.insertSheet('Mensajes');
+    sheet.appendRow(['ID', 'Fecha', 'Remitente', 'Destinatario', 'Mensaje', 'Leido']);
+    sheet.getRange(1, 1, 1, 6).setFontWeight('bold').setBackground('#ffe6cc');
+  }
+  return sheet;
+}
+
+function getMessagingUsers(ss) {
+  const sheet = getSheetDefensive(ss, 'Usuarios');
+  if (!sheet) return { success: false, error: 'Hoja Usuarios no encontrada' };
+  
+  const data = getFastValues(sheet);
+  data.shift(); // Remover cabecera
+  
+  const users = data.map(r => ({
+    email: String(r[0] || '').trim(),
+    rol: String(r[2] || '').trim().toUpperCase()
+  })).filter(u => u.email);
+  
+  return { success: true, users: users };
+}
+
+function sendInstantMessage(ss, data) {
+  const lock = LockService.getScriptLock();
+  try {
+    lock.waitLock(15000);
+    const sheet = getOrCreateMessagesSheet(ss);
+    
+    const id = 'MSG_' + Date.now() + '_' + Math.floor(Math.random() * 1000);
+    const fecha = new Date().toISOString();
+    const remitente = String(data.remitente || '').trim();
+    const destinatario = String(data.destinatario || '').trim();
+    const mensaje = String(data.mensaje || '').slice(0, 200); // Límite estricto de 200 caracteres
+    const leido = 'Pendiente';
+    
+    if (!remitente || !destinatario || !mensaje) {
+      return { success: false, error: 'Campos incompletos' };
+    }
+    
+    sheet.appendRow([id, fecha, remitente, destinatario, mensaje, leido]);
+    SpreadsheetApp.flush(); // Forzar guardado en disco inmediato antes de liberar bloqueo
+    return { success: true };
+  } catch (e) {
+    return { success: false, error: e.toString() };
+  } finally {
+    lock.releaseLock();
+  }
+}
+
+function getUserMessages(ss, email) {
+  const sheet = getOrCreateMessagesSheet(ss);
+  const data = getFastValues(sheet);
+  const cleanEmail = String(email || '').trim().toLowerCase();
+  
+  // Estadísticas de telemetría activas para el panel del frontend
+  const debugStats = {
+    filasTotales: data.length,
+    emailBuscado: cleanEmail,
+    columnas: sheet.getLastColumn()
+  };
+  
+  if (data.length <= 1) {
+    return { success: true, messages: [], debug: debugStats };
+  }
+  
+  const rawRows = [...data];
+  data.shift(); // Quitar cabecera
+  
+  const userMsgs = data.filter(r => {
+    const from = String(r[2] || '').trim().toLowerCase();
+    const to = String(r[3] || '').trim().toLowerCase();
+    return from === cleanEmail || to === cleanEmail;
+  }).map(r => ({
+    id: r[0],
+    fecha: r[1],
+    remitente: r[2],
+    destinatario: r[3],
+    mensaje: r[4],
+    leido: r[5]
+  }));
+  
+  // Ordenar cronológico descendente
+  userMsgs.sort((a, b) => new Date(b.fecha) - new Date(a.fecha));
+  
+  debugStats.filtrados = userMsgs.length;
+  if (rawRows.length > 1) {
+    debugStats.primerRegistro = `De: "${rawRows[1][2]}" | Para: "${rawRows[1][3]}"`;
+  }
+  
+  return { 
+    success: true, 
+    messages: userMsgs,
+    debug: debugStats 
+  };
+}
+
+function markInstantMessageRead(ss, messageId) {
+  const lock = LockService.getScriptLock();
+  try {
+    lock.waitLock(15000);
+    const sheet = getOrCreateMessagesSheet(ss);
+    const data = getFastValues(sheet);
+    
+    for (let i = 1; i < data.length; i++) {
+      if (data[i][0] === messageId) {
+        sheet.getRange(i + 1, 6).setValue('Leído');
+        return { success: true };
+      }
+    }
+    return { success: false, error: 'Mensaje no encontrado' };
+  } catch (e) {
+    return { success: false, error: e.toString() };
+  } finally {
+    lock.releaseLock();
+  }
 }
