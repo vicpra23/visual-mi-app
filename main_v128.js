@@ -1437,10 +1437,22 @@ window.renderHistorialRows = function(items, isLanzamientos) {
     const tbody = document.getElementById('historial-modal-tbody');
     if (!tbody) return;
     
+    // Toggle header visibility based on isLanzamientos and role
+    const isAdmin = String(APP_CONFIG.currentUser?.rol || '').trim().toUpperCase() === 'ADMIN' || 
+                    String(APP_CONFIG.currentUser?.rol || '').trim().toUpperCase() === 'ADMINISTRADOR';
+                    
+    const hideUsuario = isLanzamientos && !isAdmin;
+    const hideAcciones = isLanzamientos;
+
+    const thUsuario = document.getElementById('historial-th-usuario');
+    const thAcciones = document.getElementById('historial-th-acciones');
+    if (thUsuario) thUsuario.style.display = hideUsuario ? 'none' : '';
+    if (thAcciones) thAcciones.style.display = hideAcciones ? 'none' : '';
+    
     tbody.innerHTML = '';
     
     if (items.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="6" style="text-align:center; padding: 20px;">No hay registros para este estado o búsqueda.</td></tr>';
+        tbody.innerHTML = `<tr><td colspan="${hideUsuario ? (hideAcciones ? '4' : '5') : (hideAcciones ? '5' : '6')}" style="text-align:center; padding: 20px;">No hay registros para este estado o búsqueda.</td></tr>`;
         return;
     }
 
@@ -1465,15 +1477,29 @@ window.renderHistorialRows = function(items, isLanzamientos) {
         const tiendaVal = isLanzamientos ? (r.nombre || r.tienda) : (r.tienda || '-');
         const usuarioVal = r.usuario || '-';
         const cuentaVal = r.cuenta || '-';
-        const estadoLabel = isLanzamientos && rawEst === 'pendiente' ? 'Pendiente' : (r.estado || 'Pendiente');
+        let estadoLabel = isLanzamientos && rawEst === 'pendiente' ? 'Pendiente' : (r.estado || 'Pendiente');
+        
+        const isAdmin = String(APP_CONFIG.currentUser?.rol || '').trim().toUpperCase() === 'ADMIN' || 
+                        String(APP_CONFIG.currentUser?.rol || '').trim().toUpperCase() === 'ADMINISTRADOR';
+                        
+        const hideUsuario = isLanzamientos && !isAdmin;
+        const hideAcciones = isLanzamientos;
+        
+        if (isLanzamientos && rawEst === 'pendiente') {
+            estadoLabel = `<button style="background:#ff6700; color:white; border:none; padding:4px 8px; border-radius:4px; cursor:pointer; font-size:11px; font-weight:600; display:inline-flex; align-items:center; gap:4px;" onclick="document.getElementById('historial-modal').style.display='none'; document.getElementById('historial-modal').classList.add('hidden'); window.quickGoToLaunch('${r.lanzamientoTarget || ''}', '${tiendaVal.replace(/'/g, "\\'")}');"><i class="fas fa-tools"></i> Pendiente (Completar)</button>`;
+            statusClass = ''; // Button overrides it
+        } else if (isLanzamientos && (rawEst === 'realizado' || rawEst === 'realizada')) {
+            estadoLabel = `<span style="color:#2ecc71; font-weight:600;"><i class="fas fa-check-circle"></i> Realizada</span>`;
+            statusClass = '';
+        }
         
         row.innerHTML = `
             <td style="padding: 12px;">${refVal}</td>
-            <td style="padding: 12px;">${usuarioVal}</td>
+            <td style="padding: 12px; display: ${hideUsuario ? 'none' : ''};">${usuarioVal}</td>
             <td style="padding: 12px;">${cuentaVal}</td>
             <td style="padding: 12px;">${tiendaVal}</td>
             <td style="padding: 12px; ${statusClass}">${estadoLabel}</td>
-            <td style="padding: 12px; text-align:center; display:flex; gap:5px; justify-content:center; align-items:center;"></td>
+            <td style="padding: 12px; text-align:center; display: ${hideAcciones ? 'none' : 'flex'}; gap:5px; justify-content:center; align-items:center;"></td>
         `;
         
         const actionTd = row.querySelector('td:last-child');
