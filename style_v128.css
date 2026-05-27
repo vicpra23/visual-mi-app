@@ -1289,6 +1289,11 @@ textarea {
     to { transform: translateY(0); }
 }
 
+/* Hide status badge icons on desktop by default */
+.status-badge .badge-icon {
+    display: none;
+}
+
 @media (max-width: 768px) {
     .dash-history-filters {
         display: grid !important;
@@ -1317,5 +1322,26 @@ textarea {
     #recent-reports-table tr.expanded td:nth-of-type(6),
     #recent-reports-table tr.expanded td:nth-of-type(8) {
         display: flex !important;
+    }
+    
+    /* Mobile Status Badges for Dashboard Grid */
+    .status-badge {
+        padding: 4px !important;
+        border-radius: 50% !important;
+        width: 30px;
+        height: 30px;
+        justify-content: center;
+        border: none !important;
+        background: transparent !important;
+        box-shadow: none !important;
+    }
+    .status-badge .badge-text {
+        display: none !important;
+    }
+    .status-badge .badge-icon {
+        display: inline-block !important;
+    }
+    .status-badge .badge-icon i {
+        font-size: 22px !important;
     }
 }

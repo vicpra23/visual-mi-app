@@ -3373,7 +3373,7 @@ window.loadLaunchStores = async function() {
             let cardContent = '';
             
             if (status === 'Realizada') {
-                badgeHtml = '<span style="background: #e6f7ff; color: #1890ff; padding: 4px 8px; border-radius: 4px; font-size: 11px; font-weight: 600; border: 1px solid #91d5ff;">✅ Realizada</span>';
+                badgeHtml = '<span class="status-badge" style="background: #e6f7ff; color: #1890ff; padding: 4px 8px; border-radius: 4px; font-size: 11px; font-weight: 600; border: 1px solid #91d5ff;"><span class="badge-icon"><i class="fas fa-check-circle" style="color: #52c41a; font-size: 18px;"></i></span><span class="badge-text">✅ Realizada</span></span>';
                 if (thumb) {
                     cardContent = `
                         <div style="width: 100%; height: 80px; overflow: hidden; margin-top: 10px; border-radius: 6px;">
@@ -3382,15 +3382,15 @@ window.loadLaunchStores = async function() {
                     `;
                 }
             } else if (status === 'Abierta') {
-                badgeHtml = '<span style="background: #fff1f0; color: #f5222d; padding: 4px 8px; border-radius: 4px; font-size: 11px; font-weight: 600; border: 1px solid #ffa39e;">🚨 Abierta</span>';
+                badgeHtml = '<span class="status-badge" style="background: #fff1f0; color: #f5222d; padding: 4px 8px; border-radius: 4px; font-size: 11px; font-weight: 600; border: 1px solid #ffa39e;"><span class="badge-icon"><i class="fas fa-exclamation-triangle" style="color: #f5222d; font-size: 18px;"></i></span><span class="badge-text">🚨 Abierta</span></span>';
             } else if (status === 'Revisada') {
-                badgeHtml = '<span style="background: #fff7e6; color: #fa8c16; padding: 4px 8px; border-radius: 4px; font-size: 11px; font-weight: 600; border: 1px solid #ffd591;">👀 Revisada</span>';
+                badgeHtml = '<span class="status-badge" style="background: #fff7e6; color: #fa8c16; padding: 4px 8px; border-radius: 4px; font-size: 11px; font-weight: 600; border: 1px solid #ffd591;"><span class="badge-icon"><i class="fas fa-eye" style="color: #fa8c16; font-size: 18px;"></i></span><span class="badge-text">👀 Revisada</span></span>';
             } else if (status === 'Reportada') {
-                badgeHtml = '<span style="background: #feffe6; color: #d4b106; padding: 4px 8px; border-radius: 4px; font-size: 11px; font-weight: 600; border: 1px solid #ffffb8;">⚠️ Reportada</span>';
+                badgeHtml = '<span class="status-badge" style="background: #feffe6; color: #d4b106; padding: 4px 8px; border-radius: 4px; font-size: 11px; font-weight: 600; border: 1px solid #ffffb8;"><span class="badge-icon"><i class="fas fa-exclamation" style="color: #d4b106; font-size: 18px;"></i></span><span class="badge-text">⚠️ Reportada</span></span>';
             } else if (status === 'Cambiada') {
-                badgeHtml = '<span style="background: #f6ffed; color: #52c41a; padding: 4px 8px; border-radius: 4px; font-size: 11px; font-weight: 600; border: 1px solid #b7eb8f;">🔄 Cambiada</span>';
+                badgeHtml = '<span class="status-badge" style="background: #f6ffed; color: #52c41a; padding: 4px 8px; border-radius: 4px; font-size: 11px; font-weight: 600; border: 1px solid #b7eb8f;"><span class="badge-icon"><i class="fas fa-sync-alt" style="color: #52c41a; font-size: 18px;"></i></span><span class="badge-text">🔄 Cambiada</span></span>';
             } else {
-                badgeHtml = '<span style="background: #f0f0f0; color: #666; padding: 4px 8px; border-radius: 4px; font-size: 11px; font-weight: 600;">Pendiente</span>';
+                badgeHtml = '<span class="status-badge" style="background: #fff1f0; color: #f5222d; padding: 4px 8px; border-radius: 4px; font-size: 11px; font-weight: 600; border: 1px solid #ffa39e;"><span class="badge-icon"><i class="fas fa-exclamation-circle" style="color: #f5222d; font-size: 18px;"></i></span><span class="badge-text">Pendiente</span></span>';
             }
             
             card.innerHTML = `
