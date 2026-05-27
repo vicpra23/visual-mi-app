@@ -57,6 +57,17 @@
 
     <!-- Main App Container (Hidden by default) -->
     <div id="app-container" class="view hidden">
+        <!-- Mobile Top Bar fixed at the top -->
+        <header class="mobile-top-bar">
+            <div class="mobile-logo-area" style="cursor: pointer;" onclick="document.querySelector('.sidebar-header').click()">
+                <img src="logo.png" alt="Logo">
+                <span>Visual APP</span>
+            </div>
+            <button id="mobile-logout-btn" class="mobile-logout-icon" title="Cerrar Sesión" onclick="document.getElementById('logout-btn').click()">
+                <i class="fas fa-sign-out-alt"></i>
+            </button>
+        </header>
+
         <nav class="sidebar">
             <div class="sidebar-header" style="cursor: pointer;">
                 <img src="logo.png" alt="Logo">
@@ -266,12 +277,13 @@
                                     </div>
                                     <!-- Columna 2 -->
                                     <div class="form-group" style="position:relative;">
-                                        <label style="font-weight: 600;"><i class="fas fa-camera"></i> Reporte fotográfico</label>
-                                        <input type="file" class="rep-files" multiple accept="image/png, image/jpeg, image/jpg, image/heic, image/heif, .heic, .heif, image/*" onchange="handleIncidentPhotos(this, 'furniture')" style="display: none;" id="furn-file-ghost">
-                                        <label for="furn-file-ghost" style="display: block; background: #f9f9f9; border: 2px dashed var(--mi-border); border-radius: 8px; padding: 1.5rem; margin-top: 0.5rem; text-align: center; cursor: pointer; transition: all 0.3s;" class="drop-zone-visual" id="drop-zone-furniture">
-                                            <i class="fas fa-cloud-upload-alt" style="font-size: 2rem; color: var(--mi-orange); margin-bottom: 0.5rem;"></i><br>
-                                            <span style="color: #666; font-size: 12px; font-weight:600;">Haz clic aquí para subir o arrastra tus fotos</span>
-                                        </label>
+                                        <label style="font-weight: 600; display: block;"><i class="fas fa-camera"></i> Reporte fotográfico</label>
+                                        <div style="display: flex; gap: 10px; margin-top: 10px; margin-bottom: 10px;">
+                                            <button type="button" class="btn-secondary" onclick="document.getElementById('furn-file-cam').click()" style="flex: 1; padding: 12px; font-weight: bold; background: #f0f0f0; border: 1px solid #ccc; color: #333;"><i class="fas fa-camera"></i> Abrir Cámara</button>
+                                            <button type="button" class="btn-secondary" onclick="document.getElementById('furn-file-gal').click()" style="flex: 1; padding: 12px; font-weight: bold; background: #f0f0f0; border: 1px solid #ccc; color: #333;"><i class="fas fa-images"></i> Abrir Galería</button>
+                                        </div>
+                                        <input type="file" id="furn-file-cam" accept="image/*" capture="environment" onchange="handleIncidentPhotos(this, 'furniture')" style="display: none;">
+                                        <input type="file" id="furn-file-gal" multiple accept="image/*" onchange="handleIncidentPhotos(this, 'furniture')" style="display: none;">
                                         <div id="incident-thumbnails-furniture" class="thumbnail-container" style="display: flex; flex-wrap: wrap; gap: 10px; margin-top: 10px;"></div>
                                         <small id="incident-uploading-msg-furniture" style="display: none; color: var(--mi-orange); font-weight: 600;"><i class="fas fa-spinner fa-spin"></i> Subiendo fotos...</small>
                                     </div>
@@ -374,12 +386,13 @@
 
                                     <!-- COLUMNA 2: FOTOS -->
                                     <div class="form-group">
-                                        <label style="font-weight: 600;"><i class="fas fa-camera"></i> Reporte fotográfico</label>
-                                        <input type="file" class="rep-files" multiple accept="image/png, image/jpeg, image/jpg, image/heic, image/heif, .heic, .heif, image/*" onchange="handleIncidentPhotos(this, 'device')" style="display: none;" id="dev-file-ghost">
-                                        <label for="dev-file-ghost" style="display: block; background: #f9f9f9; border: 2px dashed var(--mi-border); border-radius: 8px; padding: 1.2rem; margin-top: 0.5rem; text-align: center; cursor:pointer; transition:all 0.3s;" id="drop-zone-device">
-                                            <i class="fas fa-cloud-upload-alt" style="font-size: 1.8rem; color: var(--mi-orange); margin-bottom: 0.4rem;"></i><br>
-                                            <span style="color:#666; font-size:12px; font-weight:600;">Haz clic o arrastra fotos aquí</span>
-                                        </label>
+                                        <label style="font-weight: 600; display: block;"><i class="fas fa-camera"></i> Reporte fotográfico</label>
+                                        <div style="display: flex; gap: 10px; margin-top: 10px; margin-bottom: 10px;">
+                                            <button type="button" class="btn-secondary" onclick="document.getElementById('dev-file-cam').click()" style="flex: 1; padding: 12px; font-weight: bold; background: #f0f0f0; border: 1px solid #ccc; color: #333;"><i class="fas fa-camera"></i> Abrir Cámara</button>
+                                            <button type="button" class="btn-secondary" onclick="document.getElementById('dev-file-gal').click()" style="flex: 1; padding: 12px; font-weight: bold; background: #f0f0f0; border: 1px solid #ccc; color: #333;"><i class="fas fa-images"></i> Abrir Galería</button>
+                                        </div>
+                                        <input type="file" id="dev-file-cam" accept="image/*" capture="environment" onchange="handleIncidentPhotos(this, 'device')" style="display: none;">
+                                        <input type="file" id="dev-file-gal" multiple accept="image/*" onchange="handleIncidentPhotos(this, 'device')" style="display: none;">
                                         <div id="incident-thumbnails-device" class="thumbnail-container" style="display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px;"></div>
                                         <small id="incident-uploading-msg-device" style="display: none; color: var(--mi-orange); font-weight:600;"><i class="fas fa-spinner fa-spin"></i> Subiendo...</small>
                                     </div>
@@ -441,7 +454,19 @@
 
             <!-- View: Mensajes & Notificaciones -->
             <section id="view-mensajes" class="sub-view hidden">
-                <div class="form-grid-2col" style="gap: 2rem; margin-top: 1rem; grid-template-columns: 1fr 2fr;">
+                <!-- Mobile segmented control toggle -->
+                <div class="mobile-messages-toggle-wrapper">
+                    <div class="segmented-control">
+                        <button class="segmented-btn active" id="btn-toggle-inbox" onclick="toggleMobileMessagesView('inbox')">
+                            <i class="fas fa-inbox"></i> Bandeja
+                        </button>
+                        <button class="segmented-btn" id="btn-toggle-compose" onclick="toggleMobileMessagesView('compose')">
+                            <i class="fas fa-pen-nib"></i> Redactar
+                        </button>
+                    </div>
+                </div>
+
+                <div class="form-grid-2col" id="messages-form-grid" style="gap: 2rem; margin-top: 1rem; grid-template-columns: 1fr 2fr;">
                     <!-- COLUMNA IZQUIERDA: REDACTAR -->
                     <div class="procedure-container" style="margin-bottom: 0; align-self: flex-start; position: sticky; top: 20px;">
                         <h3 style="margin-top: 0; margin-bottom: 1.5rem; font-size: 1.1rem; color: var(--mi-black); border-bottom: 2px solid var(--mi-orange); padding-bottom: 8px; display: inline-block;">
@@ -532,85 +557,147 @@
 
                     <!-- Checklist -->
                     <div id="launch-checklist" class="hidden form-container" style="max-width: 100%; margin-top: 2rem;">
-                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
-                            <h3 style="margin: 0;">Checklist de Tareas</h3>
-                            <button type="button" class="btn-secondary" onclick="closeLaunchChecklist()" style="padding: 5px 15px; width: auto; font-size: 0.9rem;">← Volver</button>
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; flex-wrap: wrap; gap: 10px;">
+                            <h3 style="margin: 0; display: flex; align-items: center; gap: 12px;">
+                                <button type="button" class="btn-secondary" onclick="closeLaunchChecklist()" style="padding: 8px 16px; border-radius: 20px; font-weight: bold; width: auto; font-size: 13px; border: none; background: #f0f0f0; color: #333; cursor: pointer; display: flex; align-items: center; gap: 8px; transition: background 0.2s;"><i class="fas fa-arrow-left"></i> Volver</button>
+                                Checklist de Tareas
+                            </h3>
+                            <a href="https://docs.google.com/presentation/d/1_cJVZKnAMqO_KV53hwsHWHojR7qZzVQA/edit?usp=drive_link&ouid=115671157525332985831&rtpof=true&sd=true" target="_blank" style="padding: 8px 16px; border-radius: 20px; font-weight: bold; font-size: 13px; text-decoration: none; display: flex; align-items: center; gap: 8px; background: #fff4e6; color: var(--mi-orange); border: 1px solid #fce8db; box-shadow: 0 2px 5px rgba(0,0,0,0.05);"><i class="fas fa-file-powerpoint"></i> Guía Lanzamiento Xiaomi 17T Series</a>
                         </div>
                         <h4 id="launch-checklist-store-title" style="margin-bottom: 1rem; color: var(--primary);"></h4>
                         <form id="launch-form" onsubmit="submitLaunch(event)">
-                            <!-- Tarea 1: Instalación OK -->
-                            <div id="section-tarea-1" class="form-group task-card" style="padding: 15px; border: 1px solid #ddd; border-radius: 8px; margin-bottom: 15px;">
-                                <label style="display: flex; justify-content: space-between; align-items: center; font-weight: bold; cursor: pointer; margin: 0;">
-                                    <span>1. Instalación realizada correctamente</span>
-                                    <input type="checkbox" id="launch-ok" onchange="toggleLaunchOk(this.checked)" style="width: 20px; height: 20px;">
-                                </label>
+                            <div style="background: #fff; padding: 24px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.06); border-top: 5px solid var(--mi-orange); margin-bottom: 20px;">
+                                <h4 style="margin-top:0; color: #333; margin-bottom: 20px; font-size: 18px; font-weight: 700;"><i class="fas fa-clipboard-check" style="color: var(--mi-orange); margin-right: 8px;"></i> Formulario de Lanzamiento</h4>
                                 
-                                <div id="launch-ok-details" class="hidden" style="margin-top: 15px; padding-top: 15px; border-top: 1px solid #eee;">
-                                    <label style="font-weight: bold; display: block; margin-bottom: 0.5rem;">Fotografía Instalación (Máx 5)</label>
-                                    <input type="file" id="launch-photos-ok" multiple accept="image/png, image/jpeg, image/jpg, image/heic, image/heif, .heic, .heif, image/*" onchange="handleLaunchPhotos(this, 5)">
-                                    <p id="launch-uploading-msg-ok" style="color: var(--primary); display: none; font-size: 0.9rem; margin-top: 5px;">Subiendo a Drive...</p>
-                                    <div id="launch-thumbnails-ok" style="display: flex; gap: 10px; margin-top: 10px; flex-wrap: wrap;"></div>
-                                </div>
-                            </div>
-
-                            <!-- Tarea 2: Incidencia -->
-                            <div id="section-tarea-2" class="form-group task-card" style="padding: 15px; border: 1px solid #ddd; border-radius: 8px; margin-bottom: 15px; background: rgba(255,0,0,0.05); border-left: 4px solid var(--danger);">
-                                <label style="display: flex; justify-content: space-between; align-items: center; font-weight: bold; cursor: pointer; color: var(--danger); margin: 0;">
-                                    <span>2. Hubo alguna incidencia</span>
-                                    <input type="checkbox" id="launch-incident" onchange="toggleLaunchIncident(this.checked)" style="width: 20px; height: 20px;">
-                                </label>
-
-                                <div id="launch-incident-details" class="hidden" style="margin-top: 1rem;">
-                                    <!-- Procedure details -->
-                                    <div id="launch-device-procedure" style="padding: 1rem; background: #fff; border-radius: 8px; border: 1px solid #eee; margin-bottom: 15px;">
-                                        <h4 style="margin-bottom: 1rem; color: var(--danger);">Detalles de la Incidencia</h4>
-                                        <div class="procedure-col" style="width: 100%;">
-                                            <div class="level-box active" data-launch-level="2">
-                                                <span class="level-label">Tipología</span>
-                                                <div class="bubble-group">
-                                                    <button type="button" class="bubble-btn tipology" onclick="selectLaunchLevel(2, 'LDU')">LDU</button>
-                                                    <button type="button" class="bubble-btn tipology" onclick="selectLaunchLevel(2, 'MAQUETA')">MAQUETA</button>
-                                                </div>
-                                            </div>
-                                            <div id="l-device-l3" class="level-box hidden" data-launch-level="3">
-                                                <span class="level-label">Subcategoría</span>
-                                                <div class="bubble-group">
-                                                    <button type="button" class="bubble-btn sub" onclick="selectLaunchLevel(3, 'MESA')">MESA</button>
-                                                    <button type="button" class="bubble-btn sub" onclick="selectLaunchLevel(3, 'MURO')">MURO</button>
-                                                    <button type="button" class="bubble-btn sub" onclick="selectLaunchLevel(3, 'COLUMNA')">COLUMNA</button>
-                                                    <button type="button" class="bubble-btn sub" onclick="selectLaunchLevel(3, 'LINEAL')">LINEAL</button>
-                                                    <button type="button" class="bubble-btn sub" onclick="selectLaunchLevel(3, 'OTROS')">OTROS</button>
-                                                </div>
-                                            </div>
-                                            <div id="l-device-l4" class="level-box hidden" data-launch-level="4">
-                                                <span class="level-label">Motivo</span>
-                                                <div class="bubble-group">
-                                                    <button type="button" class="bubble-btn reason" onclick="selectLaunchLevel(4, 'Dañado')">Dañado</button>
-                                                    <button type="button" class="bubble-btn reason" onclick="selectLaunchLevel(4, 'Incorrecto')">Incorrecto</button>
-                                                    <button type="button" class="bubble-btn reason" onclick="selectLaunchLevel(4, 'Robado')">Robado</button>
-                                                    <button type="button" class="bubble-btn reason" onclick="selectLaunchLevel(4, 'Alarmado')">Alarmado</button>
-                                                    <button type="button" class="bubble-btn reason" onclick="selectLaunchLevel(4, 'No recibido')">No recibido</button>
-                                                </div>
-                                            </div>
-                                        </div>
+                                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 16px;">
+                                    
+                                    <!-- 1. Lámpara -->
+                                    <div class="form-group" style="grid-column: 1 / -1; margin-bottom: 0;">
+                                        <label style="font-weight: 600; margin-bottom: 8px; display: block; font-size: 13px; color: #555;"><i class="fas fa-lightbulb" style="color:#aaa; width:16px;"></i> 1. LÁMPARA XIAOMI 17T SERIES</label>
+                                        <select id="launch-q-lampara" class="form-control" style="background:#f9f9f9; border:1px solid #e0e0e0; font-weight:500;" required>
+                                            <option value="" disabled selected>Selecciona...</option>
+                                            <option value="Sí">Sí</option>
+                                            <option value="No">No</option>
+                                            <option value="No aplica">No aplica</option>
+                                        </select>
                                     </div>
 
-                                    <!-- Incident Photos & Comments integrated -->
-                                    <div class="form-group" style="margin-bottom: 15px;">
-                                        <label style="font-weight: bold; display: block; margin-bottom: 0.5rem;">Fotografía Incidencia</label>
-                                        <input type="file" id="launch-photos-incident" multiple accept="image/png, image/jpeg, image/jpg, image/heic, image/heif, .heic, .heif, image/*" onchange="handleLaunchPhotos(this)">
-                                        <p id="launch-uploading-msg-incident" style="color: var(--primary); display: none; font-size: 0.9rem; margin-top: 5px;">Subiendo a Drive...</p>
+                                    <!-- 2. LDU -->
+                                    <div class="form-group" style="grid-column: 1 / -1; margin-bottom: 0;">
+                                        <label style="font-weight: 600; margin-bottom: 4px; display: block; font-size: 13px; color: #333;"><i class="fas fa-mobile-alt" style="color:var(--mi-orange); width:16px;"></i> 2. Faltantes de LDU según planograma</label>
+                                        <small style="color: #888; display: block; margin-bottom: 6px; font-size: 11px;">Escribe "Ninguna" si está todo correcto. (Importa el modelo, colores orientativos)</small>
+                                        <textarea id="launch-q-ldu" class="form-control" rows="2" style="background:#fdfdfd; border:1px solid #e0e0e0; resize:vertical;" required placeholder="Ej: Falta 17T Pro Blue..."></textarea>
+                                    </div>
+
+                                    <!-- 3. Dummy -->
+                                    <div class="form-group" style="grid-column: 1 / -1; margin-bottom: 0;">
+                                        <label style="font-weight: 600; margin-bottom: 4px; display: block; font-size: 13px; color: #333;"><i class="fas fa-mobile" style="color:var(--mi-orange); width:16px;"></i> 3. Faltantes de Dummy según planograma</label>
+                                        <textarea id="launch-q-dummy" class="form-control" rows="2" style="background:#fdfdfd; border:1px solid #e0e0e0; resize:vertical;" required placeholder="Ej: Falta 17T Black... o escribe Ninguna"></textarea>
+                                    </div>
+
+                                    <!-- 4. Eco -->
+                                    <div class="form-group" style="grid-column: 1 / -1; margin-bottom: 0;">
+                                        <label style="font-weight: 600; margin-bottom: 4px; display: block; font-size: 13px; color: #333;"><i class="fas fa-headphones" style="color:var(--mi-orange); width:16px;"></i> 4. Faltantes de Ecosistema según planograma</label>
+                                        <textarea id="launch-q-eco" class="form-control" rows="2" style="background:#fdfdfd; border:1px solid #e0e0e0; resize:vertical;" required placeholder="Ej: Falta Watch S5... o escribe Ninguna"></textarea>
+                                    </div>
+
+                                    <!-- Separador visual -->
+                                    <div style="grid-column: 1 / -1; height: 1px; background: #eee; margin: 8px 0;"></div>
+
+                                    <!-- 5. Filmina -->
+                                    <div class="form-group" style="margin-bottom: 0;">
+                                        <label style="font-weight: 600; margin-bottom: 8px; display: block; font-size: 13px; color: #555;"><i class="fas fa-film" style="color:#aaa; width:16px;"></i> 5. Nueva filmina X17 series</label>
+                                        <select id="launch-q-filmina" class="form-control" style="background:#f9f9f9; border:1px solid #e0e0e0; font-weight:500;" required>
+                                            <option value="" disabled selected>Selecciona...</option>
+                                            <option value="Sí, me falta">Sí, me falta</option>
+                                            <option value="No, la tengo">No, la tengo</option>
+                                            <option value="No aplica">No aplica</option>
+                                        </select>
+                                    </div>
+
+                                    <!-- 6. Lonas -->
+                                    <div class="form-group" style="margin-bottom: 0;">
+                                        <label style="font-weight: 600; margin-bottom: 8px; display: block; font-size: 13px; color: #555;"><i class="fas fa-scroll" style="color:#aaa; width:16px;"></i> 6. LONAS</label>
+                                        <select id="launch-q-lonas" class="form-control" style="background:#f9f9f9; border:1px solid #e0e0e0; font-weight:500;" required>
+                                            <option value="" disabled selected>Selecciona...</option>
+                                            <option value="Instaladas">Instaladas</option>
+                                            <option value="Faltan">Faltan</option>
+                                            <option value="No aplica">No aplica</option>
+                                        </select>
+                                    </div>
+
+                                    <!-- 7. Wall -->
+                                    <div class="form-group" style="margin-bottom: 0;">
+                                        <label style="font-weight: 600; margin-bottom: 8px; display: block; font-size: 13px; color: #555;"><i class="fas fa-border-all" style="color:#aaa; width:16px;"></i> 7. Lightbox Wall</label>
+                                        <select id="launch-q-wall" class="form-control" style="background:#f9f9f9; border:1px solid #e0e0e0; font-weight:500;" required>
+                                            <option value="" disabled selected>Selecciona...</option>
+                                            <option value="Instalado">Instalado</option>
+                                            <option value="Falta">Falta</option>
+                                            <option value="No aplica">No aplica</option>
+                                        </select>
+                                    </div>
+
+                                    <!-- 8. Column -->
+                                    <div class="form-group" style="margin-bottom: 0;">
+                                        <label style="font-weight: 600; margin-bottom: 8px; display: block; font-size: 13px; color: #555;"><i class="fas fa-columns" style="color:#aaa; width:16px;"></i> 8. Lightbox Column</label>
+                                        <select id="launch-q-column" class="form-control" style="background:#f9f9f9; border:1px solid #e0e0e0; font-weight:500;" required>
+                                            <option value="" disabled selected>Selecciona...</option>
+                                            <option value="Instalado">Instalado</option>
+                                            <option value="Falta">Falta</option>
+                                            <option value="No aplica">No aplica</option>
+                                        </select>
+                                    </div>
+
+                                    <!-- Separador visual -->
+                                    <div style="grid-column: 1 / -1; height: 1px; background: #eee; margin: 8px 0;"></div>
+
+                                    <!-- 9. Fichas -->
+                                    <div class="form-group" style="grid-column: 1 / -1; margin-bottom: 0;">
+                                        <label style="font-weight: 600; margin-bottom: 4px; display: block; font-size: 13px; color: #333;"><i class="fas fa-tags" style="color:var(--mi-orange); width:16px;"></i> 9. Ficha de productos</label>
+                                        <small style="color: #888; display: block; margin-bottom: 6px; font-size: 11px;">Indica modelos faltantes en "otros" o escribe "Todas correctas".</small>
+                                        <textarea id="launch-q-fichas" class="form-control" rows="2" style="background:#fdfdfd; border:1px solid #e0e0e0; resize:vertical;" required placeholder="Ej: Todas correctas"></textarea>
+                                    </div>
+
+                                    <!-- 10. Escalerilla -->
+                                    <div id="launch-group-escalerilla" class="form-group hidden" style="grid-column: 1 / -1; margin-bottom: 0;">
+                                        <label style="font-weight: 600; margin-bottom: 8px; display: block; font-size: 13px; color: #555;"><i class="fas fa-stairs" style="color:#aaa; width:16px;"></i> 10. Escalerilla implantada</label>
+                                        <select id="launch-q-escalerilla" class="form-control" style="background:#f9f9f9; border:1px solid #e0e0e0; font-weight:500;">
+                                            <option value="" disabled selected>Selecciona...</option>
+                                            <option value="Sí">Sí</option>
+                                            <option value="No">No</option>
+                                            <option value="No aplica">No aplica</option>
+                                        </select>
+                                    </div>
+
+                                    <!-- 11. Incidencias -->
+                                    <div class="form-group" style="grid-column: 1 / -1; margin-bottom: 0;">
+                                        <label style="font-weight: 600; margin-bottom: 4px; display: block; font-size: 13px; color: #333;"><i class="fas fa-comment-dots" style="color:var(--mi-orange); width:16px;"></i> 11. Otras incidencias / Comentarios</label>
+                                        <textarea id="launch-q-incidencias" class="form-control" rows="2" style="background:#fdfdfd; border:1px solid #e0e0e0; resize:vertical;" placeholder="Comentarios adicionales..."></textarea>
+                                    </div>
+                                    
+                                    <!-- Separador visual -->
+                                    <div style="grid-column: 1 / -1; height: 1px; background: #eee; margin: 8px 0;"></div>
+
+                                    <!-- 12. Fotos -->
+                                    <div class="form-group" style="grid-column: 1 / -1; margin-bottom: 0;">
+                                        <label style="font-weight: 700; margin-bottom: 6px; display: block; font-size: 14px; color: #111;"><i class="fas fa-camera-retro" style="color:var(--mi-orange); width:18px;"></i> 12. Reporte Fotográfico (2 o 3 fotos)</label>
+                                        <small style="color: #666; display: block; margin-bottom: 12px; font-size: 12px; background: #fdfaf6; padding: 8px; border-radius: 6px; border: 1px solid #fce8db;">Muestra la implantación completa con todos los elementos (no solo las LDUs), como en la foto de referencia.</small>
+                                        
+                                        <div style="display: flex; gap: 12px; margin-bottom: 10px;">
+                                            <button type="button" class="btn-secondary" onclick="document.getElementById('launch-cam').click()" style="flex: 1; padding: 12px; font-weight: 600; background: #fff; border: 2px solid #ddd; border-radius: 8px; color: #333; transition: all 0.2s;"><i class="fas fa-camera" style="margin-right: 5px;"></i> Abrir Cámara</button>
+                                            <button type="button" class="btn-secondary" onclick="document.getElementById('launch-gal').click()" style="flex: 1; padding: 12px; font-weight: 600; background: #fff; border: 2px solid #ddd; border-radius: 8px; color: #333; transition: all 0.2s;"><i class="fas fa-images" style="margin-right: 5px;"></i> Abrir Galería</button>
+                                        </div>
+                                        <input type="file" id="launch-cam" accept="image/*" capture="environment" onchange="handleLaunchPhotos(this, 3)" style="display: none;">
+                                        <input type="file" id="launch-gal" multiple accept="image/*" onchange="handleLaunchPhotos(this, 3)" style="display: none;">
+                                        
+                                        <p id="launch-uploading-msg-incident" style="color: var(--mi-orange); display: none; font-size: 0.9rem; margin-top: 8px; font-weight: bold; background: #fff8f0; padding: 8px; border-radius: 6px; text-align: center;"><i class="fas fa-spinner fa-spin"></i> Subiendo fotos...</p>
                                         <div id="launch-thumbnails-incident" style="display: flex; gap: 10px; margin-top: 10px; flex-wrap: wrap;"></div>
                                     </div>
 
-                                    <div class="form-group">
-                                        <label style="font-weight: bold; display: block; margin-bottom: 0.5rem;">Comentario Incidencia</label>
-                                        <textarea id="launch-comment-incident" class="form-control" rows="3" placeholder="Describe el problema..."></textarea>
-                                    </div>
                                 </div>
                             </div>
 
-                            <button type="submit" class="btn-primary" style="margin-top: 1rem;" id="btn-submit-launch">Enviar Reporte</button>
+                            <button type="submit" class="btn-primary" style="width: 100%; padding: 15px; font-size: 1.1rem; font-weight: bold;" id="btn-submit-launch"><i class="fas fa-paper-plane"></i> Enviar Formulario</button>
                         </form>
                     </div>
 
@@ -629,11 +716,37 @@
                 </div>
             </section>
         </main>
+
+        <!-- Mobile Bottom Navigation Bar -->
+        <nav class="mobile-bottom-nav">
+            <div class="mobile-bottom-nav-item active" data-target="dashboard">
+                <i class="fas fa-chart-line"></i>
+                <span>Dashboard</span>
+            </div>
+            <div class="mobile-bottom-nav-item" data-target="reportes">
+                <i class="fas fa-clipboard-list"></i>
+                <span>Incidencias</span>
+            </div>
+            <div class="mobile-bottom-nav-item" data-target="lanzamientos">
+                <i class="fas fa-rocket"></i>
+                <span>Lanzamientos</span>
+            </div>
+            <div class="mobile-bottom-nav-item" data-target="materiales">
+                <i class="fas fa-folder-open"></i>
+                <span>Materiales</span>
+            </div>
+            <div class="mobile-bottom-nav-item" data-target="mensajes" style="position: relative;">
+                <i class="fas fa-bell"></i>
+                <span>Mensajes</span>
+                <span id="msg-mobile-badge" class="nav-badge">0</span>
+            </div>
+        </nav>
     </div>
 
     <!-- Modal: Editar / Ver Validación de Lanzamiento -->
     <div id="edit-validation-modal" class="modal-overlay hidden" style="display:none;">
         <div class="modal-content" style="max-width: 600px; width: 95%;">
+            <div class="bottom-sheet-drag-handle"></div>
             <div class="modal-header">
                 <h3 id="edit-val-title">Validación de Lanzamiento</h3>
                 <button class="modal-close" onclick="window.closeEditValidationModal()">&times;</button>
@@ -664,7 +777,12 @@
                         <label style="font-weight:600; display:block; margin-bottom:5px;" id="edit-val-photo-label">Nuevas Fotografías (Sustituirán las anteriores):</label>
                         <div id="edit-val-current-photos" class="modal-photo-grid" style="margin-bottom:10px; min-height:0;"></div>
                         
-                        <input type="file" id="edit-val-photos-input" class="form-control" multiple accept="image/*" onchange="window.handleEditValPhotoUpload(this)">
+                        <div style="display: flex; gap: 10px; margin-bottom: 10px;">
+                            <button type="button" class="btn-secondary" onclick="document.getElementById('edit-val-cam').click()" style="flex: 1; padding: 10px; font-weight: bold; background: #f0f0f0; border: 1px solid #ccc; color: #333;"><i class="fas fa-camera"></i> Cámara</button>
+                            <button type="button" class="btn-secondary" onclick="document.getElementById('edit-val-gal').click()" style="flex: 1; padding: 10px; font-weight: bold; background: #f0f0f0; border: 1px solid #ccc; color: #333;"><i class="fas fa-images"></i> Galería</button>
+                        </div>
+                        <input type="file" id="edit-val-cam" accept="image/*" capture="environment" onchange="window.handleEditValPhotoUpload(this)" style="display: none;">
+                        <input type="file" id="edit-val-gal" multiple accept="image/*" onchange="window.handleEditValPhotoUpload(this)" style="display: none;">
                         <div id="edit-val-thumbnails" class="thumbnail-container" style="display: flex; flex-wrap: wrap; gap: 10px; margin-top: 10px;"></div>
                         <small id="edit-val-upload-msg" style="display:none; color:var(--mi-orange); font-weight:500;"><i class="fa fa-spinner fa-spin"></i> Subiendo fotos...</small>
                     </div>
@@ -681,6 +799,7 @@
     <!-- Modal para Desglose de Reporte -->
     <div id="report-modal" class="modal hidden" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); z-index: 1000; align-items: center; justify-content: center; backdrop-filter: blur(4px); transition: all 0.3s ease;">
         <div class="modal-content" style="background: #ffffff; padding: 2rem; border-radius: 12px; max-width: 600px; width: 90%; max-height: 85vh; overflow-y: auto; box-shadow: 0 10px 25px rgba(0,0,0,0.2); position: relative; animation: slideIn 0.3s ease;">
+            <div class="bottom-sheet-drag-handle"></div>
             <span class="close-modal" onclick="closeReportModal()" style="position: absolute; top: 1.2rem; right: 1.5rem; font-size: 1.5rem; cursor: pointer; color: var(--mi-gray-dark); transition: color 0.2s;" onmouseover="this.style.color='var(--mi-orange)'" onmouseout="this.style.color='var(--mi-gray-dark)'">&times;</span>
             <h3 style="margin-top: 0; margin-bottom: 1.5rem; color: var(--mi-orange); border-bottom: 2px solid var(--mi-border); padding-bottom: 0.5rem; font-size: 1.4rem;">Desglose del Reporte</h3>
             
@@ -693,6 +812,7 @@
     <!-- Modal para Historial de Reportes y Lanzamientos (Pop-up en Pantalla) -->
     <div id="historial-modal" class="modal hidden" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); z-index: 1000; align-items: center; justify-content: center; backdrop-filter: blur(4px); transition: all 0.3s ease;">
         <div class="modal-content" style="background: #ffffff; padding: 2rem; border-radius: 12px; max-width: 900px; width: 95%; max-height: 85vh; overflow-y: auto; box-shadow: 0 10px 25px rgba(0,0,0,0.2); position: relative; animation: slideIn 0.3s ease;">
+            <div class="bottom-sheet-drag-handle"></div>
             <span class="close-modal" onclick="document.getElementById('historial-modal').style.display = 'none'; document.getElementById('historial-modal').classList.add('hidden');" style="position: absolute; top: 1.2rem; right: 1.5rem; font-size: 1.5rem; cursor: pointer; color: var(--mi-gray-dark); transition: color 0.2s;" onmouseover="this.style.color='var(--mi-orange)'" onmouseout="this.style.color='var(--mi-gray-dark)'">&times;</span>
             <h3 id="historial-modal-title" style="margin-top: 0; margin-bottom: 1.5rem; color: var(--mi-orange); border-bottom: 2px solid var(--mi-border); padding-bottom: 0.5rem; font-size: 1.4rem;">Historial Detallado</h3>
             
@@ -833,6 +953,7 @@
     <!-- Modal Exclusivo para Marcar como Solucionado (Flotante Universal) -->
     <div id="quick-detail-box" class="modal hidden" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); z-index: 10002; align-items: center; justify-content: center; backdrop-filter: blur(5px); transition: all 0.3s ease;">
         <div class="modal-content" style="background: #ffffff; padding: 2rem; border-radius: 20px; max-width: 480px; width: 90%; max-height: 85vh; overflow-y: auto; box-shadow: 0 20px 60px rgba(0,0,0,0.2); position: relative; animation: slideIn 0.3s ease; border-left: 5px solid var(--mi-orange);">
+            <div class="bottom-sheet-drag-handle"></div>
             <span class="close-modal" onclick="document.getElementById('quick-detail-box').style.display = 'none'; document.getElementById('quick-detail-box').classList.add('hidden');" style="position: absolute; top: 1.2rem; right: 1.5rem; font-size: 1.5rem; cursor: pointer; color: var(--mi-gray-dark); transition: color 0.2s;" onmouseover="this.style.color='var(--mi-orange)'" onmouseout="this.style.color='var(--mi-gray-dark)'">&times;</span>
             
             <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 1.5rem; border-bottom: 1px solid var(--mi-border); padding-bottom: 1rem;">
@@ -872,7 +993,12 @@
                 <h4 style="margin-top: 0; margin-bottom: 1rem; color: #1890ff; font-size: 14px;">Cargar evidencias para solucionar</h4>
                 <div class="form-group" style="margin-bottom: 1rem;">
                     <label style="font-weight: 600; margin-bottom: 0.5rem; display: block; font-size: 12px;">Subir Foto de Solución (Obligatorio) <span style="color:red;">*</span></label>
-                    <input type="file" id="resolve-photo-input" multiple accept="image/*" class="form-control" onchange="handleResolutionPhotoUpload(event)" style="padding: 8px; font-size: 12px;" />
+                    <div style="display: flex; gap: 10px; margin-bottom: 10px;">
+                        <button type="button" class="btn-secondary" onclick="document.getElementById('resolve-cam').click()" style="flex: 1; padding: 10px; font-weight: bold; background: #f0f0f0; border: 1px solid #ccc; color: #333;"><i class="fas fa-camera"></i> Cámara</button>
+                        <button type="button" class="btn-secondary" onclick="document.getElementById('resolve-gal').click()" style="flex: 1; padding: 10px; font-weight: bold; background: #f0f0f0; border: 1px solid #ccc; color: #333;"><i class="fas fa-images"></i> Galería</button>
+                    </div>
+                    <input type="file" id="resolve-cam" accept="image/*" capture="environment" onchange="handleResolutionPhotoUpload(event)" style="display: none;">
+                    <input type="file" id="resolve-gal" multiple accept="image/*" onchange="handleResolutionPhotoUpload(event)" style="display: none;">
                 </div>
                 <div id="resolve-photo-preview-container" style="display: flex; gap: 8px; margin-bottom: 1rem; flex-wrap: wrap;"></div>
                 <button id="submit-resolution-btn" class="btn" onclick="submitResolution()" style="background: #1890ff; color: white; width: 100%; padding: 0.8rem; border-radius: 8px; border: none; font-weight: 600; cursor: pointer;" disabled>

@@ -3,7 +3,7 @@
  */
 
 const APP_CONFIG = {
-    scriptUrl: 'https://script.google.com/macros/s/AKfycbxJ_MCbYEmGbxKeh5t8rtH-uCPY_ZO_iBJFj5l8N6kUGLWQq4nLnLAqLp2sJBABwX2i1A/exec',
+    scriptUrl: 'https://script.google.com/macros/s/AKfycbxMprVmwm0QjUgA95fIx5ThZxiAG2XPR6QHgnFMVQTHlzo93N4Dvd0akU6bWVarVBaiDw/exec',
     currentUser: null,
     currentReport: {
         category: '',
@@ -184,6 +184,7 @@ const logoutBtn = document.getElementById('logout-btn');
 // --- Initialization ---
 document.addEventListener('DOMContentLoaded', () => {
     setupNavigation();
+    setupMobileNavigation();
     setupForms();
     
     const isLoggedIn = checkSession();
@@ -239,6 +240,50 @@ function setupNavigation() {
         location.reload();
     });
 }
+
+function setupMobileNavigation() {
+    const mobileTabs = document.querySelectorAll('.mobile-bottom-nav-item');
+    if (!mobileTabs.length) return;
+    
+    mobileTabs.forEach(tab => {
+        tab.addEventListener('click', () => {
+            const target = tab.getAttribute('data-target');
+            
+            // 1. Simular clic en el enlace de navegación de escritorio correspondiente
+            const desktopLink = Array.from(navLinks).find(l => l.getAttribute('data-target') === target);
+            if (desktopLink) {
+                // Hacer clic en él para desencadenar la carga de datos y visibilidad
+                desktopLink.click();
+            } else {
+                // Fallback por si acaso
+                showView(target);
+            }
+            
+            // 2. Sincronizar clase activa en mobile tabs
+            mobileTabs.forEach(t => t.classList.remove('active'));
+            tab.classList.add('active');
+        });
+    });
+}
+
+window.toggleMobileMessagesView = function(viewName) {
+    const redactDiv = document.querySelector('#messages-form-grid > div:first-child');
+    const inboxDiv = document.querySelector('#messages-form-grid > div:last-child');
+    const btnInbox = document.getElementById('btn-toggle-inbox');
+    const btnCompose = document.getElementById('btn-toggle-compose');
+    
+    if (viewName === 'inbox') {
+        if (redactDiv) redactDiv.classList.add('mobile-hidden');
+        if (inboxDiv) inboxDiv.classList.remove('mobile-hidden');
+        if (btnInbox) btnInbox.classList.add('active');
+        if (btnCompose) btnCompose.classList.remove('active');
+    } else if (viewName === 'compose') {
+        if (redactDiv) redactDiv.classList.remove('mobile-hidden');
+        if (inboxDiv) inboxDiv.classList.add('mobile-hidden');
+        if (btnInbox) btnInbox.classList.remove('active');
+        if (btnCompose) btnCompose.classList.add('active');
+    }
+};
 
 async function showView(viewName) {
     localStorage.setItem('xiaomi_last_view', viewName);
@@ -325,6 +370,19 @@ async function showView(viewName) {
             }
         }
         if (viewName === 'materiales') loadMaterials();
+        
+        // Sincronizar indicador de pestaña activa en móvil
+        const correspondingMobileTab = Array.from(document.querySelectorAll('.mobile-bottom-nav-item'))
+            .find(t => t.getAttribute('data-target') === viewName);
+        if (correspondingMobileTab) {
+            document.querySelectorAll('.mobile-bottom-nav-item').forEach(t => t.classList.remove('active'));
+            correspondingMobileTab.classList.add('active');
+        }
+        
+        // Inicializar por defecto la bandeja de entrada si es móvil en la vista de mensajes
+        if (viewName === 'mensajes' && window.innerWidth <= 768) {
+            window.toggleMobileMessagesView('inbox');
+        }
     }
 }
 window.refreshAllDashboardData = async function() {
@@ -919,7 +977,7 @@ window.showQuickBox = function(report) {
         badge.style.color = 'white';
     }
     
-    if (est === 'PENDIENTE') {
+    if (est === 'PENDIENTE' || est === 'ABIERTA') {
         resolveBtn.style.display = 'flex';
         resArea.style.display = 'block'; // Auto-desplegar por defecto para ahorrar un clic al usuario
     } else {
@@ -1538,8 +1596,8 @@ window.renderHistorialRows = function(items, isLanzamientos) {
                 }
             }
             
-            // 3. Button "Incidencia Resuelta" (Para PENDIENTE, visible universalmente)
-            if (rawEst === 'pendiente') {
+            // 3. Button "Incidencia Resuelta" (Para PENDIENTE y ABIERTA, visible universalmente)
+            if (rawEst === 'pendiente' || rawEst === 'abierta' || rawEst === 'abierto') {
                 const resBtn = document.createElement('button');
                 resBtn.className = 'action-btn-circle';
                 resBtn.style.color = '#52c41a'; // Verde éxito vibrante
@@ -2905,17 +2963,31 @@ async function loadLaunches() {
 async function loadMaterials() {
     const container = document.getElementById('materials-container');
     
+    // Materiales fijos/por defecto inyectados en la App
+    const defaultMaterials = [{
+        Nombre: "Guía Lanzamiento Xiaomi 17T Series",
+        Categoria: "Lanzamientos",
+        Url_File: "https://docs.google.com/presentation/d/1_cJVZKnAMqO_KV53hwsHWHojR7qZzVQA/edit?usp=drive_link&ouid=115671157525332985831&rtpof=true&sd=true"
+    }];
+    
     // OPTIMIZACIÓN: Rendereo instantáneo si hay caché
     if (APP_CONFIG.materials && APP_CONFIG.materials.length > 0) {
         renderMaterialsToContainer(APP_CONFIG.materials, container);
         // Continuar fetch silencioso por si hay nuevos en backend
     } else {
-        container.innerHTML = '<p><i class="fas fa-spinner fa-spin"></i> Cargando materiales...</p>';
+        renderMaterialsToContainer(defaultMaterials, container);
+        container.insertAdjacentHTML('afterbegin', '<p style="font-size: 12px; color: #888; text-align: center; margin-bottom: 10px;"><i class="fas fa-spinner fa-spin"></i> Sincronizando con el servidor...</p>');
     }
     
     try {
         const materials = await callApi({ action: 'getMaterials' });
-        if (materials) APP_CONFIG.materials = materials;
+        if (materials && materials.length > 0) {
+            APP_CONFIG.materials = [...defaultMaterials, ...materials];
+        } else {
+            APP_CONFIG.materials = defaultMaterials;
+        }
+        
+        // Quitar el spinner y re-renderizar
         renderMaterialsToContainer(APP_CONFIG.materials, container);
     } catch (e) {
         console.error(e);
@@ -2934,15 +3006,28 @@ function renderMaterialsToContainer(materials, container) {
 
     materials.forEach(mat => {
         const item = document.createElement('div');
-        item.className = 'recent-table';
-        item.style.marginBottom = '1rem';
+        item.style.marginBottom = '12px';
+        item.style.background = '#fff';
+        item.style.borderRadius = '12px';
+        item.style.boxShadow = '0 2px 8px rgba(0,0,0,0.04)';
+        item.style.border = '1px solid #f0f0f0';
+        item.style.padding = '16px';
+        item.style.transition = 'transform 0.2s, box-shadow 0.2s';
+        
         item.innerHTML = `
-            <div style="display: flex; justify-content: space-between; align-items: center;">
-                <div>
-                    <h4 style="margin: 0;">${mat.Nombre}</h4>
-                    <small style="color: var(--text-muted)">${mat.Categoria}</small>
+            <div style="display: flex; justify-content: space-between; align-items: center; gap: 15px;">
+                <div style="display: flex; align-items: center; gap: 12px; flex: 1;">
+                    <div style="width: 40px; height: 40px; border-radius: 8px; background: #fff4e6; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+                        <i class="fas fa-file-alt" style="color: var(--mi-orange); font-size: 18px;"></i>
+                    </div>
+                    <div>
+                        <h4 style="margin: 0 0 4px 0; font-size: 15px; color: #111; font-weight: 700; line-height: 1.2;">${mat.Nombre}</h4>
+                        <span style="background: #f0f0f0; color: #666; padding: 2px 8px; border-radius: 10px; font-size: 11px; font-weight: 600;">${mat.Categoria}</span>
+                    </div>
                 </div>
-                <a href="${mat.Url_File}" target="_blank" class="btn-primary" style="width: auto; padding: 5px 15px; font-size: 0.8rem; text-decoration: none;">Descargar</a>
+                <a href="${mat.Url_File}" target="_blank" style="flex-shrink: 0; background: var(--mi-orange); color: #fff; padding: 8px 16px; border-radius: 20px; font-weight: 600; font-size: 13px; text-decoration: none; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 5px rgba(255,103,0,0.2); transition: background 0.2s;">
+                    Abrir
+                </a>
             </div>
         `;
         container.appendChild(item);
@@ -3130,44 +3215,53 @@ window.loadLaunchStores = async function() {
             const card = document.createElement('div');
             card.className = 'dashboard-card';
             card.style.cursor = 'pointer';
-            card.style.position = 'relative';
             card.style.overflow = 'hidden';
+            card.style.background = '#fff';
+            card.style.borderRadius = '12px';
+            card.style.boxShadow = '0 2px 8px rgba(0,0,0,0.04)';
+            card.style.border = '1px solid #f0f0f0';
+            card.style.transition = 'transform 0.2s, box-shadow 0.2s';
             
             let badgeHtml = '';
-            let cardContent = `
-                <div class="card-icon" style="background: rgba(255,103,0,0.1); color: var(--primary);">
-                    <i class="fas fa-store"></i>
-                </div>
-            `;
+            let cardContent = '';
             
             if (status === 'Realizada') {
-                badgeHtml = '<span class="badge status completado" style="position:absolute; top:10px; right:10px; font-size:1.2rem; z-index:2;">✅</span>';
+                badgeHtml = '<span style="background: #e6f7ff; color: #1890ff; padding: 4px 8px; border-radius: 4px; font-size: 11px; font-weight: 600; border: 1px solid #91d5ff;">✅ Realizada</span>';
                 if (thumb) {
                     cardContent = `
-                        <div style="width: 100%; height: 60px; overflow: hidden; margin-bottom: 10px; border-radius: 4px;">
+                        <div style="width: 100%; height: 80px; overflow: hidden; margin-top: 10px; border-radius: 6px;">
                             <img src="${thumb}" style="width: 100%; height: 100%; object-fit: cover;">
                         </div>
                     `;
                 }
             } else if (status === 'Abierta') {
-                badgeHtml = '<span class="badge status abierta" style="position:absolute; top:10px; right:10px; background:var(--danger); color:white; z-index:2;">🔴 Abierta</span>';
+                badgeHtml = '<span style="background: #fff1f0; color: #f5222d; padding: 4px 8px; border-radius: 4px; font-size: 11px; font-weight: 600; border: 1px solid #ffa39e;">🚨 Abierta</span>';
             } else if (status === 'Revisada') {
-                badgeHtml = '<span class="badge status revisada" style="position:absolute; top:10px; right:10px; background:orange; color:white; z-index:2;">🟠 Revisada</span>';
+                badgeHtml = '<span style="background: #fff7e6; color: #fa8c16; padding: 4px 8px; border-radius: 4px; font-size: 11px; font-weight: 600; border: 1px solid #ffd591;">👀 Revisada</span>';
             } else if (status === 'Reportada') {
-                badgeHtml = '<span class="badge status reportada" style="position:absolute; top:10px; right:10px; background:#f1c40f; color:black; z-index:2;">🟡 Reportada</span>';
+                badgeHtml = '<span style="background: #feffe6; color: #d4b106; padding: 4px 8px; border-radius: 4px; font-size: 11px; font-weight: 600; border: 1px solid #ffffb8;">⚠️ Reportada</span>';
             } else if (status === 'Cambiada') {
-                badgeHtml = '<span class="badge status cambiada" style="position:absolute; top:10px; right:10px; background:var(--success); color:white; z-index:2;">🟢 Cambiada</span>';
+                badgeHtml = '<span style="background: #f6ffed; color: #52c41a; padding: 4px 8px; border-radius: 4px; font-size: 11px; font-weight: 600; border: 1px solid #b7eb8f;">🔄 Cambiada</span>';
             } else {
-                badgeHtml = '<span class="badge status pendiente" style="position:absolute; top:10px; right:10px; background:#eee; color:#666; z-index:2;">Pendiente</span>';
+                badgeHtml = '<span style="background: #f0f0f0; color: #666; padding: 4px 8px; border-radius: 4px; font-size: 11px; font-weight: 600;">Pendiente</span>';
             }
             
             card.innerHTML = `
-                ${badgeHtml}
-                ${cardContent}
-                <div class="card-info">
-                    <h3 style="font-size:1.1rem; margin-bottom:5px;">${store.nombre}</h3>
-                    <p style="font-size:0.85rem; color:#666;">${store.cuenta}</p>
+                <div style="background: #fff5e6; padding: 12px 15px; display: flex; justify-content: space-between; align-items: center; ${cardContent ? 'border-bottom: 1px solid #fce8db;' : ''}">
+                    <div style="display: flex; gap: 12px; align-items: center;">
+                        <div style="width: 32px; height: 32px; border-radius: 50%; background: #fff; display: flex; align-items: center; justify-content: center; box-shadow: 0 1px 3px rgba(0,0,0,0.05);">
+                            <i class="fas fa-store" style="color: var(--mi-orange); font-size: 14px;"></i>
+                        </div>
+                        <div>
+                            <h3 style="font-size: 14px; margin: 0 0 2px 0; color: #111; font-weight: 800; line-height: 1.2;">${store.nombre}</h3>
+                            <p style="font-size: 11px; margin: 0; color: #666; font-weight: 600;">${store.cuenta}</p>
+                        </div>
+                    </div>
+                    <div>
+                        ${badgeHtml}
+                    </div>
                 </div>
+                ${cardContent ? `<div style="padding: 12px 15px;">${cardContent}</div>` : ''}
             `;
             
             card.onclick = () => {
@@ -3201,18 +3295,23 @@ window.startLaunchChecklist = function(storeObj) {
     document.getElementById('launch-store-grid').classList.add('hidden');
     document.getElementById('launch-checklist').classList.remove('hidden');
     
-    // Reset all sections
-    document.getElementById('launch-form').reset();
-    document.getElementById('section-tarea-1').classList.remove('hidden');
-    document.getElementById('section-tarea-2').classList.remove('hidden');
-    document.getElementById('launch-ok-details').classList.add('hidden');
-    document.getElementById('launch-incident-details').classList.add('hidden');
+    const isECI = storeObj.cuenta === 'ECI';
+    const escGroup = document.getElementById('launch-group-escalerilla');
+    const escInput = document.getElementById('launch-q-escalerilla');
+    if (escGroup) {
+        if (isECI) {
+            escGroup.classList.remove('hidden');
+            if (escInput) escInput.setAttribute('required', 'true');
+        } else {
+            escGroup.classList.add('hidden');
+            if (escInput) escInput.removeAttribute('required');
+        }
+    }
     
+    document.getElementById('launch-form').reset();
     document.getElementById('launch-checklist-store-title').textContent = storeObj.nombre + ' (' + storeObj.cuenta + ')';
     
     APP_CONFIG.launchUploadedPhotos = [];
-    APP_CONFIG.launchIncidentPath = [];
-    document.getElementById('launch-thumbnails-ok').innerHTML = '';
     document.getElementById('launch-thumbnails-incident').innerHTML = '';
 };
 
@@ -3289,8 +3388,7 @@ window.selectLaunchLevel = function(level, value) {
 };
 
 window.handleLaunchPhotos = async function(input, maxFiles = 99) {
-    const isOk = document.getElementById('launch-ok').checked;
-    const container = isOk ? document.getElementById('launch-thumbnails-ok') : document.getElementById('launch-thumbnails-incident');
+    const container = document.getElementById('launch-thumbnails-incident');
     const submitBtn = document.querySelector('#launch-form button[type="submit"]');
     
     if (!input.files || input.files.length === 0) return;
@@ -3408,50 +3506,47 @@ window.submitLaunch = async function(event) {
     event.preventDefault();
     
     if (APP_CONFIG.launchUploadedPhotos.length === 0) {
-        alert("Por favor, espera a que se suban las fotos antes de enviar.");
+        alert("Por favor, sube al menos una foto antes de enviar.");
         return;
     }
     
-    const isOk = document.getElementById('launch-ok').checked;
-    const isIncident = document.getElementById('launch-incident').checked;
-
-    if (!isOk && !isIncident) {
-        alert("Por favor, selecciona una de las tareas (Instalación OK o Incidencia).");
-        return;
-    }
-
-    if (isIncident && APP_CONFIG.launchIncidentPath.length < 4) {
-        alert("Por favor, completa todos los pasos del reporte de incidencia.");
-        return;
-    }
-
-    const comment = isIncident ? document.getElementById('launch-comment-incident').value : '';
-
     const btn = document.getElementById('btn-submit-launch');
-    const originalText = btn.textContent;
+    const originalText = btn.innerHTML;
     btn.disabled = true;
-    btn.textContent = 'Enviando...';
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Enviando...';
+
+    const isECI = APP_CONFIG.currentLaunchStore.cuenta === 'ECI';
 
     const reportData = {
-        action: 'submitLaunchChecklist',
+        action: 'submitCustomLaunchForm',
         usuario: APP_CONFIG.currentUser.email,
         cuenta: APP_CONFIG.currentLaunchStore.cuenta,
         tienda: APP_CONFIG.currentLaunchStore.nombre,
         rms: APP_CONFIG.currentLaunchStore.rms || '',
-        instalacionOk: isOk,
-        photos: APP_CONFIG.launchUploadedPhotos,
-        isIncident: isIncident,
-        incidentPath: isIncident ? APP_CONFIG.launchIncidentPath.join(' > ') : '',
-        descripcion: comment,
-        lanzamiento: document.getElementById('launch-selector').value
+        lanzamiento: document.getElementById('launch-selector').value,
+        photos: APP_CONFIG.launchUploadedPhotos.join('\n'),
+        q_lampara: document.getElementById('launch-q-lampara').value,
+        q_ldu: document.getElementById('launch-q-ldu').value,
+        q_dummy: document.getElementById('launch-q-dummy').value,
+        q_eco: document.getElementById('launch-q-eco').value,
+        q_filmina: document.getElementById('launch-q-filmina').value,
+        q_lonas: document.getElementById('launch-q-lonas').value,
+        q_wall: document.getElementById('launch-q-wall').value,
+        q_column: document.getElementById('launch-q-column').value,
+        q_fichas: document.getElementById('launch-q-fichas').value,
+        q_incidencias: document.getElementById('launch-q-incidencias').value || ''
     };
+    
+    if (isECI) {
+        reportData.q_escalerilla = document.getElementById('launch-q-escalerilla').value || '';
+    }
 
     try {
         const res = await callApi(reportData);
         if (res.success) {
-            alert('Validación de Lanzamiento guardada con éxito.');
+            alert('Formulario de Lanzamiento enviado con éxito.');
             closeLaunchChecklist();
-            loadLaunchStores(); // Refresh grid to update badges
+            loadLaunchStores();
         } else {
             alert('Error al guardar: ' + res.message);
         }
@@ -3460,7 +3555,7 @@ window.submitLaunch = async function(event) {
         alert('Error de conexión al guardar.');
     } finally {
         btn.disabled = false;
-        btn.textContent = originalText;
+        btn.innerHTML = originalText;
     }
 }
 
@@ -3844,6 +3939,7 @@ function triggerNotificationAlert(changes) {
 
 function updateNavBadge() {
     const badge = document.getElementById('msg-nav-badge');
+    const mobileBadge = document.getElementById('msg-mobile-badge');
     if (!badge) return;
     
     // 1. Mensajes de chat no leídos de la base de datos
@@ -3860,12 +3956,22 @@ function updateNavBadge() {
     const totalCount = unreadChatCount + unreadSystemCount;
     
     if (totalCount > 0) {
-        badge.textContent = totalCount > 99 ? '99+' : totalCount;
+        const displayText = totalCount > 99 ? '99+' : totalCount;
+        badge.textContent = displayText;
         badge.style.display = 'flex';
         badge.classList.add('active');
+        if (mobileBadge) {
+            mobileBadge.textContent = displayText;
+            mobileBadge.style.display = 'flex';
+            mobileBadge.classList.add('active');
+        }
     } else {
         badge.style.display = 'none';
         badge.classList.remove('active');
+        if (mobileBadge) {
+            mobileBadge.style.display = 'none';
+            mobileBadge.classList.remove('active');
+        }
     }
 }
 

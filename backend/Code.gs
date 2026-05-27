@@ -41,6 +41,9 @@ function doGet(e) {
       case 'getMessages':
         result = getUserMessages(ss, e.parameter.email);
         break;
+      case 'getMaterials':
+        result = getDataFromSheet(ss, 'Materiales');
+        break;
       default:
         result = { success: false, message: 'Acción GET no válida' };
     }
@@ -66,6 +69,8 @@ function doPost(e) {
         return jsonResponse(handleSubmitReport(ss, data));
       case 'submitLaunchChecklist':
         return jsonResponse(handleSubmitLaunchChecklist(ss, data));
+      case 'submitCustomLaunchForm':
+        return jsonResponse(handleSubmitCustomLaunchForm(ss, data));
       case 'uploadFile':
         return jsonResponse(handleFileUpload(data));
       case 'resolveIncident':
@@ -535,6 +540,88 @@ function handleSubmitReport(ss, data) {
     return { success: true };
   } catch (e) {
     return { success: false, message: 'Error (Lock/Write): ' + e.toString() };
+  } finally {
+    lock.releaseLock();
+  }
+}
+
+function handleSubmitCustomLaunchForm(mainSs, data) {
+  const lock = LockService.getScriptLock();
+  try {
+    lock.waitLock(CONFIG.LOCK_TIMEOUT);
+    
+    let targetSsId = '';
+    const cuenta = String(data.cuenta).trim().toUpperCase();
+    if (cuenta === 'ECI') {
+      targetSsId = '1jlKgfjJlA44bbPL-SJGqXrhBk0jiRZiJm277EIIEUXM';
+    } else {
+      targetSsId = '1kbu29XSbzEzKS7TmC4gUwzP-8gpR98rhL2-YzKB-LGs';
+    }
+    
+    const targetSs = SpreadsheetApp.openById(targetSsId);
+    const targetSheet = targetSs.getSheets()[0];
+    if (!targetSheet) throw new Error("Hoja de respuestas no encontrada en el destino.");
+    
+    const timestamp = Utilities.formatDate(new Date(), Session.getScriptTimeZone(), "dd/MM/yyyy HH:mm:ss");
+    
+    let rowData = [];
+    if (cuenta === 'ECI') {
+      rowData = [
+        timestamp,
+        data.tienda,
+        data.q_lampara,
+        data.q_ldu,
+        data.q_dummy,
+        data.q_eco,
+        data.q_filmina,
+        data.q_lonas,
+        data.q_wall,
+        data.q_column,
+        data.q_fichas,
+        data.q_incidencias,
+        data.q_escalerilla,
+        data.photos
+      ];
+    } else {
+      rowData = [
+        timestamp,
+        data.tienda,
+        data.q_lampara,
+        data.q_ldu,
+        data.q_dummy,
+        data.q_eco,
+        data.q_filmina,
+        data.q_lonas,
+        data.q_wall,
+        data.q_column,
+        data.q_fichas,
+        data.q_incidencias,
+        data.photos
+      ];
+    }
+    
+    targetSheet.appendRow(rowData);
+    
+    const valSheet = getSheetDefensive(mainSs, 'Validaciones de Lanzamiento');
+    if (valSheet) {
+      const newId = 'LNZ-' + Date.now() + '-' + Math.floor(Math.random()*1000);
+      valSheet.appendRow([
+        newId,
+        data.lanzamiento,
+        data.usuario,
+        data.cuenta,
+        data.tienda,
+        timestamp,
+        'Formulario Enviado: ' + data.q_lampara,
+        'Realizado',
+        data.photos,
+        data.rms
+      ]);
+    }
+
+    return { success: true };
+  } catch(e) {
+    return { success: false, message: e.message };
   } finally {
     lock.releaseLock();
   }
