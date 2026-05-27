@@ -164,18 +164,14 @@
                              <h3 style="color: var(--text-muted); font-size: 12px; margin-bottom: 1rem;">Tiendas Totales</h3>
                              <span id="dash-launch-total" class="hero-val">0</span>
                          </div>
-                         <div class="sub-grid-quad">
+                         <div class="sub-grid-quad" style="grid-template-columns: repeat(3, 1fr);">
                              <div class="stat-card" onclick="filterLaunchStores('done')" style="cursor:pointer;">
-                                 <h3><i class="fa fa-check" style="color: #52c41a;"></i> Ejecutadas</h3>
+                                 <h3><i class="fa fa-check" style="color: #52c41a;"></i> Realizadas</h3>
                                  <p id="dash-launch-done" style="color: #52c41a;">0</p>
                              </div>
                              <div class="stat-card" onclick="filterLaunchStores('pending')" style="cursor:pointer;">
                                  <h3><i class="fa fa-hourglass-half" style="color: #faad14;"></i> Pendientes</h3>
                                  <p id="dash-launch-pending" style="color: #faad14;">0</p>
-                             </div>
-                             <div class="stat-card" onclick="filterLaunchStores('inc')" style="cursor:pointer;">
-                                 <h3><i class="fa fa-times-circle" style="color: #ff4d4f;"></i> Con Incidente</h3>
-                                 <p id="dash-launch-inc" style="color: #ff4d4f;">0</p>
                              </div>
                              <div class="stat-card">
                                  <h3><i class="fa fa-percentage" style="color: #722ed1;"></i> INSTALADO</h3>
@@ -412,7 +408,7 @@
                     <div style="display: flex; flex-wrap: wrap; gap: 1rem; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
                         <h3 id="dashboard-table-title" style="margin: 0;"><i class="fa fa-history" style="color: var(--mi-orange); font-size: 1.2rem;"></i> Historial de Incidencias</h3>
                         
-                        <div style="display: flex; gap: 8px; flex-wrap: nowrap; align-items: center;">
+                        <div class="dash-history-filters" style="display: flex; gap: 8px; flex-wrap: nowrap; align-items: center;">
                             <select id="dash-filter-cuenta" class="capsule-select" style="width: auto !important; min-width: 140px; height: 36px; padding: 0 8px; font-size: 12px;" onchange="filterDashboardTable()">
                                 <option value="all">Todas Cuentas</option>
                             </select>

@@ -585,6 +585,13 @@ function renderDashboardTable(reports) {
     
     reports.forEach(r => {
         const row = document.createElement('tr');
+        row.onclick = function(e) {
+            if (window.innerWidth <= 768) {
+                // Prevenir que se expanda/cierre si se hace click directamente en un botón de acción
+                if (e.target.tagName.toLowerCase() === 'button' || e.target.closest('button')) return;
+                this.classList.toggle('expanded');
+            }
+        };
         
         // Estilos para el estado
         let statusClass = 'color:#95a5a6;font-weight:600';
@@ -1775,23 +1782,17 @@ window.updateDashboardLaunchStats = async function() {
                 const accs = String(l.Cuentas || l.Cuenta || '').split(',').map(s => s.trim().toLowerCase());
                 accs.forEach(a => allAccounts.add(a));
             });
-            total = myStores.filter(t => t.cuenta && allAccounts.has(t.cuenta.toLowerCase())).length;
-        } else {
-            const launchObj = APP_CONFIG.launches.find(l => l.Producto === launchName);
-            if (launchObj) {
-                const allowed = String(launchObj.Cuentas || launchObj.Cuenta || '').split(',').map(s => s.trim().toLowerCase());
-                total = myStores.filter(t => t.cuenta && allowed.includes(t.cuenta.toLowerCase())).length;
-            }
-        }
+        const stores = getStoresForLaunch(APP_CONFIG.currentUser.email, launchName);
+        const total = stores.length;
         
-        const done = Object.values(statuses).filter(s => s && s.estado === 'Realizado').length;
-        const inc = Object.values(statuses).filter(s => s && s.estado === 'Incidente').length;
-        const pending = Math.max(0, total - done - inc);
+        // Consideramos "Realizadas" todas las que ya tienen un estado asignado en el Excel (no están Pendientes)
+        const done = Object.values(statuses).filter(s => s && s.estado !== 'Pendiente').length;
+        const pending = Math.max(0, total - done);
         
         document.getElementById('dash-launch-total').textContent = total;
         document.getElementById('dash-launch-done').textContent = done;
         document.getElementById('dash-launch-pending').textContent = pending;
-        document.getElementById('dash-launch-inc').textContent = inc;
+        document.getElementById('dash-launch-inc').textContent = '0';
         
         // Nuevo: Calcular e Inyectar Porcentaje Real
         const pct = total > 0 ? Math.round((done / total) * 100) : 0;

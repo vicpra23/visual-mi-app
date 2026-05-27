@@ -1288,3 +1288,34 @@ textarea {
     from { transform: translateY(100%); }
     to { transform: translateY(0); }
 }
+
+@media (max-width: 768px) {
+    .dash-history-filters {
+        display: grid !important;
+        grid-template-columns: 1fr 1fr;
+        gap: 8px !important;
+        width: 100%;
+    }
+    .dash-history-filters select, .dash-history-filters button {
+        width: 100% !important;
+        min-width: 0 !important;
+    }
+    
+    #recent-reports-table tr {
+        cursor: pointer;
+    }
+    #recent-reports-table td:nth-of-type(2),
+    #recent-reports-table td:nth-of-type(3),
+    #recent-reports-table td:nth-of-type(5),
+    #recent-reports-table td:nth-of-type(6),
+    #recent-reports-table td:nth-of-type(8) {
+        display: none !important;
+    }
+    #recent-reports-table tr.expanded td:nth-of-type(2),
+    #recent-reports-table tr.expanded td:nth-of-type(3),
+    #recent-reports-table tr.expanded td:nth-of-type(5),
+    #recent-reports-table tr.expanded td:nth-of-type(6),
+    #recent-reports-table tr.expanded td:nth-of-type(8) {
+        display: flex !important;
+    }
+}
