@@ -142,17 +142,7 @@
                     <h3 style="margin-bottom: 1.5rem; font-size: 1.1rem; color: var(--mi-gray-dark); display: flex; align-items: center; gap: 8px;">
                         <i class="fa fa-rocket" style="color: var(--mi-orange)"></i> Control de Lanzamientos
                     </h3>
-                    
-                    <!-- Floating Filter moved down into the Launch area -->
-                    <div id="dash-launch-filter-capsule" class="floating-filter-capsule" style="margin-bottom: 1.5rem;">
-                        <div id="dash-launch-filter-wrapper" class="filter-group" style="min-width: 200px;">
-                            <label><i class="fa fa-rocket"></i> Seleccionar Lanzamiento</label>
-                            <select id="dash-launch-filter" class="capsule-select" onchange="updateDashboardLaunchStats()">
-                                <option value="all">Ver todos</option>
-                            </select>
-                        </div>
-
-
+                    <div id="dash-launch-filter-capsule" class="floating-filter-capsule" style="margin-bottom: 1.5rem; justify-content: flex-end;">
                         <button class="capsule-search-btn" onclick="refreshAllDashboardData()" title="Recargar">
                             <i class="fa fa-sync-alt"></i>
                         </button>
@@ -164,7 +154,7 @@
                              <h3 style="color: var(--text-muted); font-size: 12px; margin-bottom: 1rem;">Tiendas Totales</h3>
                              <span id="dash-launch-total" class="hero-val">0</span>
                          </div>
-                         <div class="sub-grid-quad" style="grid-template-columns: repeat(3, 1fr);">
+                         <div class="sub-grid-quad" style="grid-template-columns: repeat(2, 1fr);">
                              <div class="stat-card" onclick="filterLaunchStores('done')" style="cursor:pointer;">
                                  <h3><i class="fa fa-check" style="color: #52c41a;"></i> Realizadas</h3>
                                  <p id="dash-launch-done" style="color: #52c41a;">0</p>
@@ -173,9 +163,9 @@
                                  <h3><i class="fa fa-hourglass-half" style="color: #faad14;"></i> Pendientes</h3>
                                  <p id="dash-launch-pending" style="color: #faad14;">0</p>
                              </div>
-                             <div class="stat-card">
-                                 <h3><i class="fa fa-percentage" style="color: #722ed1;"></i> INSTALADO</h3>
-                                 <p id="dash-launch-pct" style="color: #722ed1; font-size: 1.8rem; font-weight: bold;">0%</p>
+                             <div class="stat-card" style="grid-column: span 2; display: flex; align-items: center; justify-content: space-between; padding: 15px 25px; background: linear-gradient(135deg, rgba(114, 46, 209, 0.05) 0%, rgba(114, 46, 209, 0) 100%);">
+                                 <h3 style="margin: 0;"><i class="fa fa-percentage" style="color: #722ed1;"></i> INSTALADO</h3>
+                                 <p id="dash-launch-pct" style="color: #722ed1; font-size: 2.5rem; font-weight: 800; margin: 0;">0%</p>
                              </div>
                          </div>
                     </div>
