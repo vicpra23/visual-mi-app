@@ -1289,8 +1289,11 @@ textarea {
     to { transform: translateY(0); }
 }
 
-/* Hide status badge icons on desktop by default */
+/* Hide status badge icons and mobile floats on desktop by default */
 .status-badge .badge-icon {
+    display: none;
+}
+.mobile-badge-float {
     display: none;
 }
 
@@ -1325,6 +1328,9 @@ textarea {
     }
     
     /* Mobile Status Badges for Dashboard Grid */
+    .desktop-badge-area { display: none !important; }
+    .mobile-badge-float { display: block !important; }
+    
     .status-badge {
         padding: 0 !important;
         width: auto !important;
@@ -1332,8 +1338,9 @@ textarea {
         justify-content: center;
         align-items: center;
         border: none !important;
-        background: transparent !important;
-        box-shadow: none !important;
+        background: #fff !important; /* give it a white background so it blocks the icon behind it */
+        box-shadow: 0 1px 3px rgba(0,0,0,0.1) !important; /* drop shadow for depth */
+        border-radius: 50% !important;
     }
     .status-badge .badge-text {
         display: none !important;
@@ -1344,7 +1351,16 @@ textarea {
         justify-content: center;
     }
     .status-badge .badge-icon i {
-        font-size: 20px !important;
+        font-size: 16px !important; /* Slightly smaller to fit floating */
         line-height: 1 !important;
     }
-}
+    
+    /* Compact Historial Modal */
+    .modal-compact-table th, .modal-compact-table td {
+        padding: 6px 8px !important;
+        font-size: 11px !important;
+    }
+    .modal-compact-table th {
+        font-size: 10px !important;
+    }
+} 

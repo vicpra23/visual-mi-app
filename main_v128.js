@@ -287,6 +287,14 @@ window.toggleMobileMessagesView = function(viewName) {
 
 async function showView(viewName) {
     localStorage.setItem('xiaomi_last_view', viewName);
+    
+    // Cerrar modales flotantes al cambiar de pestaña
+    const historialModal = document.getElementById('historial-modal');
+    if (historialModal) {
+        historialModal.style.display = 'none';
+        historialModal.classList.add('hidden');
+    }
+    
     // Hide all sub-views explicitly
     document.querySelectorAll('.sub-view').forEach(v => {
         v.style.display = 'none';
@@ -2057,6 +2065,11 @@ async function handleLogin(e) {
             APP_CONFIG.currentUser = response.user;
             localStorage.setItem('xiaomi_user', JSON.stringify(response.user));
             startApp(true);
+            
+            // Solicitar permisos de notificación nativa
+            if ('Notification' in window && Notification.permission !== 'granted' && Notification.permission !== 'denied') {
+                Notification.requestPermission();
+            }
         } else {
             errorMsg.textContent = response.message || 'Error al iniciar sesión';
         }
@@ -3422,15 +3435,16 @@ window.loadLaunchStores = async function() {
             card.innerHTML = `
                 <div style="background: #fff5e6; padding: 12px 15px; display: flex; justify-content: space-between; align-items: center; ${cardContent ? 'border-bottom: 1px solid #fce8db;' : ''}">
                     <div style="display: flex; gap: 12px; align-items: center;">
-                        <div style="width: 32px; height: 32px; border-radius: 50%; background: #fff; display: flex; align-items: center; justify-content: center; box-shadow: 0 1px 3px rgba(0,0,0,0.05);">
+                        <div style="position: relative; width: 32px; height: 32px; border-radius: 50%; background: #fff; display: flex; align-items: center; justify-content: center; box-shadow: 0 1px 3px rgba(0,0,0,0.05);">
                             <i class="fas fa-store" style="color: var(--mi-orange); font-size: 14px;"></i>
+                            <div class="mobile-badge-float" style="position: absolute; top: -6px; right: -6px; z-index: 2;">${badgeHtml}</div>
                         </div>
                         <div>
                             <h3 style="font-size: 14px; margin: 0 0 2px 0; color: #111; font-weight: 800; line-height: 1.2;">${store.nombre}</h3>
                             <p style="font-size: 11px; margin: 0; color: #666; font-weight: 600;">${store.cuenta}</p>
                         </div>
                     </div>
-                    <div>
+                    <div class="desktop-badge-area">
                         ${badgeHtml}
                     </div>
                 </div>
@@ -4080,11 +4094,26 @@ function triggerNotificationAlert(changes) {
     if (!container) return;
 
     let msg = "";
+    let plainMsg = "";
     if (changes.length === 1) {
         const c = changes[0];
         msg = `El estado de <strong>"${c.tienda}"</strong> cambió de <span style="opacity:0.7;">${c.oldState}</span> a <strong>${c.newState}</strong>.`;
+        plainMsg = `El estado de "${c.tienda}" cambió de ${c.oldState} a ${c.newState}.`;
     } else {
         msg = `Se han detectado <strong>${changes.length}</strong> actualizaciones en tus incidencias.`;
+        plainMsg = `Se han detectado ${changes.length} actualizaciones en tus incidencias.`;
+    }
+
+    // --- LÓGICA DE NOTIFICACIÓN NATIVA ---
+    if ('Notification' in window && Notification.permission === 'granted') {
+        try {
+            new Notification('Xiaomi Visual', {
+                body: plainMsg,
+                icon: 'logo.png'
+            });
+        } catch(e) {
+            console.log("Error enviando notificación nativa:", e);
+        }
     }
 
     const toast = document.createElement('div');
