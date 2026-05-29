@@ -1893,7 +1893,8 @@ window.updateDashboardLaunchStats = async function() {
         document.getElementById('dash-launch-total').textContent = total;
         document.getElementById('dash-launch-done').textContent = done;
         document.getElementById('dash-launch-pending').textContent = pending;
-        document.getElementById('dash-launch-inc').textContent = '0';
+        const incEl = document.getElementById('dash-launch-inc');
+        if (incEl) incEl.textContent = '0';
         
         // Nuevo: Calcular e Inyectar Porcentaje Real
         const pct = total > 0 ? Math.round((done / total) * 100) : 0;
@@ -3334,6 +3335,9 @@ window.loadLaunchStores = async function() {
             const allAllowedStores = new Set();
             const allAllowedAccounts = new Set();
             let hasAtLeastOneFilter = false;
+            
+            const sel = document.getElementById('launch-selector');
+            const launchName = sel ? sel.value : '';
             
             // Filtramos los lanzamientos para coger SOLO el seleccionado
             let currentLaunches = APP_CONFIG.launches;
