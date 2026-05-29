@@ -26,6 +26,9 @@ function doGet(e) {
       case 'getLaunches':
         result = getDataFromSheet(ss, 'Lanzamientos');
         break;
+      case 'getMaterials':
+        result = getDataFromSheet(ss, 'Materiales');
+        break;
       case 'getLaunchStatuses':
         result = getLaunchStatuses(ss, e.parameter.usuario, e.parameter.lanzamiento);
         break;
