@@ -511,8 +511,6 @@
                         </div>
                     </div>
                 </div>
-            </section>
-
             <!-- View: Lanzamientos -->
             <section id="view-lanzamientos" class="sub-view hidden">
                 <!-- CONTENEDOR FLEX DE 2 COLUMNAS (Filtros Izquierda, Tiendas Derecha) -->
@@ -521,14 +519,15 @@
                     <!-- COLUMNA IZQUIERDA: FILTROS APILADOS -->
                     <div id="launch-filter-sidebar" style="width: 200px; flex-shrink: 0; background: white; padding: 24px; border-radius: 16px; box-shadow: var(--shadow-sm); display: flex; flex-direction: column; gap: 1.5rem;">
                         <div style="display:flex; flex-direction:column;">
-                            <small style="font-size: 10px; color: #999; margin-bottom: 4px; font-weight:700; text-transform:uppercase; letter-spacing:0.5px;">Lanzamiento</small>
-                            <select id="launch-selector" class="capsule-select" style="width: 100%; min-width: unset; height: 40px; font-size: 13px; background:#f8f9fa !important; border-radius:8px !important;" onchange="updateLaunchCascade()">
+                            <small style="font-size: 10px; color: #999; margin-bottom: 4px; font-weight:700; text-transform:uppercase; letter-spacing:0.5px;">Cuenta</small>
+                            <select id="launch-cuenta-selector" class="capsule-select" style="width: 100%; min-width: unset; height: 40px; font-size: 13px; background:#f8f9fa !important; border-radius:8px !important;" onchange="window.loadLaunchStores()">
+                                <option value="all">Todas</option>
                             </select>
                         </div>
                         <div style="display:flex; flex-direction:column;">
-                            <small style="font-size: 10px; color: #999; margin-bottom: 4px; font-weight:700; text-transform:uppercase; letter-spacing:0.5px;">Cuenta</small>
-                            <select id="launch-cuenta-selector" class="capsule-select" style="width: 100%; min-width: unset; height: 40px; font-size: 13px; background:#f8f9fa !important; border-radius:8px !important;" onchange="updateLaunchStoresByCascade()" disabled>
-                                <option value="all">Elige...</option>
+                            <small style="font-size: 10px; color: #999; margin-bottom: 4px; font-weight:700; text-transform:uppercase; letter-spacing:0.5px;">Usuario</small>
+                            <select id="launch-user-selector" class="capsule-select" style="width: 100%; min-width: unset; height: 40px; font-size: 13px; background:#f8f9fa !important; border-radius:8px !important;" onchange="window.loadLaunchStores()">
+                                <option value="all">Todos</option>
                             </select>
                         </div>
                     </div>

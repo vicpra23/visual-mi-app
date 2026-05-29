@@ -63,6 +63,8 @@ function doPost(e) {
     const data = JSON.parse(e.postData.contents);
     
     switch (data.action) {
+      case 'getMaterials':
+        return jsonResponse(getDataFromSheet(ss, 'Materiales'));
       case 'login':
         return jsonResponse(handleLogin(ss, data.email, data.password));
       case 'submitReport':
@@ -179,13 +181,16 @@ function handleLogin(ss, email, password) {
       const cleanEmail = String(email || '').trim().toLowerCase();
       
       userStores = sData.filter(r => {
-        if (isAdmin) return true;
         const storeUser = String(r[3] || '').trim().toLowerCase(); // Columna D (índice 3) es USUARIO
+        if (isAdmin) {
+            return true; // Devolver todas las tiendas para el Admin, pero con la info del usuario incluida
+        }
         return storeUser === cleanEmail;
       }).map(r => ({
         nombre: r[2],  // Columna C (índice 2) es Tienda (Nombre)
         cuenta: r[1],  // Columna B (índice 1) es Cuenta
-        rms: r[0] || '' // Columna A (índice 0) es Codigo RMS
+        rms: r[0] || '', // Columna A (índice 0) es Codigo RMS
+        usuario: r[3] || '' // Columna D (índice 3) es Usuario asignado
       }));
       
       debugInfo = {
@@ -365,34 +370,44 @@ function getDashboardData(ss, rol) {
 }
 
 function getLaunchStatuses(ss, usuario, lanzamiento) {
-  const valSheet = getSheetDefensive(ss, 'Validaciones de Lanzamiento');
   const statuses = {};
   
-  const tz = ss.getSpreadsheetTimeZone();
+  // Archivos externos de Google Forms
+  const idECI = '1jlKgfjJlA44bbPL-SJGqXrhBk0jiRZiJm277EIIEUXM';
+  const idMAC = '1kbu29XSbzEzKS7TmC4gUwzP-8gpR98rhL2-YzKB-LGs';
   
-  if (valSheet) {
-    const data = getFastValues(valSheet);
-    data.shift();
-    data.forEach(r => {
-      if (usuario && String(r[2] || '').trim().toLowerCase() !== String(usuario).trim().toLowerCase()) return; 
-      if (lanzamiento && String(r[12] || '').trim().toLowerCase() !== String(lanzamiento).trim().toLowerCase()) return; 
-      
-      // Mapear objeto completo
-      const isOk = String(r[6] || '').trim().toUpperCase() === 'OK';
-      statuses[r[4]] = {
-        id: r[0],
-        fecha: r[1] instanceof Date ? Utilities.formatDate(r[1], tz, "yyyy-MM-dd") : r[1],
-        usuario: r[2],
-        cuenta: r[3],
-        tienda: r[4],
-        rms: r[5],
-        instalacionOk: r[6],
-        comentario: r[7],
-        fotos: r[8] || '',
-        lanzamiento: r[12],
-        estado: isOk ? 'Realizado' : 'Incidente' // Usamos la columna de validación para el estado maestro
-      };
-    });
+  try {
+    // 1. Leer Archivo ECI
+    try {
+      const ssECI = SpreadsheetApp.openById(idECI);
+      const sheetECI = ssECI.getSheets()[0];
+      const dataECI = sheetECI.getRange(2, 2, sheetECI.getLastRow(), 1).getValues(); // Columna B (Tienda)
+      dataECI.forEach(row => {
+        const storeName = String(row[0] || '').trim();
+        if (storeName) {
+          statuses[storeName] = { estado: 'Realizado' };
+        }
+      });
+    } catch (e) {
+      console.error("Error leyendo archivo ECI: " + e);
+    }
+    
+    // 2. Leer Archivo MAC (MM, Alcampo, Carrefour)
+    try {
+      const ssMAC = SpreadsheetApp.openById(idMAC);
+      const sheetMAC = ssMAC.getSheets()[0];
+      const dataMAC = sheetMAC.getRange(2, 2, sheetMAC.getLastRow(), 1).getValues(); // Columna B (Tienda)
+      dataMAC.forEach(row => {
+        const storeName = String(row[0] || '').trim();
+        if (storeName) {
+          statuses[storeName] = { estado: 'Realizado' };
+        }
+      });
+    } catch (e) {
+      console.error("Error leyendo archivo MAC: " + e);
+    }
+  } catch (globalError) {
+      console.error("Error global en getLaunchStatuses externos: " + globalError);
   }
   
   // Sobrescribir/Priorizar incidentes si hay fila abierta en incidencias
@@ -479,11 +494,12 @@ function handleSubmitReport(ss, data) {
     // Mantenemos el ID original si estamos editando, sino generamos uno nuevo
     const finalId = updateId || generateUUID(isFurniture ? 'REP_M' : 'REP_D');
     
+    const formulaTiempo = '=INT(TODAY() - INDIRECT("B"&ROW()))';
+
     if (isFurniture) {
       const sheet = getSheetDefensive(ss, 'Reporte mobiliario');
       if (!sheet) return { success: false, message: 'Hoja "Reporte mobiliario" no encontrada' };
       
-      // Columnas: ID, Fecha, Usuario, Cuenta, Tienda, Código RMS, Categoría, Subcategoría, Enviar, Motivo, Comentario, Estado, Tiempo, Fotos
       const row = [
         finalId,
         now,
@@ -493,17 +509,16 @@ function handleSubmitReport(ss, data) {
         rms,
         data.categoria,
         data.subcategoria || '',
-        data.enviar || '',  // Donde enviar
+        data.enviar || '',  
         data.motivo || '',
         data.descripcion || '',
         data.estado || 'Abierta',
-        0,
+        formulaTiempo,
         finalPhotos
       ];
       sheet.appendRow(row);
       
     } else {
-      // Flujo Dispositivo: Iterar sobre array de dispositivos
       const sheet = getSheetDefensive(ss, 'Reporte dispositivo');
       if (!sheet) return { success: false, message: 'Hoja "Reporte dispositivo" no encontrada' };
       
@@ -511,11 +526,10 @@ function handleSubmitReport(ss, data) {
       if (deviceList.length === 0) return { success: false, message: 'No se seleccionaron dispositivos.' };
       
       deviceList.forEach(item => {
-        // Columnas: ID (0), Fecha (1), Tipo Reporte (2), Usuario (3), Cuenta (4), Tienda (5), Código RMS (6), Categoría (7), Tipología (8), Modelo (9), Código Dispositivo (10), Cantidad (11), Subcategoría (12), Enviar (13), Motivo (14), Comentario (15), Estado (16), Tiempo (17), Fotos (18)
         const row = [
           finalId,
           now,
-          item.tipoReporte || '', // Nuevo campo Tipo Reporte extraído de frontend
+          item.tipoReporte || '',
           finalUser,
           cuenta,
           data.tienda || '',
@@ -530,7 +544,7 @@ function handleSubmitReport(ss, data) {
           data.motivo || '',
           data.descripcion || '',
           data.estado || 'Abierta',
-          0,
+          formulaTiempo,
           finalPhotos
         ];
         sheet.appendRow(row);
@@ -565,7 +579,7 @@ function handleSubmitCustomLaunchForm(mainSs, data) {
     const timestamp = Utilities.formatDate(new Date(), Session.getScriptTimeZone(), "dd/MM/yyyy HH:mm:ss");
     
     let rowData = [];
-    if (cuenta === 'ECI') {
+    if (cuenta === 'ECI' || cuenta === 'EL CORTE INGLES' || cuenta === 'EL CORTE INGLÉS') {
       rowData = [
         timestamp,
         data.tienda,
@@ -579,8 +593,9 @@ function handleSubmitCustomLaunchForm(mainSs, data) {
         data.q_column,
         data.q_fichas,
         data.q_incidencias,
-        data.q_escalerilla,
-        data.photos
+        data.q_escalerilla || 'No aplica', // 13. Has implantado la escalerilla
+        data.photos, // 14. Sube fotos completas
+        '' // 15. Foto de la escalerilla (dejamos vacío por ahora ya que se suben juntas)
       ];
     } else {
       rowData = [
@@ -596,29 +611,12 @@ function handleSubmitCustomLaunchForm(mainSs, data) {
         data.q_column,
         data.q_fichas,
         data.q_incidencias,
-        data.photos
+        data.photos // 13. Sube fotos
       ];
     }
     
     targetSheet.appendRow(rowData);
     
-    const valSheet = getSheetDefensive(mainSs, 'Validaciones de Lanzamiento');
-    if (valSheet) {
-      const newId = 'LNZ-' + Date.now() + '-' + Math.floor(Math.random()*1000);
-      valSheet.appendRow([
-        newId,
-        data.lanzamiento,
-        data.usuario,
-        data.cuenta,
-        data.tienda,
-        timestamp,
-        'Formulario Enviado: ' + data.q_lampara,
-        'Realizado',
-        data.photos,
-        data.rms
-      ]);
-    }
-
     return { success: true };
   } catch(e) {
     return { success: false, message: e.message };
@@ -668,20 +666,22 @@ function handleSubmitLaunchChecklist(ss, data) {
     
     // 2. Fila para Incidencias Lanzamientos (13 columnas):
     // ID (0), Fecha (1), Usuario (2), Cuenta (3), Tienda (4), Código RMS (5), Ruta Incidencia (6), Comentario (7), Estado (8), Tiempo (9), Fotos (10), Lanzamiento (12)
+    const formulaTiempo = '=INT(TODAY() - INDIRECT("B"&ROW()))';
+
     const incRow = [
-      generateUUID('INC'),                      // ID (0)
-      new Date(),                               // Fecha (1)
-      finalUser,                                // Usuario (dueño de la tienda) (2)
-      data.cuenta || '',                        // Cuenta (3)
-      data.tienda || '',                        // Tienda (4)
-      data.rms || '',                           // Código RMS (5)
-      data.incidentPath || '',                  // Ruta Incidencia (6)
-      data.descripcion || '',                   // Comentario (7)
-      'Abierta',                                // Estado (Empieza en Abierta) (8)
-      new Date().toLocaleTimeString(),          // Tiempo (9)
-      Array.isArray(data.photos) ? data.photos.join('\n') : (data.photos || ''), // Fotos (10)
-      '',                                       // (11)
-      data.lanzamiento || ''                    // Lanzamiento (12)
+      generateUUID('INC'),                      
+      new Date(),                               
+      finalUser,                                
+      data.cuenta || '',                        
+      data.tienda || '',                        
+      data.rms || '',                           
+      data.incidentPath || '',                  
+      data.descripcion || '',                   
+      'Abierta',                                
+      formulaTiempo,
+      Array.isArray(data.photos) ? data.photos.join('\n') : (data.photos || ''), 
+      '',                                       
+      data.lanzamiento || ''                    
     ];
     
     if (valSheet) valSheet.appendRow(valRow);
@@ -790,6 +790,13 @@ function resolveIncident(ss, data) {
     const status = data.estado || data.status || 'Solucionado';
     const newPhotos = Array.isArray(data.photos) ? data.photos.join('\n') : (data.photos || '');
     
+    function calculateDaysFromDate(dateVal) {
+      if (!dateVal) return 0;
+      const d = new Date(dateVal);
+      if (isNaN(d.getTime())) return 0;
+      return Math.floor(Math.abs(Date.now() - d.getTime()) / (1000 * 60 * 60 * 24));
+    }
+
     // 1. Buscar en pestaña 'Reporte mobiliario'
     const mobSheet = getSheetDefensive(ss, 'Reporte mobiliario');
     if (mobSheet) {
@@ -797,6 +804,7 @@ function resolveIncident(ss, data) {
       for (let i = 1; i < reports.length; i++) {
         if (reports[i][0] === id) {
           mobSheet.getRange(i + 1, 12).setValue(status); // Columna L (índice 11) es Estado
+          mobSheet.getRange(i + 1, 13).setValue(calculateDaysFromDate(reports[i][1])); // Congelar tiempo
           if (newPhotos) {
             const oldPhotos = reports[i][13] || ''; // Columna N (índice 13) es Fotos
             const combinedPhotos = oldPhotos ? oldPhotos + '\n' + newPhotos : newPhotos;
@@ -816,6 +824,7 @@ function resolveIncident(ss, data) {
         if (reports[i][0] === id) {
           foundAny = true;
           devSheet.getRange(i + 1, 17).setValue(status); // Columna Q (índice 16) es Estado
+          devSheet.getRange(i + 1, 18).setValue(calculateDaysFromDate(reports[i][1])); // Congelar tiempo
           if (newPhotos) {
             const oldPhotos = reports[i][18] || ''; // Columna S (índice 18) es Fotos
             const combinedPhotos = oldPhotos ? oldPhotos + '\n' + newPhotos : newPhotos;
@@ -826,13 +835,14 @@ function resolveIncident(ss, data) {
       if (foundAny) return { success: true };
     }
     
-    // 2. Buscar en pestaña 'Incidencias Lanzamientos'
+    // 3. Buscar en pestaña 'Incidencias Lanzamientos'
     const incSheet = getSheetDefensive(ss, 'Incidencias Lanzamientos');
     if (incSheet) {
       const incs = getFastValues(incSheet);
       for (let i = 1; i < incs.length; i++) {
         if (incs[i][0] === id) {
           incSheet.getRange(i + 1, 9).setValue(status); // Columna I (índice 8) es Estado
+          incSheet.getRange(i + 1, 10).setValue(calculateDaysFromDate(incs[i][1])); // Congelar tiempo
           if (newPhotos) {
             const oldPhotos = incs[i][10] || ''; // Columna K (índice 10) es Fotos
             const combinedPhotos = oldPhotos ? oldPhotos + '\n' + newPhotos : newPhotos;

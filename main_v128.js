@@ -3,7 +3,7 @@
  */
 
 const APP_CONFIG = {
-    scriptUrl: 'https://script.google.com/macros/s/AKfycbxMprVmwm0QjUgA95fIx5ThZxiAG2XPR6QHgnFMVQTHlzo93N4Dvd0akU6bWVarVBaiDw/exec',
+    scriptUrl: 'https://script.google.com/macros/s/AKfycbyeLy1wwPgTywgoKvKAEu78za7A1AppemBGhNVPEQ66CK7JCjMmPiUz9kb7vnGlwB18Sw/exec',
     currentUser: null,
     currentReport: {
         category: '',
@@ -615,18 +615,34 @@ function renderDashboardTable(reports) {
         }
         
         // Fix UX: Priorizar valor de tiempo de Excel, solo calcular dinámico si está vacío
-        let displayTiempo = String(r.tiempo || '').trim();
-        if (displayTiempo && displayTiempo !== '0' && displayTiempo !== 'undefined') {
-            // Si viene solo el número, le añadimos "días". Si ya trae texto, lo dejamos.
-            if (!isNaN(displayTiempo)) displayTiempo += ' días';
-        } else {
+        let rawTiempo = r.tiempo;
+        let displayTiempo = (rawTiempo !== undefined && rawTiempo !== null && rawTiempo !== '') ? String(rawTiempo).trim() : '';
+        const estTiempo = String(r.estado || '').trim().toLowerCase();
+        const isResolvedTiempo = estTiempo.includes('solucionado') || estTiempo.includes('cerrado');
+
+        if (displayTiempo !== '') {
+            // Si viene un '0' desde Excel y NO está solucionado, es un fallo de fórmula, así que lo recalculamos abajo.
+            // Si está solucionado y el Excel manda '0' o un número fijo, lo respetamos para que no siga sumando.
+            if (displayTiempo === '0' && !isResolvedTiempo) {
+                displayTiempo = ''; // Forzamos recálculo
+            } else {
+                if (!isNaN(displayTiempo)) displayTiempo += ' días';
+            }
+        }
+        
+        if (displayTiempo === '') {
             // Fallback solo si el Excel no tiene nada calculado
             const fechaStr = String(r.fecha || '');
             const reportDate = new Date(fechaStr.replace(/-/g, '/')); 
             if (!isNaN(reportDate.getTime())) {
-                const diffTime = Math.abs(Date.now() - reportDate.getTime());
-                const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
-                displayTiempo = `${diffDays} días`; 
+                if (isResolvedTiempo) {
+                    // Si está solucionado pero el Excel lo mandó vacío, al menos ponemos '0 días' en vez de texto o sumar infinito
+                    displayTiempo = '0 días'; 
+                } else {
+                    const diffTime = Math.abs(Date.now() - reportDate.getTime());
+                    const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+                    displayTiempo = `${diffDays} días`; 
+                }
             } else {
                 displayTiempo = '0 días';
             }
@@ -1810,94 +1826,68 @@ window.updateDashboardLaunchStats = async function() {
         const myStores = APP_CONFIG.currentUser ? (APP_CONFIG.currentUser.tiendas || []) : [];
         let allowedStores = [];
         
-        if (launchName === 'all' && APP_CONFIG.launches) {
-            let hasGlobalLaunch = false;
+        if (APP_CONFIG.launches && APP_CONFIG.launches.length > 0) {
             const allAllowedStores = new Set();
             const allAllowedAccounts = new Set();
+            let hasAtLeastOneFilter = false;
             
-            APP_CONFIG.launches.forEach(launch => {
+            // Filtramos los lanzamientos para coger SOLO el seleccionado
+            let currentLaunches = APP_CONFIG.launches;
+            if (launchName && launchName !== 'all') {
+                currentLaunches = APP_CONFIG.launches.filter(l => {
+                    const keys = Object.keys(l);
+                    const nameKey = keys.find(k => k.toLowerCase().includes('producto') || k.toLowerCase().includes('lanzamiento') || k.toLowerCase() === 'col0' || k.toLowerCase() === 'nombre');
+                    if (nameKey) {
+                        return String(l[nameKey]).trim().toLowerCase() === String(launchName).trim().toLowerCase();
+                    }
+                    return false;
+                });
+            }
+            
+            currentLaunches.forEach(launch => {
                 const keys = Object.keys(launch);
-                const tKey = keys.find(k => k.toLowerCase().includes('tienda') || k.toLowerCase().includes('tiendas'));
-                const cKey = keys.find(k => k.toLowerCase().includes('cuenta') || k.toLowerCase().includes('cuentas'));
+                const tKey = keys.find(k => k.toLowerCase() === 'tienda' || k.toLowerCase() === 'tiendas' || k.toLowerCase() === 'rms');
+                const cKey = keys.find(k => k.toLowerCase() === 'cuenta' || k.toLowerCase() === 'cuentas');
                 
                 if (tKey) {
                     const tiendasVal = String(launch[tKey] || '').trim();
                     if (tiendasVal) {
                         tiendasVal.split(',').forEach(s => allAllowedStores.add(s.trim().toLowerCase()));
-                    } else {
-                        hasGlobalLaunch = true;
+                        hasAtLeastOneFilter = true;
                     }
-                } else if (cKey) {
+                }
+                
+                if (cKey) {
                     const cuentaVal = String(launch[cKey] || '').trim();
                     if (cuentaVal) {
                         cuentaVal.split(',').forEach(s => allAllowedAccounts.add(s.trim().toLowerCase()));
-                    } else {
-                        hasGlobalLaunch = true;
+                        hasAtLeastOneFilter = true;
                     }
-                } else {
-                    hasGlobalLaunch = true;
                 }
             });
             
-            if (hasGlobalLaunch) {
-                allowedStores = myStores;
-            } else {
+            if (hasAtLeastOneFilter) {
                 allowedStores = myStores.filter(t => {
                     const nameMatch = t.nombre && allAllowedStores.has(String(t.nombre).trim().toLowerCase());
                     const rmsMatch = t.rms && allAllowedStores.has(String(t.rms).trim().toLowerCase());
                     const accountMatch = t.cuenta && allAllowedAccounts.has(String(t.cuenta).trim().toLowerCase());
                     return nameMatch || rmsMatch || accountMatch;
                 });
-            }
-            
-        } else if (launchName !== 'all' && APP_CONFIG.launches) {
-            const launch = APP_CONFIG.launches.find(l => {
-                const keys = Object.keys(l);
-                let pKey = keys.find(k => k.toLowerCase().includes('producto') || k.toLowerCase().includes('nombre') || k.toLowerCase().includes('dispositivo'));
-                if (!pKey && keys.length > 0) pKey = keys[0];
-                const pVal = pKey ? String(l[pKey]) : '';
-                return pVal && pVal.trim().toLowerCase() === launchName.trim().toLowerCase();
-            });
-            
-            if (launch) {
-                const keys = Object.keys(launch);
-                const tKey = keys.find(k => k.toLowerCase().includes('tienda') || k.toLowerCase().includes('tiendas'));
-                const cKey = keys.find(k => k.toLowerCase().includes('cuenta') || k.toLowerCase().includes('cuentas'));
-                
-                if (tKey) {
-                    const tiendasVal = String(launch[tKey] || '').trim();
-                    if (tiendasVal) {
-                        const allowedList = tiendasVal.split(',').map(s => s.trim().toLowerCase());
-                        allowedStores = myStores.filter(t => {
-                            const nameMatch = t.nombre && allowedList.includes(String(t.nombre).trim().toLowerCase());
-                            const rmsMatch = t.rms && allowedList.includes(String(t.rms).trim().toLowerCase());
-                            return nameMatch || rmsMatch;
-                        });
-                    } else {
-                        allowedStores = myStores;
-                    }
-                } else if (cKey) {
-                    const cuentaVal = String(launch[cKey] || '').trim();
-                    if (cuentaVal) {
-                        const allowedAccounts = cuentaVal.split(',').map(s => s.trim().toLowerCase());
-                        allowedStores = myStores.filter(t => t.cuenta && allowedAccounts.includes(String(t.cuenta).trim().toLowerCase()));
-                    } else {
-                        allowedStores = myStores;
-                    }
-                } else {
-                    allowedStores = myStores;
-                }
             } else {
-                allowedStores = myStores;
+                allowedStores = []; // Si las columnas existen pero están totalmente vacías, no hay tiendas en el lanzamiento.
             }
         } else {
-            allowedStores = myStores;
+            allowedStores = []; // Si no hay configuración de lanzamiento, no hay tiendas.
         }
         
         const total = allowedStores.length;
         
-        // Consideramos "Realizadas" todas las que ya tienen un estado asignado en el Excel (no están Pendientes)
-        const done = Object.values(statuses).filter(s => s && s.estado !== 'Pendiente').length;
+        // Consideramos "Realizadas" las tiendas permitidas que también existen en los "statuses" de los forms externos
+        const done = allowedStores.filter(storeObj => {
+            const storeName = storeObj.nombre || storeObj;
+            const sKey = Object.keys(statuses).find(k => k.trim().toLowerCase() === String(storeName).trim().toLowerCase());
+            return sKey && statuses[sKey].estado === 'Realizado';
+        }).length;
         const pending = Math.max(0, total - done);
         
         document.getElementById('dash-launch-total').textContent = total;
@@ -2926,7 +2916,7 @@ async function callApi(data) {
         return mockApi(data);
     }
 
-    const isRead = !['submitReport', 'uploadFile', 'submitLaunchChecklist', 'login', 'resolveIncident', 'deleteReport', 'sendMessage', 'markMessageRead', 'deleteLaunchValidation', 'updateLaunchValidation', 'getMessages', 'getMessagingUsers'].includes(data.action);
+    const isRead = !['submitReport', 'uploadFile', 'submitLaunchChecklist', 'login', 'resolveIncident', 'deleteReport', 'sendMessage', 'markMessageRead', 'deleteLaunchValidation', 'updateLaunchValidation', 'getMessages', 'getMessagingUsers', 'getLaunchStatuses', 'getMaterials'].includes(data.action);
 
     if (isRead) {
         // ESTRATEGIA HÍBRIDA INTELIGENTE V5
@@ -3336,47 +3326,113 @@ window.loadLaunchStores = async function() {
         });
         const statuses = (res && res.statuses) ? res.statuses : {};
         
-        let tiendas = APP_CONFIG.currentUser.tiendas || [];
+        const myStores = APP_CONFIG.currentUser.tiendas || [];
+        let tiendas = [];
         
-        const cuentaFilter = document.getElementById('launch-cuenta-selector')?.value || 'all';
-
-        // Aplicar filtro de Lanzamiento si corresponde
-        if (launchFilter !== 'all' && APP_CONFIG.launches) {
-            const launch = APP_CONFIG.launches.find(l => {
-                const keys = Object.keys(l);
-                let pKey = keys.find(k => k.toLowerCase().includes('producto') || k.toLowerCase().includes('nombre') || k.toLowerCase().includes('dispositivo'));
-                if (!pKey && keys.length > 0) pKey = keys[0];
-                const pVal = pKey ? String(l[pKey]) : '';
-                return pVal && pVal.trim().toLowerCase() === launchFilter.trim().toLowerCase();
-            });
-            if (launch) {
+        // 1. Obtener las tiendas permitidas según APP_CONFIG.launches (cruzando con myStores)
+        if (APP_CONFIG.launches && APP_CONFIG.launches.length > 0) {
+            const allAllowedStores = new Set();
+            const allAllowedAccounts = new Set();
+            let hasAtLeastOneFilter = false;
+            
+            // Filtramos los lanzamientos para coger SOLO el seleccionado
+            let currentLaunches = APP_CONFIG.launches;
+            if (launchName && launchName !== 'all') {
+                currentLaunches = APP_CONFIG.launches.filter(l => {
+                    const keys = Object.keys(l);
+                    const nameKey = keys.find(k => k.toLowerCase().includes('producto') || k.toLowerCase().includes('lanzamiento') || k.toLowerCase() === 'col0' || k.toLowerCase() === 'nombre');
+                    if (nameKey) {
+                        return String(l[nameKey]).trim().toLowerCase() === String(launchName).trim().toLowerCase();
+                    }
+                    return false;
+                });
+            }
+            
+            currentLaunches.forEach(launch => {
                 const keys = Object.keys(launch);
-                // Búsqueda híbrida inteligente: intentamos columna de Tiendas y si no caemos a Cuentas
-                const tKey = keys.find(k => k.toLowerCase().includes('tienda') || k.toLowerCase().includes('tiendas'));
-                const cKey = keys.find(k => k.toLowerCase().includes('cuenta') || k.toLowerCase().includes('cuentas'));
+                const tKey = keys.find(k => k.toLowerCase() === 'tienda' || k.toLowerCase() === 'tiendas' || k.toLowerCase() === 'rms');
+                const cKey = keys.find(k => k.toLowerCase() === 'cuenta' || k.toLowerCase() === 'cuentas');
                 
                 if (tKey) {
                     const tiendasVal = String(launch[tKey] || '').trim();
                     if (tiendasVal) {
-                        const allowedStores = tiendasVal.split(',').map(s => s.trim().toLowerCase());
-                        tiendas = tiendas.filter(t => {
-                            const nameMatch = t.nombre && allowedStores.includes(String(t.nombre).trim().toLowerCase());
-                            const rmsMatch = t.rms && allowedStores.includes(String(t.rms).trim().toLowerCase());
-                            return nameMatch || rmsMatch;
-                        });
-                    }
-                } else if (cKey) {
-                    const cuentaVal = String(launch[cKey] || '').trim();
-                    if (cuentaVal) {
-                        const allowedAccounts = cuentaVal.split(',').map(s => s.trim().toLowerCase());
-                        tiendas = tiendas.filter(t => t.cuenta && allowedAccounts.includes(String(t.cuenta).trim().toLowerCase()));
+                        tiendasVal.split(',').forEach(s => allAllowedStores.add(s.trim().toLowerCase()));
+                        hasAtLeastOneFilter = true;
                     }
                 }
+                if (cKey) {
+                    const cuentaVal = String(launch[cKey] || '').trim();
+                    if (cuentaVal) {
+                        cuentaVal.split(',').forEach(s => allAllowedAccounts.add(s.trim().toLowerCase()));
+                        hasAtLeastOneFilter = true;
+                    }
+                }
+            });
+            
+            if (hasAtLeastOneFilter) {
+                tiendas = myStores.filter(t => {
+                    const nameMatch = t.nombre && allAllowedStores.has(String(t.nombre).trim().toLowerCase());
+                    const rmsMatch = t.rms && allAllowedStores.has(String(t.rms).trim().toLowerCase());
+                    const accountMatch = t.cuenta && allAllowedAccounts.has(String(t.cuenta).trim().toLowerCase());
+                    return nameMatch || rmsMatch || accountMatch;
+                });
             }
         }
+        
+        // 2. Mapear estado desde forms externos y construir el array final
+        tiendas = tiendas.map(t => {
+            const storeNameKey = Object.keys(statuses).find(k => k.trim().toLowerCase() === String(t.nombre).trim().toLowerCase());
+            const estadoActual = storeNameKey ? statuses[storeNameKey].estado : 'Pendiente';
+            
+            return {
+                nombre: t.nombre,
+                cuenta: t.cuenta || 'Varias Cuentas',
+                usuario: t.usuario || 'Desconocido',
+                rms: t.rms || '',
+                estado: estadoActual
+            };
+        });
 
+        // 2. Poblar los selectores dinámicamente si es Admin
+        const cuentaSelect = document.getElementById('launch-cuenta-selector');
+        const userSelect = document.getElementById('launch-user-selector');
+        
+        if (isAdmin && cuentaSelect && userSelect) {
+            // Guardar valores actuales
+            const currCuenta = cuentaSelect.value;
+            const currUser = userSelect.value;
+            
+            const uniqueAccounts = [...new Set(tiendas.map(t => t.cuenta).filter(Boolean))].sort();
+            const uniqueUsers = [...new Set(tiendas.map(t => t.usuario).filter(Boolean))].sort();
+            
+            cuentaSelect.innerHTML = '<option value="all">Todas</option>';
+            uniqueAccounts.forEach(c => {
+                const opt = document.createElement('option');
+                opt.value = c;
+                opt.textContent = c;
+                cuentaSelect.appendChild(opt);
+            });
+            cuentaSelect.value = uniqueAccounts.includes(currCuenta) ? currCuenta : 'all';
+            
+            userSelect.innerHTML = '<option value="all">Todos</option>';
+            uniqueUsers.forEach(u => {
+                const opt = document.createElement('option');
+                opt.value = u;
+                opt.textContent = u;
+                userSelect.appendChild(opt);
+            });
+            userSelect.value = uniqueUsers.includes(currUser) ? currUser : 'all';
+        }
+
+        // 3. Aplicar los filtros seleccionados
+        const cuentaFilter = cuentaSelect?.value || 'all';
+        const userFilter = userSelect?.value || 'all';
+        
         if (cuentaFilter !== 'all') {
             tiendas = tiendas.filter(t => t.cuenta && t.cuenta.toLowerCase() === cuentaFilter.toLowerCase());
+        }
+        if (userFilter !== 'all') {
+            tiendas = tiendas.filter(t => t.usuario && t.usuario.toLowerCase() === userFilter.toLowerCase());
         }
 
         const historyGrid = document.getElementById('launch-history-grid');
