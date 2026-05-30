@@ -344,38 +344,53 @@ async function showView(viewName) {
                 sidebar.style.display = isAdmin ? 'flex' : 'none';
             }
             
-            // 1. Popula selector y selecciona cercano (sin disparadores internos)
-            await loadLaunches();
-            
-            // 2. Si venimos de un redireccionamiento rápido, fijar lanzamiento correcto ANTES del fetch
-            if (window._pendingQuickLaunch) {
-                const select = document.getElementById('launch-selector');
-                if (select) select.value = window._pendingQuickLaunch;
-                window._pendingQuickLaunch = null; // Consumido
-            }
-            
-            // 3. ÚNICA CARGA LIMPIA DE DATOS (Acelerado)
-            await loadLaunchStores();
-            
-            // 4. Selección automática inmediata sin polling al tener el DOM listo
-            if (window._pendingQuickStore) {
-                const storeToOpen = window._pendingQuickStore;
-                window._pendingQuickStore = null; // Consumido
-                
-                const grid = document.getElementById('launch-store-grid');
-                if (grid) {
-                    // Buscamos con la clase dashboard-card que es la real de la cuadrícula
-                    const cards = grid.querySelectorAll('.dashboard-card');
-                    const target = String(storeToOpen).trim().toLowerCase();
-                    for (const card of cards) {
-                        const cardText = card.innerText.replace(/\s+/g, ' ').trim().toLowerCase();
-                        if (cardText.includes(target)) {
-                            card.click(); // Gatillar apertura inmediata del checklist
-                            break;
+            // Popula selector y carga tiendas de forma asíncrona (evita condición de carrera en la UI)
+            (async () => {
+                    try {
+                        await loadLaunches();
+                        
+                        const presetLaunch = APP_CONFIG.presetLaunchName;
+                        if (presetLaunch) {
+                            const sel = document.getElementById('launch-selector');
+                            if (sel) {
+                                const exists = Array.from(sel.options).find(o => o.value === presetLaunch);
+                                if (exists) sel.value = presetLaunch;
+                            }
+                            APP_CONFIG.presetLaunchName = null; // Consume and clear
                         }
-                    }
+                        
+                        // Si venimos de un redireccionamiento rápido, fijar lanzamiento correcto ANTES del fetch
+                        if (window._pendingQuickLaunch) {
+                            const select = document.getElementById('launch-selector');
+                            if (select) select.value = window._pendingQuickLaunch;
+                            window._pendingQuickLaunch = null; // Consumido
+                        }
+                        
+                        // ÚNICA CARGA LIMPIA DE DATOS (Acelerado)
+                        await loadLaunchStores();
+                        
+                        // Selección automática inmediata sin polling al tener el DOM listo
+                        if (window._pendingQuickStore) {
+                            const storeToOpen = window._pendingQuickStore;
+                            window._pendingQuickStore = null; // Consumido
+                            
+                            const grid = document.getElementById('launch-store-grid');
+                            if (grid) {
+                                const cards = grid.querySelectorAll('.dashboard-card');
+                                const target = String(storeToOpen).trim().toLowerCase();
+                                for (const card of cards) {
+                                    const cardText = card.innerText.replace(/\s+/g, ' ').trim().toLowerCase();
+                                    if (cardText.includes(target)) {
+                                        card.click(); // Gatillar apertura inmediata del checklist
+                                        break;
+                                    }
+                                }
+                            }
+                        }
+                } catch (e) {
+                    console.error("Error cargando lanzamientos en background:", e);
                 }
-            }
+            })();
         }
         if (viewName === 'materiales') loadMaterials();
         
