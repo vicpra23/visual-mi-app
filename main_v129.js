@@ -3175,6 +3175,7 @@ async function loadMaterials() {
         
         // Quitar el spinner y re-renderizar
         renderMaterialsToContainer(APP_CONFIG.materials, container);
+        console.log("[DEBUG] Materiales DOM rendered. HTML:", container.innerHTML);
     } catch (e) {
         console.error(e);
         if (APP_CONFIG.materials.length === 0) container.innerHTML = '<p>Error al cargar.</p>';
@@ -3550,6 +3551,9 @@ window.loadLaunchStores = async function() {
 
         if (pendingCount === 0) grid.innerHTML = '<p>No hay tiendas pendientes.</p>';
         if (historyGrid && historyCount === 0) historyGrid.innerHTML = '<p>No hay historial de lanzamientos reportados.</p>';
+        
+        console.log("[DEBUG] Lanzamientos DOM rendered. Pendientes:", pendingCount, "Historial:", historyCount);
+        console.log("[DEBUG] Grid HTML (first 200 chars):", grid.innerHTML.substring(0, 200));
         
     } catch (err) {
         console.error(err);
