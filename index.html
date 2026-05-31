@@ -76,7 +76,7 @@
             <ul class="nav-links">
                 <li data-target="dashboard" class="active"><i class="fas fa-chart-line"></i> Dashboard</li>
                 <li data-target="reportes"><i class="fas fa-clipboard-list"></i> Incidencias</li>
-                <li data-target="lanzamientos"><i class="fas fa-rocket"></i> Lanzamientos</li>
+                <!-- <li data-target="lanzamientos"><i class="fas fa-rocket"></i> Lanzamientos</li> -->
                 <li data-target="materiales"><i class="fas fa-folder-open"></i> Materiales</li>
                 <li data-target="mensajes" style="position:relative;">
                     <i class="fas fa-bell"></i> Mensajes
@@ -134,43 +134,46 @@
                             <p id="stat-incidents-closed" style="color: #52c41a; font-size: 1.8rem;">0</p>
                         </div>
                     </div>
-                </div>
+                </div> <!-- CLOSE dashboard-grid-composite -->
 
-
-                <!-- SECTION 2: CONTROL DE LANZAMIENTOS (AL FINAL/ABAJO) -->
+                <!-- SECTION 2: PROGRESO DE LANZAMIENTOS (SOLO LECTURA) -->
                 <div style="margin-top: 3rem; border-top: 1px solid #eee; padding-top: 2rem;">
-                    <h3 style="margin-bottom: 1.5rem; font-size: 1.1rem; color: var(--mi-gray-dark); display: flex; align-items: center; gap: 8px;">
-                        <i class="fa fa-rocket" style="color: var(--mi-orange)"></i> Control de Lanzamientos
-                    </h3>
-                    <div id="dash-launch-filter-capsule" class="floating-filter-capsule" style="margin-bottom: 1.5rem; justify-content: flex-end;">
-                        <button class="capsule-search-btn" onclick="refreshAllDashboardData()" title="Recargar">
-                            <i class="fa fa-sync-alt"></i>
-                        </button>
+                    <div style="display: flex; flex-direction: column; gap: 15px; margin-bottom: 1.5rem;">
+                        <h3 style="margin: 0; font-size: 1.1rem; color: var(--mi-gray-dark); display: flex; align-items: center; gap: 8px;">
+                            <i class="fa fa-rocket" style="color: var(--mi-orange)"></i> Progreso de Lanzamientos
+                        </h3>
+                        <div id="admin-launch-filters" style="display: none; grid-template-columns: 1fr 1fr auto; gap: 8px; width: 100%;">
+                            <select id="dash-internal-cuenta" class="capsule-select" style="height: 36px; padding: 0 8px; font-size: 12px; width: 100%;" onchange="window.renderDashboardLaunches()">
+                                <option value="all">Cuentas</option>
+                            </select>
+                            <select id="dash-internal-usuario" class="capsule-select" style="height: 36px; padding: 0 8px; font-size: 12px; width: 100%;" onchange="window.renderDashboardLaunches()">
+                                <option value="all">Usuarios</option>
+                            </select>
+                            <button class="capsule-search-btn" onclick="refreshAllDashboardData()" title="Recargar" style="height: 36px; width: 36px; display: flex; align-items: center; justify-content: center;">
+                                <i class="fa fa-sync-alt"></i>
+                            </button>
+                        </div>
                     </div>
-
-                    <!-- Dual Launch grid -->
-                    <div class="dashboard-grid-composite">
-                         <div class="hero-stat-card" onclick="filterLaunchStores('all')" style="cursor:pointer; background: #fff;">
-                             <h3 style="color: var(--text-muted); font-size: 12px; margin-bottom: 1rem;">Tiendas Totales</h3>
-                             <span id="dash-launch-total" class="hero-val">0</span>
-                         </div>
-                         <div class="sub-grid-quad" style="grid-template-columns: repeat(2, 1fr);">
-                             <div class="stat-card" onclick="filterLaunchStores('done')" style="cursor:pointer;">
-                                 <h3><i class="fa fa-check" style="color: #52c41a;"></i> Realizadas</h3>
-                                 <p id="dash-launch-done" style="color: #52c41a;">0</p>
-                             </div>
-                             <div class="stat-card" onclick="filterLaunchStores('pending')" style="cursor:pointer;">
-                                 <h3><i class="fa fa-hourglass-half" style="color: #faad14;"></i> Pendientes</h3>
-                                 <p id="dash-launch-pending" style="color: #faad14;">0</p>
-                             </div>
-                             <div class="stat-card" style="grid-column: span 2; display: flex; align-items: center; justify-content: space-between; padding: 15px 25px; background: linear-gradient(135deg, rgba(114, 46, 209, 0.05) 0%, rgba(114, 46, 209, 0) 100%);">
-                                 <h3 style="margin: 0;"><i class="fa fa-percentage" style="color: #722ed1;"></i> INSTALADO</h3>
-                                 <p id="dash-launch-pct" style="color: #722ed1; font-size: 2.5rem; font-weight: 800; margin: 0;">0%</p>
-                             </div>
-                         </div>
+                    
+                    <div id="dashboard-launch-grid" style="display: grid; grid-template-columns: 1fr 1fr 1fr; grid-template-rows: auto auto; gap: 15px; margin-top: 15px;">
+                        <div class="stat-card" onclick="window.filterLaunchStores('all')" style="cursor:pointer; grid-row: span 2; grid-column: span 1; display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center;">
+                            <h3><i class="fa fa-bullseye" style="color: #1890ff;"></i> Asignadas</h3>
+                            <p id="dash-launch-total" style="color: #1890ff; font-size: 3rem; margin-top: 15px;">0</p>
+                        </div>
+                        <div class="stat-card" onclick="window.filterLaunchStores('done')" style="cursor:pointer; grid-row: span 1; grid-column: span 1; display: flex; flex-direction: column; align-items: center; text-align: center;">
+                            <h3><i class="fa fa-check-circle" style="color: #52c41a;"></i> Realizadas</h3>
+                            <p id="dash-launch-done" style="color: #52c41a; font-size: 1.8rem; margin-top: 10px;">0</p>
+                        </div>
+                        <div class="stat-card" onclick="window.filterLaunchStores('pending')" style="cursor:pointer; grid-row: span 1; grid-column: span 1; display: flex; flex-direction: column; align-items: center; text-align: center;">
+                            <h3><i class="fa fa-clock" style="color: #faad14;"></i> Pendientes</h3>
+                            <p id="dash-launch-pending" style="color: #faad14; font-size: 1.8rem; margin-top: 10px;">0</p>
+                        </div>
+                        <div class="stat-card" style="grid-row: span 1; grid-column: span 2; background: linear-gradient(135deg, #1890ff 0%, #00bcd4 100%); border: none; display: flex; flex-direction: column; align-items: center; justify-content: center;">
+                            <h3 style="color: rgba(255,255,255,0.9); border-bottom: none;"><i class="fa fa-chart-pie" style="color: white;"></i> Avance Total</h3>
+                            <p id="dash-launch-percent" style="color: white; font-size: 2.2rem; margin-top: 5px;">0%</p>
+                        </div>
                     </div>
                 </div>
-                
             </section>
 
 
@@ -393,17 +396,19 @@
 
                 <div style="border-top: 2px dashed #ddd; margin: 4rem 0;"></div>
 
-                <!-- HISTORIAL MOVIDO ABAJO -->
+                <!-- HISTORIAL DE INCIDENCIAS -->
                 <div class="recent-table" style="margin-bottom: 3rem; background: white; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.05); padding: 20px;">
                     <div style="display: flex; flex-wrap: wrap; gap: 1rem; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
                         <h3 id="dashboard-table-title" style="margin: 0;"><i class="fa fa-history" style="color: var(--mi-orange); font-size: 1.2rem;"></i> Historial de Incidencias</h3>
-                        
                         <div class="dash-history-filters" style="display: flex; gap: 8px; flex-wrap: nowrap; align-items: center;">
                             <select id="dash-filter-cuenta" class="capsule-select" style="width: auto !important; min-width: 140px; height: 36px; padding: 0 8px; font-size: 12px;" onchange="filterDashboardTable()">
                                 <option value="all">Todas Cuentas</option>
                             </select>
                             <select id="dash-filter-tienda" class="capsule-select" style="width: auto !important; min-width: 140px; height: 36px; padding: 0 8px; font-size: 12px;" onchange="filterDashboardTable()">
                                 <option value="all">Todas Tiendas</option>
+                            </select>
+                            <select id="dash-filter-usuario" class="capsule-select" style="display: none; width: auto !important; min-width: 140px; height: 36px; padding: 0 8px; font-size: 12px;" onchange="filterDashboardTable()">
+                                <option value="all">Todos Usuarios</option>
                             </select>
                             <select id="dash-filter-estado" class="capsule-select" style="width: auto !important; min-width: 120px; height: 36px; padding: 0 8px; font-size: 12px;" onchange="filterDashboardTable()">
                                 <option value="all">Todos Estados</option>
@@ -511,6 +516,7 @@
                         </div>
                     </div>
                 </div>
+            </section>
             <!-- View: Lanzamientos -->
             <section id="view-lanzamientos" class="sub-view hidden">
                 <!-- CONTENEDOR FLEX DE 2 COLUMNAS (Filtros Izquierda, Tiendas Derecha) -->
@@ -696,8 +702,23 @@
             </section>
 
             <section id="view-materiales" class="sub-view hidden">
-                <div class="materials-list" id="materials-container">
-                    <!-- Materials will be injected here -->
+                <div style="padding: 20px; text-align: center; margin-top: 2rem;">
+                    <h2 style="margin-bottom: 20px; color: #333;"><i class="fas fa-box-open" style="color: var(--mi-orange);"></i> Materiales Disponibles</h2>
+                    <p style="color: #666; margin-bottom: 30px;">Aquí encontrarás todos los enlaces directos a los recursos y materiales compartidos.</p>
+                    
+                    <div style="display: flex; flex-direction: column; gap: 15px; align-items: center;">
+                        <!-- Botón Estático Xiaomi 17T -->
+                        <a href="https://docs.google.com/presentation/d/1_cJVZKnAMqO_KV53hwsHWHojR7qZzVQA/edit?usp=drive_link&ouid=115671157525332985831&rtpof=true&sd=true" target="_blank" style="display: inline-flex; align-items: center; justify-content: flex-start; gap: 12px; background: white; color: #333; text-decoration: none; padding: 15px 25px; border-radius: 12px; font-weight: 600; font-size: 1rem; width: 100%; max-width: 400px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); border: 1px solid #eee; transition: transform 0.2s, box-shadow 0.2s;">
+                            <div style="width: 40px; height: 40px; background: #fff4e6; border-radius: 8px; display: flex; align-items: center; justify-content: center;">
+                                <i class="fas fa-file-powerpoint" style="color: var(--mi-orange); font-size: 1.2rem;"></i>
+                            </div>
+                            <div style="text-align: left; flex: 1;">
+                                <div style="font-size: 1.05rem; font-weight: 700;">Guía Xiaomi 17T Series</div>
+                                <div style="font-size: 0.8rem; color: #888;">Presentación de Lanzamiento</div>
+                            </div>
+                            <i class="fas fa-external-link-alt" style="color: #bbb;"></i>
+                        </a>
+                    </div>
                 </div>
             </section>
         </main>
@@ -712,10 +733,10 @@
                 <i class="fas fa-clipboard-list"></i>
                 <span>Incidencias</span>
             </div>
-            <div class="mobile-bottom-nav-item" data-target="lanzamientos">
+            <!-- <div class="mobile-bottom-nav-item" data-target="lanzamientos">
                 <i class="fas fa-rocket"></i>
                 <span>Lanzamientos</span>
-            </div>
+            </div> -->
             <div class="mobile-bottom-nav-item" data-target="materiales">
                 <i class="fas fa-folder-open"></i>
                 <span>Materiales</span>
@@ -801,7 +822,21 @@
             <span class="close-modal" onclick="document.getElementById('historial-modal').style.display = 'none'; document.getElementById('historial-modal').classList.add('hidden');" style="position: absolute; top: 1.2rem; right: 1.5rem; font-size: 1.5rem; cursor: pointer; color: var(--mi-gray-dark); transition: color 0.2s;" onmouseover="this.style.color='var(--mi-orange)'" onmouseout="this.style.color='var(--mi-gray-dark)'">&times;</span>
             <h3 id="historial-modal-title" style="margin-top: 0; margin-bottom: 1.5rem; color: var(--mi-orange); border-bottom: 2px solid var(--mi-border); padding-bottom: 0.5rem; font-size: 1.4rem;">Historial Detallado</h3>
             
-            <input type="text" id="historial-modal-search" placeholder="🔍 Filtrar..." style="width: 200px; padding: 6px 10px; border-radius: 6px; border: 1px solid var(--mi-border); font-size: 12px; outline: none; margin-bottom: 12px; box-sizing: border-box; transition: border-color 0.2s;" oninput="window.filterHistorialModal(this.value)">
+            <div id="historial-modal-filters" style="display: flex; gap: 12px; margin-bottom: 15px; width: 100%; align-items: center;">
+                <select id="modal-filter-cuenta" class="capsule-select" style="flex: 1; min-width: 0; height: 36px; padding: 0 10px; font-size: 13px; outline: none; border: 1px solid var(--mi-border); border-radius: 6px;" onchange="window.applyModalFilters()">
+                    <option value="all">Todas las Cuentas</option>
+                </select>
+                <select id="modal-filter-usuario" class="capsule-select" style="flex: 1; min-width: 0; height: 36px; padding: 0 10px; font-size: 13px; outline: none; border: 1px solid var(--mi-border); border-radius: 6px;" onchange="window.applyModalFilters()">
+                    <option value="all">Todos los Usuarios</option>
+                </select>
+                <select id="modal-filter-estado" class="capsule-select" style="flex: 1; min-width: 0; height: 36px; padding: 0 10px; font-size: 13px; outline: none; border: 1px solid var(--mi-border); border-radius: 6px;" onchange="window.applyModalFilters()">
+                    <option value="all">Todos los Estados</option>
+                    <option value="abierta">Abierta</option>
+                    <option value="pendiente">Pendiente</option>
+                    <option value="solucionado">Solucionado</option>
+                    <option value="cerrada">Cerrado</option>
+                </select>
+            </div>
             
             <div style="overflow-x: auto; margin-top: 1rem;">
                 <table class="modal-compact-table" style="width: 100%; border-collapse: collapse;">
@@ -996,7 +1031,7 @@
     <!-- Contenedor Global para Banners de Notificación Latentes -->
     <div id="toast-container"></div>
 
-    <script src="main_v129.js"></script>
+    <script src="main_v130.js?v=1"></script>
 </body>
 </html>
 </html>
