@@ -1,6 +1,6 @@
 {
-  "name": "Xiaomi Visual App",
-  "short_name": "Xiaomi Visual",
+  "name": "Xiaomi VISUAL APP",
+  "short_name": "Xiaomi VISUAL APP",
   "start_url": "./index.html",
   "display": "standalone",
   "background_color": "#ffffff",

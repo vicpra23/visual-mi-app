@@ -3848,21 +3848,43 @@ function checkStatusChanges(reports) {
         newStates[r.id] = currentEst;
         
         // Solo procesar cambios si no es la carga inicial absoluta
-        if (!isInitial && prevStates[r.id] && prevStates[r.id] !== currentEst) {
-            // ¡CAMBIO DE ESTADO DETECTADO!
-            const change = {
-                id: 'notif-' + Date.now() + '-' + Math.random().toString(36).substr(2, 5),
-                reportId: r.id,
-                tienda: r.tienda || 'Tienda Desconocida',
-                oldState: prevStates[r.id],
-                newState: currentEst,
-                tipo: r.tipo || 'Reporte',
-                timestamp: new Date().toLocaleString(),
-                timeMs: Date.now(),
-                read: false
-            };
-            foundChanges.push(change);
-            notifications.unshift(change); // Al principio de la lista
+        if (!isInitial) {
+            if (prevStates[r.id] && prevStates[r.id] !== currentEst) {
+                // CAMBIO DE ESTADO DETECTADO!
+                const change = {
+                    id: 'notif-' + Date.now() + '-' + Math.random().toString(36).substr(2, 5),
+                    reportId: r.id,
+                    tienda: r.tienda || 'Tienda Desconocida',
+                    oldState: prevStates[r.id],
+                    newState: currentEst,
+                    tipo: r.tipo || 'Reporte',
+                    timestamp: new Date().toLocaleString(),
+                    timeMs: Date.now(),
+                    read: false
+                };
+                foundChanges.push(change);
+                notifications.unshift(change); // Al principio de la lista
+            } else if (!prevStates[r.id]) {
+                // NUEVO REPORTE DETECTADO!
+                const userRole = String(APP_CONFIG.currentUser?.rol || '').trim().toUpperCase();
+                const isAdmin = (userRole === 'ADMIN' || userRole === 'ADMINISTRADOR');
+                
+                if (isAdmin) {
+                    const change = {
+                        id: 'notif-' + Date.now() + '-' + Math.random().toString(36).substr(2, 5),
+                        reportId: r.id,
+                        tienda: r.tienda || 'Tienda Desconocida',
+                        oldState: 'NUEVO',
+                        newState: currentEst,
+                        tipo: r.tipo || 'Reporte',
+                        timestamp: new Date().toLocaleString(),
+                        timeMs: Date.now(),
+                        read: false
+                    };
+                    foundChanges.push(change);
+                    notifications.unshift(change);
+                }
+            }
         }
     });
 
