@@ -973,6 +973,36 @@
         0% { opacity: 1; transform: translateX(0); }
         100% { opacity: 0; transform: translateX(60px); filter: blur(3px); }
     }
+      @media (max-width: 768px) {
+          #dashboard-launch-grid {
+              grid-template-columns: 1fr 1fr !important;
+              grid-template-rows: auto auto auto !important;
+          }
+          #dashboard-launch-grid > div:nth-child(1) {
+              grid-row: span 1 !important;
+              grid-column: span 2 !important;
+          }
+          #dashboard-launch-grid > div:nth-child(2) {
+              grid-column: span 1 !important;
+          }
+          #dashboard-launch-grid > div:nth-child(3) {
+              grid-column: span 1 !important;
+          }
+          #dashboard-launch-grid > div:nth-child(4) {
+              grid-column: span 2 !important;
+          }
+          #admin-launch-filters {
+              display: flex !important;
+              flex-wrap: wrap !important;
+          }
+          #admin-launch-filters > select {
+              flex: 1;
+              min-width: 120px;
+          }
+          #admin-launch-filters > button {
+              flex-shrink: 0;
+          }
+      }
     </style>
 
 
