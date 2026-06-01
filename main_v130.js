@@ -476,7 +476,7 @@ async function loadDashboard() {
         const isAdmin = userRole === 'ADMIN' || userRole === 'ADMINISTRADOR';
         
         if (!isAdmin) {
-            const myEmail = String(APP_CONFIG.currentUser.email || '').trim().toLowerCase();
+            const myEmail = String((APP_CONFIG.currentUser.email || APP_CONFIG.currentUser.usuario) || '').trim().toLowerCase();
             const myStores = APP_CONFIG.currentUser.tiendas || [];
             const myStoreNames = myStores.map(t => String(t.nombre).trim().toLowerCase());
             
@@ -1354,7 +1354,7 @@ window.handleResolutionPhotoUpload = async function(event) {
             const mimeType = isImg ? 'image/jpeg' : file.type;
             const extension = isImg ? 'jpg' : (file.name.split('.').pop() || 'bin');
             const formattedDate = new Date().toISOString().slice(0, 10);
-            const userRaw = APP_CONFIG.currentUser?.email || 'Usuario';
+            const userRaw = (APP_CONFIG.currentUser?.email || APP_CONFIG.currentUser?.usuario) || 'Usuario';
             const userClean = String(userRaw).split('@')[0].trim().toUpperCase().replace(/[^A-Z0-9]/g, '_');
             const tiendaSanitized = String(window.selectedReportForQuickBox?.tienda || 'Tienda').trim().toUpperCase().replace(/[^A-Z0-9]/g, '_');
             
@@ -2301,7 +2301,7 @@ async function handleIncidentPhotos(input, type) {
             const isImg = file.type && file.type.startsWith('image/');
             const ext = isImg ? 'jpg' : (file.name.split('.').pop().toLowerCase() || 'bin');
             const base64 = await window.getCompressedBase64(file);
-            const userRaw = APP_CONFIG.currentUser?.email || 'Usuario';
+            const userRaw = (APP_CONFIG.currentUser?.email || APP_CONFIG.currentUser?.usuario) || 'Usuario';
             const userClean = String(userRaw).split('@')[0].trim().toUpperCase().replace(/[^A-Z0-9]/g, '_');
             const storeRaw = APP_CONFIG.currentReport?.centro || 'Tienda';
             const storeClean = String(storeRaw).trim().toUpperCase().replace(/[^A-Z0-9]/g, '_');
@@ -2407,7 +2407,7 @@ async function submitFinalReport(event, type) {
         
         const reportData = {
             action: 'submitReport',
-            usuario: APP_CONFIG.currentUser.email,
+            usuario: (APP_CONFIG.currentUser.email || APP_CONFIG.currentUser.usuario),
             tienda: APP_CONFIG.currentReport.centro,
             categoria: isFurniture ? 'Mobiliario' : 'Dispositivo',
             descripcion: desc,
@@ -2991,7 +2991,7 @@ window.loadLaunchStores = async function() {
         
         const res = await callApi({ 
             action: 'getLaunchStatuses', 
-            usuario: isAdmin ? '' : APP_CONFIG.currentUser.email,
+            usuario: isAdmin ? '' : (APP_CONFIG.currentUser.email || APP_CONFIG.currentUser.usuario),
             lanzamiento: launchFilter === 'all' ? '' : launchFilter
         });
         const statuses = (res && res.statuses) ? res.statuses : {};
@@ -3363,7 +3363,7 @@ window.handleLaunchPhotos = async function(input, maxFiles = 99) {
             const isImg = file.type && file.type.startsWith('image/');
             const ext = isImg ? 'jpg' : (file.name.split('.').pop().toLowerCase() || 'bin');
             const base64 = await window.getCompressedBase64(file);
-            const userRaw = APP_CONFIG.currentUser?.email || 'Usuario';
+            const userRaw = (APP_CONFIG.currentUser?.email || APP_CONFIG.currentUser?.usuario) || 'Usuario';
             const userClean = String(userRaw).split('@')[0].trim().toUpperCase().replace(/[^A-Z0-9]/g, '_');
             const storeRaw = APP_CONFIG.currentReport?.centro || 'Tienda';
             const storeClean = String(storeRaw).trim().toUpperCase().replace(/[^A-Z0-9]/g, '_');
@@ -3451,7 +3451,7 @@ window.submitLaunch = async function(event) {
 
     const reportData = {
         action: 'submitCustomLaunchForm',
-        usuario: APP_CONFIG.currentUser.email,
+        usuario: (APP_CONFIG.currentUser.email || APP_CONFIG.currentUser.usuario),
         cuenta: APP_CONFIG.currentLaunchStore.cuenta,
         tienda: APP_CONFIG.currentLaunchStore.nombre,
         rms: APP_CONFIG.currentLaunchStore.rms || '',
@@ -3605,7 +3605,7 @@ window.handleEditValPhotoUpload = async function(input) {
         try {
             const isImg = f.type && f.type.startsWith('image/');
             const base64 = await window.getCompressedBase64(f);
-            const userRaw = APP_CONFIG.currentUser?.email || 'Usuario';
+            const userRaw = (APP_CONFIG.currentUser?.email || APP_CONFIG.currentUser?.usuario) || 'Usuario';
             const userClean = String(userRaw).split('@')[0].trim().toUpperCase().replace(/[^A-Z0-9]/g, '_');
             const storeClean = String(tienda).trim().toUpperCase().replace(/[^A-Z0-9]/g, '_');
             const dateStr = new Date().toISOString().slice(0, 10);
@@ -3836,8 +3836,8 @@ function checkStatusChanges(reports) {
     if (!reports || reports.length === 0) return;
     
     // Obtener caché previa de estados e historial de notificaciones
-    let prevStates = JSON.parse(localStorage.getItem('xiaomi_states_cache') || '{}');
-    let notifications = JSON.parse(localStorage.getItem('xiaomi_notifications') || '[]');
+    let prevStates = JSON.parse(localStorage.getItem('xiaomi_states_cache_' + ((APP_CONFIG.currentUser?.email || APP_CONFIG.currentUser?.usuario) || '').toLowerCase()) || '{}');
+    let notifications = JSON.parse(localStorage.getItem('xiaomi_notifications_' + ((APP_CONFIG.currentUser?.email || APP_CONFIG.currentUser?.usuario) || '').toLowerCase()) || '[]');
     let isInitial = Object.keys(prevStates).length === 0;
     let newStates = {};
     let foundChanges = [];
@@ -3867,12 +3867,12 @@ function checkStatusChanges(reports) {
     });
 
     // Guardar la nueva caché de estados para la próxima comparativa
-    localStorage.setItem('xiaomi_states_cache', JSON.stringify(newStates));
+    localStorage.setItem('xiaomi_states_cache_' + ((APP_CONFIG.currentUser?.email || APP_CONFIG.currentUser?.usuario) || '').toLowerCase(), JSON.stringify(newStates));
     
     if (foundChanges.length > 0) {
         // Limitar histórico de notificaciones para no saturar (ej. últimas 50)
         notifications = notifications.slice(0, 50);
-        localStorage.setItem('xiaomi_notifications', JSON.stringify(notifications));
+        localStorage.setItem('xiaomi_notifications_' + ((APP_CONFIG.currentUser?.email || APP_CONFIG.currentUser?.usuario) || '').toLowerCase(), JSON.stringify(notifications));
         
         // Alertar al usuario inmediatamente
         triggerNotificationAlert(foundChanges);
@@ -3938,14 +3938,14 @@ function updateNavBadge() {
     if (!badge) return;
     
     // 1. Mensajes de chat no leídos de la base de datos
-    const currentUser = String(APP_CONFIG.currentUser?.email || '').toLowerCase();
+    const currentUser = String((APP_CONFIG.currentUser?.email || APP_CONFIG.currentUser?.usuario) || '').toLowerCase();
     const unreadChatCount = (window.inboxMessages || []).filter(m => 
         String(m.destinatario || '').toLowerCase() === currentUser && 
         String(m.leido || '').trim().toLowerCase() !== 'leído'
     ).length;
     
     // 2. Notificaciones del sistema no leídas de localStorage
-    const systemNotifs = JSON.parse(localStorage.getItem('xiaomi_notifications') || '[]');
+    const systemNotifs = JSON.parse(localStorage.getItem('xiaomi_notifications_' + ((APP_CONFIG.currentUser?.email || APP_CONFIG.currentUser?.usuario) || '').toLowerCase()) || '[]');
     const unreadSystemCount = systemNotifs.filter(n => !n.read).length;
     
     const totalCount = unreadChatCount + unreadSystemCount;
@@ -3972,11 +3972,11 @@ function updateNavBadge() {
 
 // Helper para marcar lectura individual sin recargar
 window.markSingleNotificationRead = function(notifId) {
-    let notifs = JSON.parse(localStorage.getItem('xiaomi_notifications') || '[]');
+    let notifs = JSON.parse(localStorage.getItem('xiaomi_notifications_' + ((APP_CONFIG.currentUser?.email || APP_CONFIG.currentUser?.usuario) || '').toLowerCase()) || '[]');
     const item = notifs.find(x => x.id === notifId);
     if (item) {
         item.read = true;
-        localStorage.setItem('xiaomi_notifications', JSON.stringify(notifs));
+        localStorage.setItem('xiaomi_notifications_' + ((APP_CONFIG.currentUser?.email || APP_CONFIG.currentUser?.usuario) || '').toLowerCase(), JSON.stringify(notifs));
         updateNavBadge();
     }
 };
@@ -3986,7 +3986,7 @@ window.renderNotificationsView = function() {
     const emptyEl = document.getElementById('no-msgs-fallback');
     if (!listContainer || !emptyEl) return;
     
-    const notifications = JSON.parse(localStorage.getItem('xiaomi_notifications') || '[]');
+    const notifications = JSON.parse(localStorage.getItem('xiaomi_notifications_' + ((APP_CONFIG.currentUser?.email || APP_CONFIG.currentUser?.usuario) || '').toLowerCase()) || '[]');
     listContainer.innerHTML = '';
     
     if (notifications.length === 0) {
@@ -4082,9 +4082,9 @@ window.renderNotificationsView = function() {
 };
 
 window.markAllNotificationsRead = function() {
-    let notifications = JSON.parse(localStorage.getItem('xiaomi_notifications') || '[]');
+    let notifications = JSON.parse(localStorage.getItem('xiaomi_notifications_' + ((APP_CONFIG.currentUser?.email || APP_CONFIG.currentUser?.usuario) || '').toLowerCase()) || '[]');
     notifications.forEach(n => n.read = true);
-    localStorage.setItem('xiaomi_notifications', JSON.stringify(notifications));
+    localStorage.setItem('xiaomi_notifications_' + ((APP_CONFIG.currentUser?.email || APP_CONFIG.currentUser?.usuario) || '').toLowerCase(), JSON.stringify(notifications));
     updateNavBadge();
     renderNotificationsView();
 };
@@ -4138,8 +4138,8 @@ window.loadMessagingUsers = async function() {
             select.innerHTML = '<option value="" disabled selected>Selecciona destinatario...</option>';
             filteredUsers.forEach(u => {
                 const opt = document.createElement('option');
-                opt.value = u.email;
-                opt.textContent = `${u.email} (${isCurrentUserAdmin ? 'Estándar' : 'Administrador'})`;
+                opt.value = (u.email || u.usuario);
+                opt.textContent = `${(u.email || u.usuario)} (${isCurrentUserAdmin ? 'Estándar' : 'Administrador'})`;
                 select.appendChild(opt);
             });
             
@@ -4175,7 +4175,7 @@ window.handleSendMessage = async function(e) {
     try {
         const res = await callApi({
             action: 'sendMessage',
-            remitente: APP_CONFIG.currentUser.email,
+            remitente: (APP_CONFIG.currentUser.email || APP_CONFIG.currentUser.usuario),
             destinatario: destInput.value,
             mensaje: textInput.value.trim()
         });
@@ -4210,7 +4210,7 @@ window.loadUserInbox = async function() {
     try {
         const res = await callApi({
             action: 'getMessages',
-            email: APP_CONFIG.currentUser.email
+            email: (APP_CONFIG.currentUser.email || APP_CONFIG.currentUser.usuario)
         });
         
         if (res && res.success) {
@@ -4259,7 +4259,7 @@ window.renderInboxList = function(filterType) {
     const fallback = document.getElementById('no-inbox-fallback');
     if (!list) return;
     
-    const currentUser = String(APP_CONFIG.currentUser.email).toLowerCase();
+    const currentUser = String((APP_CONFIG.currentUser.email || APP_CONFIG.currentUser.usuario)).toLowerCase();
     
     // --- CONSTRUCCIÓN DEL FEED AGREGADO Y CRONOLÓGICO ---
     let combinedFeed = [];
@@ -4280,7 +4280,7 @@ window.renderInboxList = function(filterType) {
             }));
             
         // 2. Notificaciones del Sistema Locales
-        const sysNotifs = JSON.parse(localStorage.getItem('xiaomi_notifications') || '[]')
+        const sysNotifs = JSON.parse(localStorage.getItem('xiaomi_notifications_' + ((APP_CONFIG.currentUser?.email || APP_CONFIG.currentUser?.usuario) || '').toLowerCase()) || '[]')
             .map(n => {
                 let parseTime = n.timeMs || 0;
                 if (!parseTime) {
@@ -4467,11 +4467,11 @@ window.handleSystemGo = function(tipo, lanzamientoId, tienda) {
 };
 
 window.handleSystemMarkRead = function(id) {
-    let notifications = JSON.parse(localStorage.getItem('xiaomi_notifications') || '[]');
+    let notifications = JSON.parse(localStorage.getItem('xiaomi_notifications_' + ((APP_CONFIG.currentUser?.email || APP_CONFIG.currentUser?.usuario) || '').toLowerCase()) || '[]');
     const idx = notifications.findIndex(n => n.id === id);
     if (idx !== -1) {
         notifications[idx].read = true;
-        localStorage.setItem('xiaomi_notifications', JSON.stringify(notifications));
+        localStorage.setItem('xiaomi_notifications_' + ((APP_CONFIG.currentUser?.email || APP_CONFIG.currentUser?.usuario) || '').toLowerCase(), JSON.stringify(notifications));
     }
     // Recalcular y refrescar UI instantáneamente
     updateNavBadge();
@@ -4508,7 +4508,7 @@ window.renderDashboardLaunches = async function() {
         
         const launches = APP_CONFIG.launches || [];
         const statuses = APP_CONFIG.launchStatuses || {};
-        const myEmail = String(APP_CONFIG.currentUser?.email || '').trim().toLowerCase();
+        const myEmail = String((APP_CONFIG.currentUser?.email || APP_CONFIG.currentUser?.usuario) || '').trim().toLowerCase();
         
         // Llenar selectores si están vacíos (solo una vez)
         if (filterCuenta && filterCuenta.options.length <= 1) {
@@ -4688,3 +4688,5 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 });
+
+
