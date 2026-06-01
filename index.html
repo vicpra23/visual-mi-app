@@ -37,6 +37,7 @@
         return false;
     };
     </script>
+    <link rel="manifest" href="./manifest.json">
 </head>
 <body>
     <div id="login-container" class="view">
@@ -82,6 +83,8 @@
                     <i class="fas fa-bell"></i> Mensajes
                     <span id="msg-nav-badge" class="nav-badge">0</span>
                 </li>
+                <li id="install-app-btn" style="display: none; background: var(--mi-orange); color: white;"><i class="fas fa-download"></i> Instalar App</li>
+                <li id="enable-notif-btn" style="display: none; background: #28a745; color: white;"><i class="fas fa-comment-dots"></i> Activar Alertas</li>
                 <li id="logout-btn" class="logout-item"><i class="fas fa-sign-out-alt"></i> Cerrar Sesión</li>
             </ul>
         </nav>
@@ -520,10 +523,10 @@
             <!-- View: Lanzamientos -->
             <section id="view-lanzamientos" class="sub-view hidden">
                 <!-- CONTENEDOR FLEX DE 2 COLUMNAS (Filtros Izquierda, Tiendas Derecha) -->
-                <div style="display: flex; gap: 2rem; align-items: flex-start; margin-top: 1rem;">
+                <div style="display: flex; gap: 2rem; align-items: flex-start; margin-top: 1rem; flex-wrap: wrap;">
                     
                     <!-- COLUMNA IZQUIERDA: FILTROS APILADOS -->
-                    <div id="launch-filter-sidebar" style="width: 200px; flex-shrink: 0; background: white; padding: 24px; border-radius: 16px; box-shadow: var(--shadow-sm); display: flex; flex-direction: column; gap: 1.5rem;">
+                    <div id="launch-filter-sidebar" style="flex: 1 1 250px; min-width: 250px; max-width: 100%; background: white; padding: 24px; border-radius: 16px; box-shadow: var(--shadow-sm); display: flex; flex-direction: column; gap: 1.5rem;">
                         <div style="display:flex; flex-direction:column;">
                             <small style="font-size: 10px; color: #999; margin-bottom: 4px; font-weight:700; text-transform:uppercase; letter-spacing:0.5px;">Cuenta</small>
                             <select id="launch-cuenta-selector" class="capsule-select" style="width: 100%; min-width: unset; height: 40px; font-size: 13px; background:#f8f9fa !important; border-radius:8px !important;" onchange="window.loadLaunchStores()">
@@ -539,7 +542,7 @@
                     </div>
 
                     <!-- COLUMNA DERECHA: GRID DE TIENDAS -->
-                    <div style="flex: 1;">
+                    <div style="flex: 999 1 300px; min-width: 0; width: 100%;">
                         <div id="launch-store-grid" class="stats-grid" style="margin-bottom: 0;">
                             <p style="text-align:center; color:#999; grid-column: 1 / -1; padding: 2rem 0;">Selecciona un lanzamiento para cargar tiendas...</p>
                         </div>
@@ -825,6 +828,9 @@
             <div id="historial-modal-filters" style="display: flex; gap: 12px; margin-bottom: 15px; width: 100%; align-items: center;">
                 <select id="modal-filter-cuenta" class="capsule-select" style="flex: 1; min-width: 0; height: 36px; padding: 0 10px; font-size: 13px; outline: none; border: 1px solid var(--mi-border); border-radius: 6px;" onchange="window.applyModalFilters()">
                     <option value="all">Todas las Cuentas</option>
+                </select>
+                <select id="modal-filter-tienda" class="capsule-select" style="flex: 1; min-width: 0; height: 36px; padding: 0 10px; font-size: 13px; outline: none; border: 1px solid var(--mi-border); border-radius: 6px;" onchange="window.applyModalFilters()">
+                    <option value="all">Todas las Tiendas</option>
                 </select>
                 <select id="modal-filter-usuario" class="capsule-select" style="flex: 1; min-width: 0; height: 36px; padding: 0 10px; font-size: 13px; outline: none; border: 1px solid var(--mi-border); border-radius: 6px;" onchange="window.applyModalFilters()">
                     <option value="all">Todos los Usuarios</option>

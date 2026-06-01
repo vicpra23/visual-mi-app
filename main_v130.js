@@ -1677,6 +1677,7 @@ window.applyModalFilters = function() {
     const isTodos = targetStatus === 'all' || targetStatus === 'todos';
     
     const cuentaVal = document.getElementById('modal-filter-cuenta')?.value || 'all';
+    const tiendaVal = document.getElementById('modal-filter-tienda')?.value || 'all';
     const usuarioVal = document.getElementById('modal-filter-usuario')?.value || 'all';
     const estadoVal = document.getElementById('modal-filter-estado')?.value || 'all';
     
@@ -1695,6 +1696,8 @@ window.applyModalFilters = function() {
         
         // Filtros desplegables
         if (cuentaVal !== 'all' && String(r.cuenta || '').trim() !== cuentaVal) return false;
+        
+        if (tiendaVal !== 'all' && String(r.tienda || '').trim() !== tiendaVal) return false;
         
         if (isAdmin && usuarioVal !== 'all') {
             const rUsuario = String(r.usuario || '').trim();
@@ -3782,6 +3785,7 @@ window.openDashboardModal = function(status) {
     const isAdmin = userRole === 'ADMIN' || userRole === 'ADMINISTRADOR';
     
     const filterCuenta = document.getElementById('modal-filter-cuenta');
+    const filterTienda = document.getElementById('modal-filter-tienda');
     const filterUsuario = document.getElementById('modal-filter-usuario');
     const filterEstado = document.getElementById('modal-filter-estado');
     
@@ -3795,6 +3799,13 @@ window.openDashboardModal = function(status) {
         filterCuenta.innerHTML = '<option value="all">Todas las Cuentas</option>';
         cuentas.forEach(c => filterCuenta.innerHTML += `<option value="${c}">${c}</option>`);
         filterCuenta.value = 'all';
+    }
+    
+    if (filterTienda) {
+        const tiendas = [...new Set(baseList.map(r => String(r.tienda || '').trim()).filter(Boolean))].sort();
+        filterTienda.innerHTML = '<option value="all">Todas las Tiendas</option>';
+        tiendas.forEach(t => filterTienda.innerHTML += `<option value="${t}">${t}</option>`);
+        filterTienda.value = 'all';
     }
     
     if (isAdmin && filterUsuario) {
@@ -4615,3 +4626,65 @@ window.filterLaunchStores = function(filterType) {
     // showHistorialModal(title, reports, isReadOnlyLaunch)
     window.showHistorialModal(`Lanzamientos: Tiendas (${filterType.toUpperCase()})`, mappedItems, true);
 };
+
+// ========================================================
+// PWA Y NOTIFICACIONES
+// ========================================================
+let deferredPrompt;
+
+// 1. Registrar Service Worker
+if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+        navigator.serviceWorker.register('./sw.js').then(reg => {
+            console.log('ServiceWorker registrado', reg);
+        }).catch(err => {
+            console.error('Error al registrar ServiceWorker', err);
+        });
+    });
+}
+
+// 2. Interceptar el evento de instalacin de PWA (Generar APK / Add to Home Screen)
+window.addEventListener('beforeinstallprompt', (e) => {
+    // Evitar que el navegador muestre el banner por defecto inmediatamente (opcional)
+    e.preventDefault();
+    deferredPrompt = e;
+    
+    // Mostrar nuestro botn de instalacin en el men
+    const installBtn = document.getElementById('install-app-btn');
+    if (installBtn) {
+        installBtn.style.display = 'block';
+        installBtn.addEventListener('click', async () => {
+            if (deferredPrompt) {
+                deferredPrompt.prompt();
+                const { outcome } = await deferredPrompt.userChoice;
+                if (outcome === 'accepted') {
+                    installBtn.style.display = 'none';
+                }
+                deferredPrompt = null;
+            }
+        });
+    }
+});
+
+// 3. Botn de Activar Notificaciones
+document.addEventListener('DOMContentLoaded', () => {
+    const notifBtn = document.getElementById('enable-notif-btn');
+    if (notifBtn && 'Notification' in window) {
+        // Mostrar botn slo si los permisos an no han sido otorgados ni denegados
+        if (Notification.permission === 'default') {
+            notifBtn.style.display = 'block';
+        }
+        
+        notifBtn.addEventListener('click', () => {
+            Notification.requestPermission().then(permission => {
+                if (permission === 'granted') {
+                    alert('Notificaciones activadas!');
+                    notifBtn.style.display = 'none';
+                } else {
+                    alert('Permiso de notificaciones denegado.');
+                    notifBtn.style.display = 'none';
+                }
+            });
+        });
+    }
+});
