@@ -1500,7 +1500,7 @@ window.renderHistorialRows = function(items, isLanzamientos) {
     const isAdmin = String(APP_CONFIG.currentUser?.rol || '').trim().toUpperCase() === 'ADMIN' || 
                     String(APP_CONFIG.currentUser?.rol || '').trim().toUpperCase() === 'ADMINISTRADOR';
                     
-    const hideUsuario = isLanzamientos && !isAdmin;
+    const hideUsuario = !isAdmin;
     const hideAcciones = isLanzamientos;
 
     const thUsuario = document.getElementById('historial-th-usuario');
@@ -1540,7 +1540,7 @@ window.renderHistorialRows = function(items, isLanzamientos) {
         const isAdmin = String(APP_CONFIG.currentUser?.rol || '').trim().toUpperCase() === 'ADMIN' || 
                         String(APP_CONFIG.currentUser?.rol || '').trim().toUpperCase() === 'ADMINISTRADOR';
                         
-        const hideUsuario = isLanzamientos && !isAdmin;
+        const hideUsuario = !isAdmin;
         const hideAcciones = isLanzamientos;
         
         if (isLanzamientos && rawEst === 'pendiente') {
