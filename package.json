@@ -1,0 +1,18 @@
+{
+  "name": "xiaomi-training-app",
+  "version": "1.0.0",
+  "description": "Xiaomi Training App for Trainers",
+  "main": "index.html",
+  "scripts": {
+    "build": "echo 'No build step needed for plain HTML'",
+    "cap-init": "npx cap init",
+    "cap-add-android": "npx cap add android",
+    "cap-copy": "npx cap copy",
+    "cap-open-android": "npx cap open android"
+  },
+  "dependencies": {
+    "@capacitor/android": "^6.0.0",
+    "@capacitor/cli": "^6.0.0",
+    "@capacitor/core": "^6.0.0"
+  }
+}

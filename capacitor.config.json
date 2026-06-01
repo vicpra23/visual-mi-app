@@ -1,0 +1,6 @@
+{
+  "appId": "com.xiaomi.trainerapp",
+  "appName": "Xiaomi Trainer",
+  "webDir": ".",
+  "bundledWebRuntime": false
+}

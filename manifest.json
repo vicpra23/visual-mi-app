@@ -1,0 +1,17 @@
+{
+  "name": "Xiaomi Training APP",
+  "short_name": "Xiaomi Trainer",
+  "description": "Aplicación de gestión para entrenadores Xiaomi",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#ff6700",
+  "icons": [
+    {
+      "src": "Xiaomi_logo_(2021-).svg.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}
