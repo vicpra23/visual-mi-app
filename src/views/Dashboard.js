@@ -917,7 +917,7 @@ function renderDashboard(container) {
         try {
             const selectors = [
                 { id: 'histFilterMonth', data: af.months, label: 'Todos' },
-                { id: 'histFilterWeek', data: af.weeks, label: 'Todas' },
+                { id: 'histFilterWeek', data: (af.weeks && af.weeks.length > 0) ? af.weeks : [...weeksList].sort((a,b)=>b-a), label: 'Todas' },
                 { id: 'histFilterAccount', data: af.accounts, label: 'Todas' },
                 { id: 'histFilterDevice', data: af.devices, label: 'Todos' },
                 { id: 'histFilterMethod', data: af.methods, label: 'Todas' }
@@ -993,6 +993,9 @@ function renderDashboard(container) {
                         if (window.tsInstances['histFilterMethod'] && isTodosSel) {
                             window.tsInstances['histFilterMethod'].addItem('Todos', true);
                         }
+                    } else if (s.id === 'histFilterWeek') {
+                        el.innerHTML = `<option value="Todos">Todas</option>` + 
+                            s.data.map(v => `<option value="${v}" ${v.toString() === currentVal ? 'selected' : ''}>Semana ${v}</option>`).join('');
                     } else {
                         el.innerHTML = `<option value="Todos">${s.label}</option>` + 
                             s.data.map(v => `<option value="${v}" ${v.toString() === currentVal ? 'selected' : ''}>${v}</option>`).join('');
@@ -1068,7 +1071,7 @@ function renderDashboard(container) {
             methodology: "Todos", // Send Todos to bypass backend filtering, we filter client-side
             q: q,
             refresh: force,
-            limit: isFiltered ? 9999 : 25
+            limit: 9999
         };
 
         api.getReportsHistory(historyParams).then(res => {
