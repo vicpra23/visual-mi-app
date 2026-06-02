@@ -652,7 +652,14 @@ function renderDashboardTable(reports) {
             if (displayTiempo === '0' && !isResolvedTiempo) {
                 displayTiempo = ''; // Forzamos recálculo
             } else {
-                if (!isNaN(displayTiempo)) displayTiempo += ' días';
+                if (!isNaN(displayTiempo)) {
+                    // Evitar días negativos que vengan del Excel por desajuste de zona horaria
+                    if (parseInt(displayTiempo) < 0) {
+                        displayTiempo = '0 días';
+                    } else {
+                        displayTiempo += ' días';
+                    }
+                }
             }
         }
         
@@ -2400,8 +2407,28 @@ async function submitFinalReport(event, type) {
     btn.disabled = true;
     btn.textContent = 'Enviando...';
 
-    const desc = form.querySelector('.rep-desc').value;
+    const descEl = form.querySelector('.rep-desc');
+    const desc = descEl ? descEl.value.trim() : '';
     
+    // Obligar a que el comentario descriptivo no esté vacío
+    if (!desc) {
+        if (descEl) {
+            descEl.style.border = '2px dashed #ff4d4f';
+            descEl.style.boxShadow = '0 0 12px rgba(255,77,79,0.4)';
+            descEl.style.background = '#fffafa';
+            descEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            setTimeout(() => {
+                descEl.style.border = '1px solid var(--mi-border)';
+                descEl.style.boxShadow = 'none';
+                descEl.style.background = '#ffffff';
+            }, 4000);
+        }
+        btn.disabled = false;
+        btn.textContent = originalText;
+        alert('Por favor, escribe un comentario descriptivo para la incidencia.');
+        return;
+    }
+
     try {
         const isFurniture = type === 'furniture';
         
