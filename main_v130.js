@@ -1818,7 +1818,7 @@ function startApp(forceDashboard = false) {
     // Premium Hero Welcome Label
     const welcomeEl = document.getElementById('welcome-msg');
     if (welcomeEl) {
-        welcomeEl.innerHTML = `¡Hola, ${String(APP_CONFIG.currentUser.nombre).split(' ')[0]}! ?`;
+        welcomeEl.innerHTML = `¡Hola, ${String(APP_CONFIG.currentUser.nombre).split(' ')[0]}! ✨`;
     }
     
     // Rellenar Cuentas dinámicamente
