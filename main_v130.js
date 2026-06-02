@@ -12,13 +12,13 @@ const APP_CONFIG = {
     },
     dashboardReports: [], 
     launches: [],
-    materials: [], // Cach√© de materiales
+    materials: [], // CachÈ de materiales
     incidentUploadedPhotos: [],
     deviceCatalog: [], // Lista global bajada de 'Dispositivos'
     currentSelectedDevices: [] // Buffer temporal del reporte actual
 };
 
-// --- MOTOR UNIVERSAL DE COMPRESI√ìN Y RENDERIZADO (Baja Cobertura & CDN) ---
+// --- MOTOR UNIVERSAL DE COMPRESI”N Y RENDERIZADO (Baja Cobertura & CDN) ---
 window.getGoogleDriveThumbnail = function(url) {
     if (!url) return '';
     const str = String(url);
@@ -33,7 +33,7 @@ window.getGoogleDriveThumbnail = function(url) {
 };
 
 window.getCompressedBase64 = async function(file, maxWidth = 1200, maxHeight = 1200, quality = 0.7) {
-    // Si no es imagen, retornamos el base64 directo sin compresi√≥n
+    // Si no es imagen, retornamos el base64 directo sin compresiÛn
     if (!file.type || !file.type.startsWith('image/')) {
         return new Promise((resolve, reject) => {
             const reader = new FileReader();
@@ -42,7 +42,7 @@ window.getCompressedBase64 = async function(file, maxWidth = 1200, maxHeight = 1
             reader.onerror = error => reject(error);
         });
     }
-    // Algoritmo de compresi√≥n en el cliente v√≠a HTML5 Canvas
+    // Algoritmo de compresiÛn en el cliente vÌa HTML5 Canvas
     return new Promise((resolve, reject) => {
         const reader = new FileReader();
         reader.readAsDataURL(file);
@@ -68,7 +68,7 @@ window.getCompressedBase64 = async function(file, maxWidth = 1200, maxHeight = 1
                 canvas.height = height;
                 const ctx = canvas.getContext('2d');
                 ctx.drawImage(img, 0, 0, width, height);
-                // Forzamos calidad reducida en JPEG para velocidad instant√°nea
+                // Forzamos calidad reducida en JPEG para velocidad instant·nea
                 const compressedBase64 = canvas.toDataURL('image/jpeg', quality);
                 resolve(compressedBase64.split(',')[1] || compressedBase64);
             };
@@ -110,7 +110,7 @@ window.alert = function(msg) {
     if (!msg) return;
     let type = 'info';
     const lowerMsg = String(msg).toLowerCase();
-    if (lowerMsg.includes('√©xito') || lowerMsg.includes('exito') || lowerMsg.includes('correcto') || lowerMsg.includes('guardad')) {
+    if (lowerMsg.includes('Èxito') || lowerMsg.includes('exito') || lowerMsg.includes('correcto') || lowerMsg.includes('guardad')) {
         type = 'success';
     } else if (lowerMsg.includes('error') || lowerMsg.includes('fallo') || lowerMsg.includes('no se found')) {
         type = 'error';
@@ -118,7 +118,7 @@ window.alert = function(msg) {
     window.showToast(msg, type);
 };
 
-// Di√°logo de Confirmaci√≥n Promificado 100% Premium
+// Di·logo de ConfirmaciÛn Promificado 100% Premium
 window.showConfirm = function(title, message, isDanger = true) {
     return new Promise((resolve) => {
         const overlay = document.createElement('div');
@@ -162,7 +162,7 @@ window.showConfirm = function(title, message, isDanger = true) {
     });
 };
 
-// Helper global para comparaciones a prueba de fallos (quita acentos, may√∫sculas, espacios)
+// Helper global para comparaciones a prueba de fallos (quita acentos, may˙sculas, espacios)
 function normalizeString(str) {
     return String(str || '').normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim().toUpperCase();
 }
@@ -189,12 +189,12 @@ document.addEventListener('DOMContentLoaded', () => {
     
     const isLoggedIn = checkSession();
     
-    // Si NO est√° logueado, necesitamos cargar los usuarios para la pantalla de login
+    // Si NO est· logueado, necesitamos cargar los usuarios para la pantalla de login
     if (!isLoggedIn) {
         loadUsers();
     }
     
-    // El cat√°logo de dispositivos puede cargar silenciosamente en segundo plano
+    // El cat·logo de dispositivos puede cargar silenciosamente en segundo plano
     loadDeviceCatalog();
 });
 
@@ -249,10 +249,10 @@ function setupMobileNavigation() {
         tab.addEventListener('click', () => {
             const target = tab.getAttribute('data-target');
             
-            // 1. Simular clic en el enlace de navegaci√≥n de escritorio correspondiente
+            // 1. Simular clic en el enlace de navegaciÛn de escritorio correspondiente
             const desktopLink = Array.from(navLinks).find(l => l.getAttribute('data-target') === target);
             if (desktopLink) {
-                // Hacer clic en √©l para desencadenar la carga de datos y visibilidad
+                // Hacer clic en Èl para desencadenar la carga de datos y visibilidad
                 desktopLink.click();
             } else {
                 // Fallback por si acaso
@@ -288,7 +288,7 @@ window.toggleMobileMessagesView = function(viewName) {
 async function showView(viewName) {
     localStorage.setItem('xiaomi_last_view', viewName);
     
-    // Cerrar modales flotantes al cambiar de pesta√±a
+    // Cerrar modales flotantes al cambiar de pestaÒa
     const historialModal = document.getElementById('historial-modal');
     if (historialModal) {
         historialModal.style.display = 'none';
@@ -306,7 +306,7 @@ async function showView(viewName) {
     if (targetView) {
         targetView.style.display = 'block';
         targetView.classList.remove('hidden');
-        // T√≠tulo con Icono din√°mico adaptado
+        // TÌtulo con Icono din·mico adaptado
         let formattedTitle = viewName.charAt(0).toUpperCase() + viewName.slice(1);
         let iconHtml = '';
         
@@ -330,7 +330,7 @@ async function showView(viewName) {
         
         document.getElementById('view-title').innerHTML = iconHtml + formattedTitle;
         
-        // Cargar data seg√∫n vista
+        // Cargar data seg˙n vista
         if (viewName === 'dashboard' || viewName === 'reportes') loadDashboard();
         if (viewName === 'mensajes') {
             window.loadMessagingUsers();
@@ -344,7 +344,7 @@ async function showView(viewName) {
                 sidebar.style.display = isAdmin ? 'flex' : 'none';
             }
             
-            // Popula selector y carga tiendas de forma as√≠ncrona (evita condici√≥n de carrera en la UI)
+            // Popula selector y carga tiendas de forma asÌncrona (evita condiciÛn de carrera en la UI)
             (async () => {
                     try {
                         await loadLaunches();
@@ -359,17 +359,17 @@ async function showView(viewName) {
                             APP_CONFIG.presetLaunchName = null; // Consume and clear
                         }
                         
-                        // Si venimos de un redireccionamiento r√°pido, fijar lanzamiento correcto ANTES del fetch
+                        // Si venimos de un redireccionamiento r·pido, fijar lanzamiento correcto ANTES del fetch
                         if (window._pendingQuickLaunch) {
                             const select = document.getElementById('launch-selector');
                             if (select) select.value = window._pendingQuickLaunch;
                             window._pendingQuickLaunch = null; // Consumido
                         }
                         
-                        // √öNICA CARGA LIMPIA DE DATOS (Acelerado)
+                        // ⁄NICA CARGA LIMPIA DE DATOS (Acelerado)
                         await loadLaunchStores();
                         
-                        // Selecci√≥n autom√°tica inmediata sin polling al tener el DOM listo
+                        // SelecciÛn autom·tica inmediata sin polling al tener el DOM listo
                         if (window._pendingQuickStore) {
                             const storeToOpen = window._pendingQuickStore;
                             window._pendingQuickStore = null; // Consumido
@@ -393,7 +393,7 @@ async function showView(viewName) {
             })();
         }
         
-        // Sincronizar indicador de pesta√±a activa en m√≥vil
+        // Sincronizar indicador de pestaÒa activa en mÛvil
         const correspondingMobileTab = Array.from(document.querySelectorAll('.mobile-bottom-nav-item'))
             .find(t => t.getAttribute('data-target') === viewName);
         if (correspondingMobileTab) {
@@ -401,7 +401,7 @@ async function showView(viewName) {
             correspondingMobileTab.classList.add('active');
         }
         
-        // Inicializar por defecto la bandeja de entrada si es m√≥vil en la vista de mensajes
+        // Inicializar por defecto la bandeja de entrada si es mÛvil en la vista de mensajes
         if (viewName === 'mensajes' && window.innerWidth <= 768) {
             window.toggleMobileMessagesView('inbox');
         }
@@ -430,7 +430,7 @@ async function loadDashboard() {
     const tableBody = document.querySelector('#recent-reports-table tbody');
     const accountFilter = document.getElementById('dash-account-filter');
 
-    // 1. REHIDRATACI√ìN INMEDIATA DE SESI√ìN PARA EVITAR FLICKER
+    // 1. REHIDRATACI”N INMEDIATA DE SESI”N PARA EVITAR FLICKER
     if (!APP_CONFIG.currentUser) {
         const saved = localStorage.getItem('xiaomi_user');
         if (saved) {
@@ -439,11 +439,11 @@ async function loadDashboard() {
     }
     
     if (!APP_CONFIG.currentUser) {
-        console.warn("Sesi√≥n perdida.");
+        console.warn("SesiÛn perdida.");
         return; // Dejar que la app maneje logout o login
     }
 
-    // 2. APLICAR FILTRADO POR ROL INSTANT√ÅNEAMENTE
+    // 2. APLICAR FILTRADO POR ROL INSTANT¡NEAMENTE
     const userRole = String(APP_CONFIG.currentUser.rol || '').trim().toUpperCase();
     const isAdmin = userRole === 'ADMIN' || userRole === 'ADMINISTRADOR';
     const dashLaunchCapsule = document.getElementById('dash-launch-filter-capsule');
@@ -451,12 +451,12 @@ async function loadDashboard() {
         dashLaunchCapsule.style.display = isAdmin ? 'flex' : 'none';
     }
 
-    // OPTIMIZACI√ìN: Renderizado instant√°neo desde Cach√© local (si ya existe data previa)
+    // OPTIMIZACI”N: Renderizado instant·neo desde CachÈ local (si ya existe data previa)
     if (APP_CONFIG.dashboardReports && APP_CONFIG.dashboardReports.length > 0) {
         // Renderizamos silenciosamente lo que ya tenemos para CERO latencia percibida
-        console.log("Renders instant√°neo desde cach√©...");
+        console.log("Renders instant·neo desde cachÈ...");
         renderDashboardFromData(APP_CONFIG.dashboardReports);
-        // Pero lanzamos la actualizaci√≥n en background igual
+        // Pero lanzamos la actualizaciÛn en background igual
     } else {
         tableBody.innerHTML = '<tr><td colspan="6" style="text-align:center;"><i class="fas fa-spinner fa-spin"></i> Sincronizando datos iniciales...</td></tr>';
     }
@@ -490,10 +490,10 @@ async function loadDashboard() {
         
         APP_CONFIG.dashboardReports = userReports;
         
-        // Ejecutar actualizaci√≥n visual final con la data fresca
+        // Ejecutar actualizaciÛn visual final con la data fresca
         renderDashboardFromData(userReports, isAdmin);
         
-        // Cargar lanzamientos para el resumen (Tambi√©n optimizado internamente)
+        // Cargar lanzamientos para el resumen (TambiÈn optimizado internamente)
         await window.renderDashboardLaunches();
         
     } catch (err) {
@@ -509,7 +509,7 @@ async function loadDashboard() {
 }
 
 /**
- * Extra√≠do para permitir renderizado repetido r√°pido tanto desde cach√© como desde respuesta viva
+ * ExtraÌdo para permitir renderizado repetido r·pido tanto desde cachÈ como desde respuesta viva
  */
 function renderDashboardFromData(userReports, explicitIsAdmin = null) {
     // NUEVO: Analizar cambios de estado y generar notificaciones si las hay
@@ -518,7 +518,7 @@ function renderDashboardFromData(userReports, explicitIsAdmin = null) {
     const userRole = String(APP_CONFIG.currentUser?.rol || '').trim().toUpperCase();
     const isAdmin = explicitIsAdmin !== null ? explicitIsAdmin : (userRole === 'ADMIN' || userRole === 'ADMINISTRADOR');
     
-    // Calcular estad√≠sticas din√°micamente por estados espec√≠ficos
+    // Calcular estadÌsticas din·micamente por estados especÌficos
     const countByStatus = (statusStr) => userReports.filter(r => String(r.estado || '').trim().toLowerCase().includes(statusStr)).length;
     
     const openIncidents = countByStatus('abierta');
@@ -526,11 +526,11 @@ function renderDashboardFromData(userReports, explicitIsAdmin = null) {
     const solvedIncidents = countByStatus('solucionado');
     const closedIncidents = countByStatus('cerrada') + countByStatus('cerrado'); // handle variants
 
-    // Actualizar estad√≠sticas principales
+    // Actualizar estadÌsticas principales
     const statTotalEl = document.getElementById('stat-total');
     if (statTotalEl) statTotalEl.textContent = userReports.length;
     
-    // Actualizar los 4 Cuadrantes Espec√≠ficos
+    // Actualizar los 4 Cuadrantes EspecÌficos
     const setStat = (id, val) => {
         const el = document.getElementById(id);
         if (el) el.textContent = val;
@@ -621,7 +621,7 @@ function renderDashboardTable(reports) {
         const row = document.createElement('tr');
         row.onclick = function(e) {
             if (window.innerWidth <= 768) {
-                // Prevenir que se expanda/cierre si se hace click directamente en un bot√≥n de acci√≥n
+                // Prevenir que se expanda/cierre si se hace click directamente en un botÛn de acciÛn
                 if (e.target.tagName.toLowerCase() === 'button' || e.target.closest('button')) return;
                 this.classList.toggle('expanded');
             }
@@ -640,24 +640,24 @@ function renderDashboardTable(reports) {
             statusClass = 'color:#1890ff;font-weight:600'; // Azul
         }
         
-        // Fix UX: Priorizar valor de tiempo de Excel, solo calcular din√°mico si est√° vac√≠o
+        // Fix UX: Priorizar valor de tiempo de Excel, solo calcular din·mico si est· vacÌo
         let rawTiempo = r.tiempo;
         let displayTiempo = (rawTiempo !== undefined && rawTiempo !== null && rawTiempo !== '') ? String(rawTiempo).trim() : '';
         const estTiempo = String(r.estado || '').trim().toLowerCase();
         const isResolvedTiempo = estTiempo.includes('solucionado') || estTiempo.includes('cerrado');
 
         if (displayTiempo !== '') {
-            // Si viene un '0' desde Excel y NO est√° solucionado, es un fallo de f√≥rmula, as√≠ que lo recalculamos abajo.
-            // Si est√° solucionado y el Excel manda '0' o un n√∫mero fijo, lo respetamos para que no siga sumando.
+            // Si viene un '0' desde Excel y NO est· solucionado, es un fallo de fÛrmula, asÌ que lo recalculamos abajo.
+            // Si est· solucionado y el Excel manda '0' o un n˙mero fijo, lo respetamos para que no siga sumando.
             if (displayTiempo === '0' && !isResolvedTiempo) {
-                displayTiempo = ''; // Forzamos rec√°lculo
+                displayTiempo = ''; // Forzamos rec·lculo
             } else {
                 if (!isNaN(displayTiempo)) {
-                    // Evitar d√≠as negativos que vengan del Excel por desajuste de zona horaria
+                    // Evitar dÌas negativos que vengan del Excel por desajuste de zona horaria
                     if (parseInt(displayTiempo) < 0) {
-                        displayTiempo = '0 d√≠as';
+                        displayTiempo = '0 dÌas';
                     } else {
-                        displayTiempo += ' d√≠as';
+                        displayTiempo += ' dÌas';
                     }
                 }
             }
@@ -669,15 +669,15 @@ function renderDashboardTable(reports) {
             const reportDate = new Date(fechaStr.replace(/-/g, '/')); 
             if (!isNaN(reportDate.getTime())) {
                 if (isResolvedTiempo) {
-                    // Si est√° solucionado pero el Excel lo mand√≥ vac√≠o, al menos ponemos '0 d√≠as' en vez de texto o sumar infinito
-                    displayTiempo = '0 d√≠as'; 
+                    // Si est· solucionado pero el Excel lo mandÛ vacÌo, al menos ponemos '0 dÌas' en vez de texto o sumar infinito
+                    displayTiempo = '0 dÌas'; 
                 } else {
                     const diffTime = Math.abs(Date.now() - reportDate.getTime());
                     const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
-                    displayTiempo = `${diffDays} d√≠as`; 
+                    displayTiempo = `${diffDays} dÌas`; 
                 }
             } else {
-                displayTiempo = '0 d√≠as';
+                displayTiempo = '0 dÌas';
             }
         }
         
@@ -711,9 +711,9 @@ function renderDashboardTable(reports) {
         };
         flexWrapper.appendChild(verBtn);
 
-        // BOTONES DE GESTI√ìN UNIVERSAL: Editar (para ABIERTA y PENDIENTE) y Eliminar solo para estado ABIERTA
+        // BOTONES DE GESTI”N UNIVERSAL: Editar (para ABIERTA y PENDIENTE) y Eliminar solo para estado ABIERTA
         if (est === 'abierta' || est === 'pendiente') {
-            // Bot√≥n Editar (L√°piz azul-turquesa)
+            // BotÛn Editar (L·piz azul-turquesa)
             const editBtn = document.createElement('button');
             editBtn.className = 'action-btn-circle';
             editBtn.style.color = '#00bcd4'; 
@@ -726,7 +726,7 @@ function renderDashboardTable(reports) {
             flexWrapper.appendChild(editBtn);
 
             if (est === 'abierta') {
-                // Bot√≥n Eliminar (Basura roja)
+                // BotÛn Eliminar (Basura roja)
                 const delBtn = document.createElement('button');
                 delBtn.className = 'action-btn-circle';
                 delBtn.style.color = '#e74c3c'; 
@@ -734,7 +734,7 @@ function renderDashboardTable(reports) {
                 delBtn.title = 'Eliminar este reporte permanentemente';
                 delBtn.onclick = async (e) => {
                     e.stopPropagation();
-                    if (await window.showConfirm('¬øEliminar Reporte?', '¬øSeguro que deseas ELIMINAR este reporte permanentemente? Esta acci√≥n no se puede deshacer.', true)) {
+                    if (await window.showConfirm('øEliminar Reporte?', 'øSeguro que deseas ELIMINAR este reporte permanentemente? Esta acciÛn no se puede deshacer.', true)) {
                         await window.deleteDashboardReport(r.id);
                     }
                 };
@@ -742,7 +742,7 @@ function renderDashboardTable(reports) {
             }
         }
         
-        // BOT√ìN UNIVERSAL: Marcar como Solucionado (para PENDIENTE, disponible para todos incl. Admin)
+        // BOT”N UNIVERSAL: Marcar como Solucionado (para PENDIENTE, disponible para todos incl. Admin)
         if (est === 'pendiente') {
             const resBtn = document.createElement('button');
             resBtn.className = 'action-btn-circle';
@@ -766,7 +766,7 @@ function renderDashboardTable(reports) {
                 repairBtn.className = 'action-btn-circle';
                 repairBtn.style.color = '#e67e22';
                 repairBtn.innerHTML = '<i class="fas fa-tools"></i>';
-                repairBtn.title = 'Marcar como Solicitado reparaci√≥n';
+                repairBtn.title = 'Marcar como Solicitado reparaciÛn';
                 repairBtn.onclick = async (e) => {
                     e.stopPropagation();
                     await window.changeIncidentStatus(r.id, 'Pendiente');
@@ -777,7 +777,7 @@ function renderDashboardTable(reports) {
                 reviewBtn.className = 'action-btn-circle';
                 reviewBtn.style.color = '#2ecc71';
                 reviewBtn.innerHTML = '<i class="fas fa-search"></i>';
-                reviewBtn.title = 'Revisar Resoluci√≥n';
+                reviewBtn.title = 'Revisar ResoluciÛn';
                 reviewBtn.onclick = (e) => {
                     e.stopPropagation();
                     window.showReportDetails(r);
@@ -820,7 +820,7 @@ window.showReportDetails = function(report) {
         photosHtml = `
             <div class="modal-detail-item">
                 <span class="modal-detail-label">Fotos Cargadas:</span>
-                <p style="color:var(--mi-gray-dark);font-style:italic;margin:0;">Sin im√°genes adjuntas</p>
+                <p style="color:var(--mi-gray-dark);font-style:italic;margin:0;">Sin im·genes adjuntas</p>
             </div>
         `;
     }
@@ -836,7 +836,7 @@ window.showReportDetails = function(report) {
             adminActionsHtml = `
                 <div style="border-top: 1px solid var(--mi-border); padding-top: 1rem; margin-top: 1rem; display: flex; justify-content: flex-end;">
                     <button class="btn-primary" id="admin-repair-btn" style="background:#ff6700; width:auto; padding:8px 16px; border-radius:6px; color:white; border:none; font-size:12px; font-weight:600; cursor:pointer;" onclick="window.changeIncidentStatus('${report.id}', 'Pendiente')">
-                        <i class="fas fa-tools"></i> Solicitado reparaci√≥n
+                        <i class="fas fa-tools"></i> Solicitado reparaciÛn
                     </button>
                 </div>
             `;
@@ -847,11 +847,11 @@ window.showReportDetails = function(report) {
             adminActionsHtml = `
                 <div style="border-top: 1px solid var(--mi-border); padding-top: 1rem; margin-top: 1rem;">
                     <button class="btn-primary" id="admin-review-btn" style="background:#1890ff; width:100%; padding:10px; border-radius:6px; color:white; border:none; font-size:12px; font-weight:600; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:8px;" onclick="document.getElementById('admin-review-box').style.display='block'; this.style.display='none';">
-                        <i class="fas fa-search"></i> Revisar Resoluci√≥n
+                        <i class="fas fa-search"></i> Revisar ResoluciÛn
                     </button>
                     
                     <div id="admin-review-box" style="display:none; background:#f9f9f9; padding:15px; border-radius:8px; border:1px solid var(--mi-border); margin-top:10px;">
-                        <p style="font-weight:600; margin-top:0; margin-bottom:10px; font-size:12px; color:var(--mi-gray-dark);">Nuevas Fotos Subidas (Resoluci√≥n):</p>
+                        <p style="font-weight:600; margin-top:0; margin-bottom:10px; font-size:12px; color:var(--mi-gray-dark);">Nuevas Fotos Subidas (ResoluciÛn):</p>
                         <div class="modal-photo-grid" style="margin-bottom:15px;">
                             ${reviewPhotos.map(url => {
                                 const directUrl = window.getGoogleDriveThumbnail(url);
@@ -893,7 +893,7 @@ window.showReportDetails = function(report) {
         </div>
         
         <div class="modal-detail-item" style="border-top: 1px solid var(--mi-border); padding-top: 0.8rem;">
-            <span class="modal-detail-label">Tipo / Categor√≠a:</span>
+            <span class="modal-detail-label">Tipo / CategorÌa:</span>
             <span class="modal-detail-value" style="font-weight: 500;">${report.tipo}</span>
         </div>
         
@@ -935,17 +935,17 @@ window.deleteDashboardReport = async function(id) {
         });
         
         if (res && res.success) {
-            // 1. UI Optimista: Quitar el reporte de la cach√© local inmediatamente
+            // 1. UI Optimista: Quitar el reporte de la cachÈ local inmediatamente
             if (Array.isArray(APP_CONFIG.dashboardReports)) {
                 APP_CONFIG.dashboardReports = APP_CONFIG.dashboardReports.filter(item => String(item.id) !== String(id));
             }
             
-            // 2. Forzar el re-renderizado de la tabla y stats al instante con la cach√© limpia
+            // 2. Forzar el re-renderizado de la tabla y stats al instante con la cachÈ limpia
             if (typeof renderDashboardFromData === 'function') {
                 renderDashboardFromData(APP_CONFIG.dashboardReports);
             }
             
-            // Mostrar el toast premium de √©xito
+            // Mostrar el toast premium de Èxito
             alert('Reporte eliminado correctamente.');
             
             // 3. Re-sincronizar silenciosamente en segundo plano con el servidor por consistencia
@@ -957,7 +957,7 @@ window.deleteDashboardReport = async function(id) {
         }
     } catch (err) {
         console.error(err);
-        alert('Error de conexi√≥n al intentar eliminar el reporte.');
+        alert('Error de conexiÛn al intentar eliminar el reporte.');
     }
 };
 
@@ -978,7 +978,7 @@ window.changeIncidentStatus = async function(id, newStatus) {
         });
         
         if (res && res.success) {
-            alert(`El estado de la incidencia ha sido cambiado con √©xito a: ${newStatus}`);
+            alert(`El estado de la incidencia ha sido cambiado con Èxito a: ${newStatus}`);
             window.closeReportModal();
             await loadDashboard();
         } else {
@@ -1093,7 +1093,7 @@ window.jumpToCreateReportForStore = function(customReport = null) {
     // 1. Navegar a la vista de Nuevo Reporte
     showView('reportes');
     
-    // 2. Inyectar Cuenta y Centro instant√°neamente en el formulario
+    // 2. Inyectar Cuenta y Centro instant·neamente en el formulario
     const accSel = document.getElementById('incident-cuenta');
     const storeSel = document.getElementById('incident-centro');
     
@@ -1103,9 +1103,9 @@ window.jumpToCreateReportForStore = function(customReport = null) {
             resetProcedure(false);
         }
         
-        // NUEVO: Activar MODO EDICI√ìN y ESCUDO DE PRECARGA ANTIBORRADO (Establecido estrictamente TRAS el reset!)
+        // NUEVO: Activar MODO EDICI”N y ESCUDO DE PRECARGA ANTIBORRADO (Establecido estrictamente TRAS el reset!)
         window.editingIncidentId = r.id || '';
-        window.isAutoloadingReport = true; // Bloquea reseteos del array durante clics autom√°ticos
+        window.isAutoloadingReport = true; // Bloquea reseteos del array durante clics autom·ticos
         const banner = document.getElementById('editing-mode-banner');
         if (banner) {
             banner.style.display = 'flex';
@@ -1115,7 +1115,7 @@ window.jumpToCreateReportForStore = function(customReport = null) {
         // Cargar cuenta
         accSel.value = r.cuenta;
         
-        // Disparar filtro de centros s√≠ncrono
+        // Disparar filtro de centros sÌncrono
         if (typeof filterStoresByAccount === 'function') {
             filterStoresByAccount('incident', r.cuenta);
         }
@@ -1123,12 +1123,12 @@ window.jumpToCreateReportForStore = function(customReport = null) {
         // Seleccionar la tienda exacta cargada en el combo
         storeSel.value = r.tienda;
         
-        // Iniciar el procedimiento visual autom√°ticamente
+        // Iniciar el procedimiento visual autom·ticamente
         if (typeof startIncidentProcedure === 'function') {
             startIncidentProcedure(r.tienda);
         }
         
-        // NUEVO: INTELIGENCIA DE PRECARGA AUTOM√ÅTICA DE TODO EL FORMULARIO (AHORA CON FLUJO ASYNC LINEAL PERFECTO)
+        // NUEVO: INTELIGENCIA DE PRECARGA AUTOM¡TICA DE TODO EL FORMULARIO (AHORA CON FLUJO ASYNC LINEAL PERFECTO)
         (async () => {
             const sleep = ms => new Promise(r => setTimeout(r, ms));
             
@@ -1136,7 +1136,7 @@ window.jumpToCreateReportForStore = function(customReport = null) {
             const isFurniture = catStr.includes('mobiliario');
             const isDevice = catStr.includes('dispositivo');
 
-            // A. Auto-seleccionar Categor√≠a Principal (simulando click)
+            // A. Auto-seleccionar CategorÌa Principal (simulando click)
             let mainBtn = null;
             if (isFurniture) {
                 mainBtn = document.querySelector('#category-selection button.furniture');
@@ -1148,17 +1148,17 @@ window.jumpToCreateReportForStore = function(customReport = null) {
                 mainBtn.click();
             }
             
-            // Esperar a que la interfaz despliegue las subcategor√≠as correspondientes
+            // Esperar a que la interfaz despliegue las subcategorÌas correspondientes
             await sleep(350);
 
             const procId = isFurniture ? 'furniture-procedure' : 'device-procedure';
             const container = document.getElementById(procId);
             if (!container) {
-                window.isAutoloadingReport = false; // Liberar bloqueo si algo falla catastr√≥ficamente
+                window.isAutoloadingReport = false; // Liberar bloqueo si algo falla catastrÛficamente
                 return;
             }
 
-            // PASO B: EJECUTAR LA RAMIFICACI√ìN DE CLICS DE FORMA SECUENCIAL
+            // PASO B: EJECUTAR LA RAMIFICACI”N DE CLICS DE FORMA SECUENCIAL
             if (isFurniture) {
                 // RAMA MOBILIARIO: L2(Subcategoria) -> L3(Motivo)
                 if (r.subcategoria) {
@@ -1177,7 +1177,7 @@ window.jumpToCreateReportForStore = function(customReport = null) {
                 }
 
             } else if (isDevice) {
-                // RAMA DISPOSITIVO: L2(Tipolog√≠a) -> L3(Subcategor√≠a) -> L4(Motivo)
+                // RAMA DISPOSITIVO: L2(TipologÌa) -> L3(SubcategorÌa) -> L4(Motivo)
                 const tipologyVal = r.tipologia || '';
                 if (tipologyVal) {
                     const tipBtns = Array.from(container.querySelectorAll('.level-box[data-level="2"] button.bubble-btn'));
@@ -1185,7 +1185,7 @@ window.jumpToCreateReportForStore = function(customReport = null) {
                     if (targetTip) targetTip.click();
                 }
 
-                // Espera a que se regeneren las subcategor√≠as del Nivel 3 seg√∫n Tipolog√≠a
+                // Espera a que se regeneren las subcategorÌas del Nivel 3 seg˙n TipologÌa
                 await sleep(400);
 
                 if (r.subcategoria) {
@@ -1204,10 +1204,10 @@ window.jumpToCreateReportForStore = function(customReport = null) {
                 }
             }
             
-            // Esperar a que finalice la renderizaci√≥n del DOM final
+            // Esperar a que finalice la renderizaciÛn del DOM final
             await sleep(350);
 
-            // C. Rellenar Bloque Final (Comentarios y D√≥nde Enviar)
+            // C. Rellenar Bloque Final (Comentarios y DÛnde Enviar)
             const finalLvl = document.getElementById(`final-level-${isFurniture ? 'furniture' : 'device'}`);
             if (finalLvl) {
                 const descInp = finalLvl.querySelector('.rep-desc');
@@ -1216,13 +1216,13 @@ window.jumpToCreateReportForStore = function(customReport = null) {
                 const envSel = finalLvl.querySelector('.rep-enviar');
                 if (envSel && r.enviar) envSel.value = r.enviar;
                 
-                // Hacer scroll al final para revisi√≥n
+                // Hacer scroll al final para revisiÛn
                 finalLvl.scrollIntoView({ behavior: 'smooth', block: 'center' });
             }
             
-            // D. SI ES DISPOSITIVO: Cargar array completo de modelos para visualizaci√≥n (CON ULTRA-DEFENSA)
+            // D. SI ES DISPOSITIVO: Cargar array completo de modelos para visualizaciÛn (CON ULTRA-DEFENSA)
             if (isDevice) {
-                // Fallback 1: Intentar rehidratar desde el listado global en memoria para m√°xima seguridad
+                // Fallback 1: Intentar rehidratar desde el listado global en memoria para m·xima seguridad
                 let sourceReport = r;
                 if (r.id && APP_CONFIG.dashboardReports) {
                     const found = APP_CONFIG.dashboardReports.find(x => x.id === r.id);
@@ -1231,7 +1231,7 @@ window.jumpToCreateReportForStore = function(customReport = null) {
 
                 let finalDevs = sourceReport.dispositivos;
 
-                // Fallback 2: Si viene serializado como texto por alg√∫n motivo extra√±o
+                // Fallback 2: Si viene serializado como texto por alg˙n motivo extraÒo
                 if (typeof finalDevs === 'string') {
                     try { finalDevs = JSON.parse(finalDevs); } catch(e) { finalDevs = null; }
                 }
@@ -1240,7 +1240,7 @@ window.jumpToCreateReportForStore = function(customReport = null) {
                 if (!finalDevs || !Array.isArray(finalDevs)) {
                     if (sourceReport.modelo || sourceReport.tipologia || sourceReport.tipo) {
                         // Intentar adivinar el modelo desde el texto si es un registro heredado
-                        const guessedModel = sourceReport.modelo || (String(sourceReport.tipo).split('>')[1] || '').trim() || 'Dispositivo Gen√©rico';
+                        const guessedModel = sourceReport.modelo || (String(sourceReport.tipo).split('>')[1] || '').trim() || 'Dispositivo GenÈrico';
                         finalDevs = [{
                             modelo: guessedModel,
                             cantidad: parseInt(sourceReport.cantidad) || 1,
@@ -1264,12 +1264,12 @@ window.jumpToCreateReportForStore = function(customReport = null) {
                 }
             }
 
-            // E. PRECARGA DE FOTOS EXISTENTES: Para que el usuario pueda verlas, borrarlas o a√±adir nuevas
+            // E. PRECARGA DE FOTOS EXISTENTES: Para que el usuario pueda verlas, borrarlas o aÒadir nuevas
             if (r.fotos) {
                 // Limpiar estado previo de fotos de incidentes
                 APP_CONFIG.incidentUploadedPhotos = [];
                 
-                // Parsear enlaces (separados por saltos de l√≠nea o comas)
+                // Parsear enlaces (separados por saltos de lÌnea o comas)
                 const urls = String(r.fotos).split(/[\n,]+/).map(u => u.trim()).filter(u => u && u.startsWith('http'));
                 
                 if (urls.length > 0) {
@@ -1299,7 +1299,7 @@ window.jumpToCreateReportForStore = function(customReport = null) {
                                 </button>
                             `;
 
-                            // Configurar el bot√≥n de borrado nativo
+                            // Configurar el botÛn de borrado nativo
                             wrap.querySelector('.delete-thumb-btn').onclick = () => {
                                 APP_CONFIG.incidentUploadedPhotos = APP_CONFIG.incidentUploadedPhotos.filter(u => u !== picUrl);
                                 wrap.remove();
@@ -1326,7 +1326,7 @@ window.cancelEditMode = function() {
         banner.style.display = 'none';
         banner.classList.add('hidden');
     }
-    // Limpiar el formulario tambi√©n por coherencia
+    // Limpiar el formulario tambiÈn por coherencia
     if (typeof resetProcedure === 'function') {
         resetProcedure(false); 
     }
@@ -1365,7 +1365,7 @@ window.handleResolutionPhotoUpload = async function(event) {
             const userClean = String(userRaw).split('@')[0].trim().toUpperCase().replace(/[^A-Z0-9]/g, '_');
             const tiendaSanitized = String(window.selectedReportForQuickBox?.tienda || 'Tienda').trim().toUpperCase().replace(/[^A-Z0-9]/g, '_');
             
-            // Sufijo de conteo si hay varias fotos para mantener el orden l√≥gico y evitar sobreescrituras fortuitas
+            // Sufijo de conteo si hay varias fotos para mantener el orden lÛgico y evitar sobreescrituras fortuitas
             const uniqueSuffix = files.length > 1 ? `_${i + 1}` : '';
             const customFileName = `${userClean}_${tiendaSanitized}_${formattedDate}_SOLUCIONADO${uniqueSuffix}.${extension}`;
 
@@ -1383,7 +1383,7 @@ window.handleResolutionPhotoUpload = async function(event) {
                 failCount++;
             }
         } catch (err) {
-            console.error("Fallo de subida en iteraci√≥n:", err);
+            console.error("Fallo de subida en iteraciÛn:", err);
             failCount++;
         }
     }
@@ -1395,7 +1395,7 @@ window.handleResolutionPhotoUpload = async function(event) {
         if (successCount > 0) {
             const successBox = document.createElement('div');
             successBox.style.cssText = "background:#e6f7ff; border:1px solid #91d5ff; padding:8px 12px; border-radius:8px; color:#1890ff; font-size:12px; font-weight:600; margin-bottom:8px; display:flex; align-items:center; gap:8px; width:100%;";
-            successBox.innerHTML = `<i class="fa fa-check-circle" style="color:#52c41a; font-size:1.2rem;"></i> ¬°${successCount} foto(s) subida(s) con √©xito!`;
+            successBox.innerHTML = `<i class="fa fa-check-circle" style="color:#52c41a; font-size:1.2rem;"></i> °${successCount} foto(s) subida(s) con Èxito!`;
             previewContainer.appendChild(successBox);
         }
         
@@ -1407,7 +1407,7 @@ window.handleResolutionPhotoUpload = async function(event) {
         }
     }
 
-    // Habilitamos el bot√≥n final si tenemos al menos una foto v√°lida cargada
+    // Habilitamos el botÛn final si tenemos al menos una foto v·lida cargada
     if (window.uploadedResolutionPhotos.length > 0) {
         submitBtn.disabled = false;
     } else {
@@ -1417,7 +1417,7 @@ window.handleResolutionPhotoUpload = async function(event) {
 
 window.submitResolution = async function() {
     if (!window.selectedReportForQuickBox || window.uploadedResolutionPhotos.length === 0) {
-        alert("Por favor, sube una foto de la soluci√≥n obligatoria.");
+        alert("Por favor, sube una foto de la soluciÛn obligatoria.");
         return;
     }
     
@@ -1435,23 +1435,23 @@ window.submitResolution = async function() {
         });
         
         if (res && res.success) {
-            alert('¬°Incidencia resuelta con √©xito! Pasada a color azul (Solucionado).');
+            alert('°Incidencia resuelta con Èxito! Pasada a color azul (Solucionado).');
             
-            // Ocultar modal de resoluci√≥n flotante
+            // Ocultar modal de resoluciÛn flotante
             const box = document.getElementById('quick-detail-box');
             if (box) {
                 box.style.display = 'none';
                 box.classList.add('hidden');
             }
             
-            // Ocultar tambi√©n el modal del historial subyacente si estaba abierto
+            // Ocultar tambiÈn el modal del historial subyacente si estaba abierto
             const histModal = document.getElementById('historial-modal');
             if (histModal) {
                 histModal.style.display = 'none';
                 histModal.classList.add('hidden');
             }
             
-            // Recargar dashboard para actualizar m√©tricas y tabla
+            // Recargar dashboard para actualizar mÈtricas y tabla
             await loadDashboard();
         } else {
             alert('Error al resolver la incidencia: ' + (res.error || 'Error desconocido'));
@@ -1460,7 +1460,7 @@ window.submitResolution = async function() {
         }
     } catch (err) {
         console.error(err);
-        alert('Error al enviar la resoluci√≥n.');
+        alert('Error al enviar la resoluciÛn.');
         submitBtn.disabled = false;
         submitBtn.textContent = originalText;
     }
@@ -1518,7 +1518,7 @@ window.renderHistorialRows = function(items, isLanzamientos) {
     tbody.innerHTML = '';
     
     if (items.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="${hideUsuario ? (hideAcciones ? '4' : '5') : (hideAcciones ? '5' : '6')}" style="text-align:center; padding: 20px;">No hay registros para este estado o b√∫squeda.</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="${hideUsuario ? (hideAcciones ? '4' : '5') : (hideAcciones ? '5' : '6')}" style="text-align:center; padding: 20px;">No hay registros para este estado o b˙squeda.</td></tr>`;
         return;
     }
 
@@ -1569,7 +1569,7 @@ window.renderHistorialRows = function(items, isLanzamientos) {
         
         const actionTd = row.querySelector('td:last-child');
         
-        // --- L√ìGICA EST√ÅNDAR REPORTES INCIDENCIAS ---
+        // --- L”GICA EST¡NDAR REPORTES INCIDENCIAS ---
         if (!isLanzamientos) {
             actionTd.style.display = 'table-cell'; // Asegurar modo tabla-celda puro
             
@@ -1589,9 +1589,9 @@ window.renderHistorialRows = function(items, isLanzamientos) {
             };
             flexWrapper.appendChild(verBtn);
 
-            // 2. BOTONES DE GESTI√ìN UNIVERSAL: Editar (para ABIERTA y PENDIENTE) y Eliminar solo para estado ABIERTA
+            // 2. BOTONES DE GESTI”N UNIVERSAL: Editar (para ABIERTA y PENDIENTE) y Eliminar solo para estado ABIERTA
             if (rawEst === 'abierta' || rawEst === 'abierto' || rawEst === 'pendiente') {
-                // Bot√≥n Editar (L√°piz azul-turquesa)
+                // BotÛn Editar (L·piz azul-turquesa)
                 const editBtn = document.createElement('button');
                 editBtn.className = 'action-btn-circle';
                 editBtn.style.color = '#00bcd4'; 
@@ -1605,7 +1605,7 @@ window.renderHistorialRows = function(items, isLanzamientos) {
                 flexWrapper.appendChild(editBtn);
 
                 if (rawEst === 'abierta' || rawEst === 'abierto') {
-                    // Bot√≥n Eliminar (Basura roja)
+                    // BotÛn Eliminar (Basura roja)
                     const delBtn = document.createElement('button');
                     delBtn.className = 'action-btn-circle';
                     delBtn.style.color = '#e74c3c'; 
@@ -1613,7 +1613,7 @@ window.renderHistorialRows = function(items, isLanzamientos) {
                     delBtn.title = 'Eliminar este reporte permanentemente';
                     delBtn.onclick = async (e) => {
                         e.stopPropagation();
-                        if (await window.showConfirm('¬øEliminar Reporte?', '¬øSeguro que deseas ELIMINAR este reporte permanentemente? Esta acci√≥n no se puede deshacer.', true)) {
+                        if (await window.showConfirm('øEliminar Reporte?', 'øSeguro que deseas ELIMINAR este reporte permanentemente? Esta acciÛn no se puede deshacer.', true)) {
                             modal.style.display = 'none';
                             await window.deleteDashboardReport(r.id);
                         }
@@ -1626,7 +1626,7 @@ window.renderHistorialRows = function(items, isLanzamientos) {
             if (rawEst === 'pendiente' || rawEst === 'abierta' || rawEst === 'abierto') {
                 const resBtn = document.createElement('button');
                 resBtn.className = 'action-btn-circle';
-                resBtn.style.color = '#52c41a'; // Verde √©xito vibrante
+                resBtn.style.color = '#52c41a'; // Verde Èxito vibrante
                 resBtn.innerHTML = '<i class="fas fa-check"></i>';
                 resBtn.title = 'Marcar como Solucionado';
                 resBtn.onclick = (e) => {
@@ -1645,7 +1645,7 @@ window.renderHistorialRows = function(items, isLanzamientos) {
                     repBtn.className = 'action-btn-circle';
                     repBtn.style.color = '#e67e22';
                     repBtn.innerHTML = '<i class="fas fa-tools"></i>';
-                    repBtn.title = 'Marcar como Solicitado reparaci√≥n';
+                    repBtn.title = 'Marcar como Solicitado reparaciÛn';
                     repBtn.onclick = async (e) => {
                         e.stopPropagation();
                         modal.style.display = 'none';
@@ -1657,7 +1657,7 @@ window.renderHistorialRows = function(items, isLanzamientos) {
                     revBtn.className = 'action-btn-circle';
                     revBtn.style.color = '#2ecc71';
                     revBtn.innerHTML = '<i class="fas fa-search"></i>';
-                    revBtn.title = 'Revisar Resoluci√≥n';
+                    revBtn.title = 'Revisar ResoluciÛn';
                     revBtn.onclick = (e) => {
                         e.stopPropagation();
                         modal.style.display = 'none';
@@ -1796,15 +1796,15 @@ async function handleLogin(e) {
             localStorage.setItem('xiaomi_user', JSON.stringify(response.user));
             startApp(true);
             
-            // Solicitar permisos de notificaci√≥n nativa
+            // Solicitar permisos de notificaciÛn nativa
             if ('Notification' in window && Notification.permission !== 'granted' && Notification.permission !== 'denied') {
                 Notification.requestPermission();
             }
         } else {
-            errorMsg.textContent = response.message || 'Error al iniciar sesi√≥n';
+            errorMsg.textContent = response.message || 'Error al iniciar sesiÛn';
         }
     } catch (err) {
-        errorMsg.textContent = 'Error de conexi√≥n con el servidor (Revisa el despliegue)';
+        errorMsg.textContent = 'Error de conexiÛn con el servidor (Revisa el despliegue)';
         console.error('Error en login:', err);
     }
 }
@@ -1818,12 +1818,12 @@ function startApp(forceDashboard = false) {
     // Premium Hero Welcome Label
     const welcomeEl = document.getElementById('welcome-msg');
     if (welcomeEl) {
-        welcomeEl.innerHTML = `¬°Hola, ${String(APP_CONFIG.currentUser.nombre).split(' ')[0]}! ‚ú®`;
+        welcomeEl.innerHTML = `°Hola, ${String(APP_CONFIG.currentUser.nombre).split(' ')[0]}! ?`;
     }
     
-    // Rellenar Cuentas din√°micamente
+    // Rellenar Cuentas din·micamente
     const tiendas = APP_CONFIG.currentUser.tiendas || [];
-    const cuentas = [...new Set(tiendas.map(t => t.cuenta))]; // Cuentas √∫nicas
+    const cuentas = [...new Set(tiendas.map(t => t.cuenta))]; // Cuentas ˙nicas
     
     ['incident'].forEach(type => {
         const cuentaSelect = document.getElementById(`${type}-cuenta`);
@@ -1852,7 +1852,7 @@ function startApp(forceDashboard = false) {
     const targetView = forceDashboard ? 'dashboard' : (localStorage.getItem('xiaomi_last_view') || 'dashboard');
     showView(targetView);
     
-    // Sincronizar estado activo de los links de navegaci√≥n
+    // Sincronizar estado activo de los links de navegaciÛn
     navLinks.forEach(link => {
         if (link.getAttribute('data-target') === targetView) {
             link.classList.add('active');
@@ -1888,15 +1888,15 @@ async function loadUsers() {
     const select = document.getElementById('login-usuario');
     if (!select) return;
 
-    // 1. OPTIMIZACI√ìN: Usar cach√© local para que el desplegable responda AL INSTANTE
+    // 1. OPTIMIZACI”N: Usar cachÈ local para que el desplegable responda AL INSTANTE
     const cachedUsersStr = localStorage.getItem('cached_users_list');
     if (cachedUsersStr) {
         try {
             const cached = JSON.parse(cachedUsersStr);
             if (cached && cached.length > 0) {
-                console.log("Renderizando usuarios desde cach√© instant√°neo...");
+                console.log("Renderizando usuarios desde cachÈ instant·neo...");
                 renderUsersToDropdown(cached, select);
-                // Si ya tenemos cach√©, no hace falta mostrar spinner, simplemente refrescamos en background
+                // Si ya tenemos cachÈ, no hace falta mostrar spinner, simplemente refrescamos en background
             }
         } catch(e) {
              select.innerHTML = '<option value="" disabled selected>Cargando usuarios...</option>';
@@ -1906,7 +1906,7 @@ async function loadUsers() {
     }
     
     // 2. LISTA DE EMERGENCIA HARDCODED (Backup total en caso de bloqueo de navegador o local file restricted)
-    const HARDCODED_FALLBACK = [{"email":"Virginia Rodriguez","nombre":"Virginia Rodriguez"},{"email":"Carlos Deniz","nombre":"Carlos Deniz"},{"email":"Jes√∫s de Luis Blanco","nombre":"Jes√∫s de Luis Blanco"},{"email":"Carlos Bellasai","nombre":"Carlos Bellasai"},{"email":"Virginia Torre","nombre":"Virginia Torre"},{"email":"Ezequiel Brito","nombre":"Ezequiel Brito"},{"email":"Jesus de la Torre","nombre":"Jesus de la Torre"},{"email":"Francisco Paz","nombre":"Francisco Paz"},{"email":"Ricardo Dahdah Leon","nombre":"Ricardo Dahdah Leon"},{"email":"Miguel Mata","nombre":"Miguel Mata"},{"email":"Fernando Torres","nombre":"Fernando Torres"},{"email":"Estela Corbella","nombre":"Estela Corbella"},{"email":"Carlos Martinez","nombre":"Carlos Martinez"},{"email":"Joaqu√≠n Lemus","nombre":"Joaqu√≠n Lemus"},{"email":"Elizabeth L√≥pez","nombre":"Elizabeth L√≥pez"},{"email":"Alicia Muruzabal","nombre":"Alicia Muruzabal"}];
+    const HARDCODED_FALLBACK = [{"email":"Virginia Rodriguez","nombre":"Virginia Rodriguez"},{"email":"Carlos Deniz","nombre":"Carlos Deniz"},{"email":"Jes˙s de Luis Blanco","nombre":"Jes˙s de Luis Blanco"},{"email":"Carlos Bellasai","nombre":"Carlos Bellasai"},{"email":"Virginia Torre","nombre":"Virginia Torre"},{"email":"Ezequiel Brito","nombre":"Ezequiel Brito"},{"email":"Jesus de la Torre","nombre":"Jesus de la Torre"},{"email":"Francisco Paz","nombre":"Francisco Paz"},{"email":"Ricardo Dahdah Leon","nombre":"Ricardo Dahdah Leon"},{"email":"Miguel Mata","nombre":"Miguel Mata"},{"email":"Fernando Torres","nombre":"Fernando Torres"},{"email":"Estela Corbella","nombre":"Estela Corbella"},{"email":"Carlos Martinez","nombre":"Carlos Martinez"},{"email":"JoaquÌn Lemus","nombre":"JoaquÌn Lemus"},{"email":"Elizabeth LÛpez","nombre":"Elizabeth LÛpez"},{"email":"Alicia Muruzabal","nombre":"Alicia Muruzabal"}];
 
     try {
         console.log("Intentando cargar usuarios en vivo...");
@@ -1915,35 +1915,35 @@ async function loadUsers() {
         if (users && Array.isArray(users) && users.length > 0) {
             localStorage.setItem('cached_users_list', JSON.stringify(users));
             renderUsersToDropdown(users, select);
-            console.log("‚úÖ Carga en vivo completada.");
+            console.log("? Carga en vivo completada.");
             return;
         }
     } catch (err) {
-        console.error('‚ö†Ô∏è Bloqueo de red al cargar usuarios. Activando modo Rescate Local:', err);
+        console.error('?? Bloqueo de red al cargar usuarios. Activando modo Rescate Local:', err);
     }
 
-    // 3. ACTIVACI√ìN DE EMERGENCIA
+    // 3. ACTIVACI”N DE EMERGENCIA
     if (!select.options.length || select.value === "") {
-        console.warn("üö® Activando lista de usuarios de emergencia hardcoded por fallo de red.");
+        console.warn("?? Activando lista de usuarios de emergencia hardcoded por fallo de red.");
         renderUsersToDropdown(HARDCODED_FALLBACK, select);
-        // A√±adimos opci√≥n visual de que est√° en modo redundante
+        // AÒadimos opciÛn visual de que est· en modo redundante
         const opt = document.createElement('option');
         opt.disabled = true;
-        opt.textContent = "‚îÄ‚îÄ Carga de Emergencia Activa ‚îÄ‚îÄ";
+        opt.textContent = "-- Carga de Emergencia Activa --";
         select.prepend(opt);
     }
 }
 
 function renderUsersToDropdown(users, select) {
     if (!select) return;
-    const currentVal = select.value; // Preservar si ya eligi√≥ algo
+    const currentVal = select.value; // Preservar si ya eligiÛ algo
     select.innerHTML = '<option value="" disabled selected>Selecciona tu usuario</option>';
     
     users.forEach(user => {
         if (user && user.email) {
             const opt = document.createElement('option');
             opt.value = user.email;
-            // Limpiar: Solo mostrar nombre, quitar par√©ntesis con email
+            // Limpiar: Solo mostrar nombre, quitar parÈntesis con email
             opt.textContent = user.nombre || user.email; 
             select.appendChild(opt);
         }
@@ -1975,14 +1975,14 @@ window.selectDeviceTipology = function(tipology, btn) {
     // 2. Guardar en el path temporal
     APP_CONFIG.currentReport.path[1] = tipology;
     
-    // 3. Inyectar din√°micamente las subcategor√≠as de nivel 3 seg√∫n la tipolog√≠a
+    // 3. Inyectar din·micamente las subcategorÌas de nivel 3 seg˙n la tipologÌa
     const matchTipology = tipology.trim().toUpperCase();
     const subGroup = document.getElementById('device-subcategories-group');
     if (subGroup) {
         subGroup.innerHTML = '';
         let items = [];
         if (matchTipology === 'POSM') {
-            items = ['Display', 'Filmina', 'Luminoso', 'Miniluminoso', 'Ficha de Producto', 'Ficha energ√©tica', 'A4', 'OTROS'];
+            items = ['Display', 'Filmina', 'Luminoso', 'Miniluminoso', 'Ficha de Producto', 'Ficha energÈtica', 'A4', 'OTROS'];
         } else {
             // Para LDU y DUMMY
             items = ['MESA', 'MURO', 'COLUMNA', 'LINEAL', 'OTROS'];
@@ -1996,7 +1996,7 @@ window.selectDeviceTipology = function(tipology, btn) {
         });
     }
     
-    // 4. Avanzar directamente a Subcategor√≠a (Level 3) y resetear el resto (protegido si estamos en precarga)
+    // 4. Avanzar directamente a SubcategorÌa (Level 3) y resetear el resto (protegido si estamos en precarga)
     if (!window.isAutoloadingReport) {
         APP_CONFIG.currentSelectedDevices = [];
     }
@@ -2035,11 +2035,11 @@ window.addDeviceToList = function() {
     const selectedQty = parseInt(qtyInput.value) || 1;
     
     if (!selectedModel) {
-        alert(isCustom ? "Escribe el nombre del art√≠culo." : "Por favor seleccione un modelo de la lista.");
+        alert(isCustom ? "Escribe el nombre del artÌculo." : "Por favor seleccione un modelo de la lista.");
         return;
     }
     
-    // A√±adir al array
+    // AÒadir al array
     APP_CONFIG.currentSelectedDevices.push({
         modelo: selectedModel,
         cantidad: selectedQty,
@@ -2066,7 +2066,7 @@ function renderSelectedDevices() {
     listContainer.innerHTML = '';
     
     if (APP_CONFIG.currentSelectedDevices.length === 0) {
-        listContainer.innerHTML = '<p id="no-devices-msg" style="font-style: italic; color: #999; margin: 0; font-size: 12px;">Ning√∫n modelo a√±adido a√∫n.</p>';
+        listContainer.innerHTML = '<p id="no-devices-msg" style="font-style: italic; color: #999; margin: 0; font-size: 12px;">Ning˙n modelo aÒadido a˙n.</p>';
         return;
     }
     
@@ -2163,10 +2163,10 @@ function selectLevel(type, level, value) {
         }
     });
 
-    // --- EXCEPCI√ìN: Flujo de Dispositivos en Nivel 3 ---
+    // --- EXCEPCI”N: Flujo de Dispositivos en Nivel 3 ---
     if (type === 'device' && level === 3) {
-        // Acabamos de pulsar Subcategor√≠a. Ahora DEBEMOS abrir el Model Box filtrado por AMBOS.
-        // PROTECCI√ìN CR√çTICA: Impedir borrado autom√°tico durante la precarga de edici√≥n!
+        // Acabamos de pulsar SubcategorÌa. Ahora DEBEMOS abrir el Model Box filtrado por AMBOS.
+        // PROTECCI”N CRÕTICA: Impedir borrado autom·tico durante la precarga de ediciÛn!
         if (!window.isAutoloadingReport) {
             APP_CONFIG.currentSelectedDevices = [];
         }
@@ -2178,7 +2178,7 @@ function selectLevel(type, level, value) {
         const tipologyChosen = String(APP_CONFIG.currentReport.path[1] || '').trim().toUpperCase();
         const subcategoryChosen = String(value || '').trim().toUpperCase();
         
-        // CONTROL DIN√ÅMICO: Para OTROS, mostramos el Input de escritura libre
+        // CONTROL DIN¡MICO: Para OTROS, mostramos el Input de escritura libre
         const customInput = document.getElementById('device-selector-custom');
         if (subcategoryChosen === 'OTROS') {
             dropdown.classList.add('hidden');
@@ -2191,7 +2191,7 @@ function selectLevel(type, level, value) {
         }
         
         const filtered = APP_CONFIG.deviceCatalog.filter(d => {
-            const itemTip = String(d.col0 || d.Tipolog√≠a || d['Tipolog√≠a'] || '').trim().toUpperCase();
+            const itemTip = String(d.col0 || d.TipologÌa || d['TipologÌa'] || '').trim().toUpperCase();
             const tipologyMatch = (itemTip === tipologyChosen);
             if (!tipologyMatch) return false;
             
@@ -2199,9 +2199,9 @@ function selectLevel(type, level, value) {
                 const searchKey = normalizeString(subcategoryChosen);
                 if (!searchKey) return true;
                 
-                const searchPayload = normalizeString(d.col1 || d.Subcategor√≠a || d.Subcategoria || '');
+                const searchPayload = normalizeString(d.col1 || d.SubcategorÌa || d.Subcategoria || '');
                 
-                // PROTECCI√ìN LUMINOSO: Comparar estrictamente (ya normalizado) para no mezclarse con MINILUMINOSO
+                // PROTECCI”N LUMINOSO: Comparar estrictamente (ya normalizado) para no mezclarse con MINILUMINOSO
                 if (searchKey === 'LUMINOSO') {
                     return searchPayload === 'LUMINOSO';
                 }
@@ -2217,7 +2217,7 @@ function selectLevel(type, level, value) {
             // User confirma: Coger de la Columna C (col2) el modelo final para todos.
             const model = String(d.col2 || d.Modelo || '').trim();
             
-            const code = d['C√≥digo Dispositivo'] || d.codigo || d.col3 || ''; 
+            const code = d['CÛdigo Dispositivo'] || d.codigo || d.col3 || ''; 
             const repType = d['TIPO REPORTE'] || d['Tipo Reporte'] || d.col4 || d.col3 || '';
             
             if (model && model !== '' && model.toUpperCase() !== 'MODELO') {
@@ -2233,8 +2233,8 @@ function selectLevel(type, level, value) {
         const box = document.getElementById('device-models-box');
         box.classList.remove('hidden');
         
-        // REVELADO CONTINUO: El usuario quiere que salga toda la informaci√≥n del reporte de una sola vez
-        // Habilitamos el siguiente nivel ("Motivo") instant√°neamente sin forzar clic intermedio
+        // REVELADO CONTINUO: El usuario quiere que salga toda la informaciÛn del reporte de una sola vez
+        // Habilitamos el siguiente nivel ("Motivo") instant·neamente sin forzar clic intermedio
         const nextBox = document.getElementById('device-l4');
         if (nextBox) nextBox.classList.remove('hidden');
         
@@ -2272,27 +2272,27 @@ async function handleIncidentPhotos(input, type) {
     
     const files = Array.from(input.files);
     
-    // Validar m√°ximo de 5 fotos en total
+    // Validar m·ximo de 5 fotos en total
     const currentCount = APP_CONFIG.incidentUploadedPhotos.length;
     const pendingThumbs = container.querySelectorAll('.local-thumb-wrapper:not(.uploaded)').length;
     if (currentCount + pendingThumbs + files.length > 5) {
-        alert("Solo se permite subir un m√°ximo de 5 fotos para la incidencia.");
+        alert("Solo se permite subir un m·ximo de 5 fotos para la incidencia.");
         input.value = '';
         return;
     }
     
-    // Deshabilitar bot√≥n de enviar mientras se sube
+    // Deshabilitar botÛn de enviar mientras se sube
     if (submitBtn) {
         submitBtn.disabled = true;
     }
     
     for (const file of files) {
-        // Crear contenedor local instant√°neo
+        // Crear contenedor local instant·neo
         const wrapper = document.createElement('div');
         wrapper.className = 'local-thumb-wrapper';
         wrapper.style.cssText = 'position: relative; width: 80px; height: 80px; border-radius: 8px; overflow: hidden; border: 2px solid var(--mi-orange); background: #333; display: flex; align-items: center; justify-content: center;';
         
-        // Crear objeto URL local instant√°neo
+        // Crear objeto URL local instant·neo
         const localUrl = URL.createObjectURL(file);
         
         wrapper.innerHTML = `
@@ -2329,7 +2329,7 @@ async function handleIncidentPhotos(input, type) {
                 wrapper.dataset.url = uploadRes.url;
                 wrapper.style.borderColor = '#2ecc71';
                 
-                // Actualizar thumbnail con icono de borrado y √©xito
+                // Actualizar thumbnail con icono de borrado y Èxito
                 wrapper.innerHTML = `
                     <img src="${localUrl}" style="width: 100%; height: 100%; object-fit: cover;">
                     <div style="position: absolute; top: 2px; right: 2px; background: rgba(46, 204, 113, 0.9); color: #fff; width: 18px; height: 18px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 10px;">
@@ -2340,7 +2340,7 @@ async function handleIncidentPhotos(input, type) {
                     </button>
                 `;
                 
-                // Agregar acci√≥n de borrar
+                // Agregar acciÛn de borrar
                 wrapper.querySelector('.delete-thumb-btn').onclick = () => {
                     APP_CONFIG.incidentUploadedPhotos = APP_CONFIG.incidentUploadedPhotos.filter(url => url !== uploadRes.url);
                     wrapper.remove();
@@ -2410,7 +2410,7 @@ async function submitFinalReport(event, type) {
     const descEl = form.querySelector('.rep-desc');
     const desc = descEl ? descEl.value.trim() : '';
     
-    // Obligar a que el comentario descriptivo no est√© vac√≠o
+    // Obligar a que el comentario descriptivo no estÈ vacÌo
     if (!desc) {
         if (descEl) {
             descEl.style.border = '2px dashed #ff4d4f';
@@ -2439,10 +2439,10 @@ async function submitFinalReport(event, type) {
             categoria: isFurniture ? 'Mobiliario' : 'Dispositivo',
             descripcion: desc,
             photos: APP_CONFIG.incidentUploadedPhotos,
-            estado: 'Abierta' // NUEVO: Forza reactivaci√≥n a abierta si es una nueva incidencia o reedici√≥n
+            estado: 'Abierta' // NUEVO: Forza reactivaciÛn a abierta si es una nueva incidencia o reediciÛn
         };
 
-        // NUEVO: Si hay ID activo de edici√≥n, lo inyectamos para que el backend sobreescriba
+        // NUEVO: Si hay ID activo de ediciÛn, lo inyectamos para que el backend sobreescriba
         if (window.editingIncidentId) {
             reportData.updateId = window.editingIncidentId;
         }
@@ -2468,7 +2468,7 @@ async function submitFinalReport(event, type) {
             reportData.motivo = APP_CONFIG.currentReport.path[2] || '';
             reportData.enviar = enviarSelect.value;
 
-            // SEGURIDAD EXTREMA: Validar Subcategor√≠a de Mobiliario
+            // SEGURIDAD EXTREMA: Validar SubcategorÌa de Mobiliario
             if (!reportData.subcategoria) {
                 const box = document.getElementById('furniture-l2');
                 if (box) {
@@ -2481,7 +2481,7 @@ async function submitFinalReport(event, type) {
                 }
                 btn.disabled = false;
                 btn.textContent = originalText;
-                return alert('Falta Informaci√≥n: Por favor, selecciona qu√© ELEMENTO de Mobiliario presenta el fallo.');
+                return alert('Falta InformaciÛn: Por favor, selecciona quÈ ELEMENTO de Mobiliario presenta el fallo.');
             }
 
             // SEGURIDAD EXTREMA: Validar Motivo detallado de Mobiliario
@@ -2497,7 +2497,7 @@ async function submitFinalReport(event, type) {
                 }
                 btn.disabled = false;
                 btn.textContent = originalText;
-                return alert('Falta Informaci√≥n: Por favor, indica el MOTIVO concreto del desperfecto.');
+                return alert('Falta InformaciÛn: Por favor, indica el MOTIVO concreto del desperfecto.');
             }
         } else {
             // Para Dispositivos
@@ -2540,7 +2540,7 @@ async function submitFinalReport(event, type) {
             reportData.enviar = enviarSelect.value; 
             reportData.dispositivos = APP_CONFIG.currentSelectedDevices;
 
-            // SEGURIDAD EXTREMA: Validar Tipolog√≠a del Dispositivo
+            // SEGURIDAD EXTREMA: Validar TipologÌa del Dispositivo
             if (!reportData.tipologia) {
                 const box = document.getElementById('device-l2');
                 if (box) {
@@ -2549,10 +2549,10 @@ async function submitFinalReport(event, type) {
                     setTimeout(() => { box.style.border = 'none'; box.style.boxShadow = 'none'; box.style.padding = '0'; }, 5000);
                 }
                 btn.disabled = false; btn.textContent = originalText;
-                return alert('Falta Informaci√≥n: Por favor, selecciona la TIPOLOG√çA del dispositivo.');
+                return alert('Falta InformaciÛn: Por favor, selecciona la TIPOLOGÕA del dispositivo.');
             }
 
-            // SEGURIDAD EXTREMA: Validar Subcategor√≠a de Dispositivo
+            // SEGURIDAD EXTREMA: Validar SubcategorÌa de Dispositivo
             if (!reportData.subcategoria) {
                 const box = document.getElementById('device-l3');
                 if (box) {
@@ -2561,7 +2561,7 @@ async function submitFinalReport(event, type) {
                     setTimeout(() => { box.style.border = 'none'; box.style.boxShadow = 'none'; box.style.padding = '0'; }, 5000);
                 }
                 btn.disabled = false; btn.textContent = originalText;
-                return alert('Falta Informaci√≥n: Por favor, selecciona la SUB-FAMILIA o Familia del dispositivo.');
+                return alert('Falta InformaciÛn: Por favor, selecciona la SUB-FAMILIA o Familia del dispositivo.');
             }
 
             // SEGURIDAD EXTREMA: Validar Motivo detallado de Dispositivo
@@ -2573,13 +2573,37 @@ async function submitFinalReport(event, type) {
                     setTimeout(() => { box.style.border = 'none'; box.style.boxShadow = 'none'; box.style.padding = '0'; }, 5000);
                 }
                 btn.disabled = false; btn.textContent = originalText;
-                return alert('Falta Informaci√≥n: Por favor, indica el MOTIVO concreto de la incidencia.');
+                return alert('Falta InformaciÛn: Por favor, indica el MOTIVO concreto de la incidencia.');
             }
         }
 
         const res = await callApi(reportData);
         if (res && res.success) {
-            alert('Reporte guardado con √©xito');
+            setTimeout(async () => {
+                try {
+                    const uRes = await callApi({ action: 'getMessagingUsers' });
+                    if (uRes && uRes.users) {
+                        const admins = uRes.users.filter(u => String(u.rol || '').trim().toUpperCase().includes('ADMIN'));
+                        const nombreUsu = APP_CONFIG.currentUser?.nombre || APP_CONFIG.currentUser?.usuario || 'Un usuario';
+                        const tiend = reportData.tienda || 'una tienda';
+                        const cat = reportData.categoria || 'Incidencia';
+                        for (const admin of admins) {
+                            const adminEmail = admin.email || admin.usuario;
+                            if (adminEmail) {
+                                callApi({
+                                    action: 'sendMessage',
+                                    remitente: 'Sistema',
+                                    destinatario: adminEmail,
+                                    mensaje: 'NUEVA INCIDENCIA ABIERTA: ' + nombreUsu + ' acaba de abrir un reporte de ' + cat + ' en ' + tiend + '. Por favor, revisalo para responder lo antes posible.'
+                                });
+                            }
+                        }
+                    }
+                } catch(e) { console.error('Error al notificar admins', e); }
+            }, 500);
+        }
+        if (res && res.success) {
+            alert('Reporte guardado con Èxito');
             resetProcedure();
             loadDashboard(); // Actualiza el historial visualmente en tiempo real
             // Vuelve abajo para ver el historial insertado
@@ -2598,7 +2622,7 @@ async function submitFinalReport(event, type) {
 }
 
 function resetProcedure(preserveStoreContext = false) {
-    // Guardamos el centro antes de limpiar si as√≠ lo solicitan (para cambios de categor√≠a sin perder la tienda)
+    // Guardamos el centro antes de limpiar si asÌ lo solicitan (para cambios de categorÌa sin perder la tienda)
     const storedCentro = APP_CONFIG.currentReport?.centro || '';
     
     APP_CONFIG.currentReport = { 
@@ -2612,7 +2636,7 @@ function resetProcedure(preserveStoreContext = false) {
     // Limpiar miniaturas
     document.querySelectorAll('.thumbnail-container').forEach(c => c.innerHTML = '');
 
-    // NUEVO: Limpiar autom√°ticamente el modo edici√≥n si estaba activo
+    // NUEVO: Limpiar autom·ticamente el modo ediciÛn si estaba activo
     if (!preserveStoreContext) {
         window.editingIncidentId = null;
         const banner = document.getElementById('editing-mode-banner');
@@ -2622,10 +2646,10 @@ function resetProcedure(preserveStoreContext = false) {
         }
     }
     
-    // Limpiar listado de dispositivos din√°micos
+    // Limpiar listado de dispositivos din·micos
     const listContainer = document.getElementById('device-selected-list');
     if (listContainer) {
-        listContainer.innerHTML = '<p id="no-devices-msg" style="font-style: italic; color: #999; margin: 0; font-size: 12px;">Ning√∫n modelo a√±adido a√∫n.</p>';
+        listContainer.innerHTML = '<p id="no-devices-msg" style="font-style: italic; color: #999; margin: 0; font-size: 12px;">Ning˙n modelo aÒadido a˙n.</p>';
     }
     
     // Reset all selects and hide boxes (Excluyendo cuenta y tienda si preservamos contexto)
@@ -2634,7 +2658,7 @@ function resetProcedure(preserveStoreContext = false) {
         s.selectedIndex = 0;
     });
     
-    // SOLO ocultamos la selecci√≥n de categor√≠a si es un reset FULL (ej: enviar reporte)
+    // SOLO ocultamos la selecciÛn de categorÌa si es un reset FULL (ej: enviar reporte)
     if (!preserveStoreContext) {
         document.getElementById('category-selection')?.classList.add('hidden');
     }
@@ -2659,17 +2683,17 @@ function resetProcedure(preserveStoreContext = false) {
     
     document.querySelectorAll('.bubble-btn').forEach(btn => btn.classList.remove('active'));
     
-    // Protecci√≥n formularios
+    // ProtecciÛn formularios
     if (!preserveStoreContext) {
         document.querySelectorAll('form').forEach(f => f.reset());
     } else {
-        // Resetear formularios de procedimientos internos, no los selectores ra√≠z
+        // Resetear formularios de procedimientos internos, no los selectores raÌz
         document.querySelectorAll('#furniture-procedure form, #device-procedure form').forEach(f => f.reset());
     }
 }
 
 // --- API Communication ---
-// --- API Communication (H√≠brido robusto compatible con ejecuci√≥n local file://) ---
+// --- API Communication (HÌbrido robusto compatible con ejecuciÛn local file://) ---
 async function callApi(data) {
     if (!APP_CONFIG.scriptUrl) {
         console.warn('Apps Script URL not set. Returning mock data.');
@@ -2679,8 +2703,8 @@ async function callApi(data) {
     const isRead = !['submitReport', 'uploadFile', 'submitLaunchChecklist', 'login', 'resolveIncident', 'deleteReport', 'sendMessage', 'markMessageRead', 'deleteLaunchValidation', 'updateLaunchValidation', 'getMessages', 'getMessagingUsers'].includes(data.action);
 
     if (isRead) {
-        // ESTRATEGIA H√çBRIDA INTELIGENTE V5
-        // 1¬∫ Intentamos FETCH NATIVO (Garantizado en http://localhost:8080 o servidores reales)
+        // ESTRATEGIA HÕBRIDA INTELIGENTE V5
+        // 1∫ Intentamos FETCH NATIVO (Garantizado en http://localhost:8080 o servidores reales)
         try {
             let queryUrl = APP_CONFIG.scriptUrl + (APP_CONFIG.scriptUrl.includes('?') ? '&' : '?');
             const queryParams = [];
@@ -2691,7 +2715,7 @@ async function callApi(data) {
             queryParams.push('_nocache=' + Date.now());
             const fullUrl = queryUrl + queryParams.join('&');
 
-            console.log('üì° Probando Fetch Nativo ->', data.action);
+            console.log('?? Probando Fetch Nativo ->', data.action);
             const controller = new AbortController();
             const timeoutId = setTimeout(() => controller.abort(), 45000); 
             
@@ -2703,17 +2727,17 @@ async function callApi(data) {
             
             if (response.ok) {
                 const responseText = await response.text();
-                // Si devuelve JSON crudo, lo parseamos y triunfamos instant√°neamente!
+                // Si devuelve JSON crudo, lo parseamos y triunfamos instant·neamente!
                 if (responseText.trim().startsWith('{') || responseText.trim().startsWith('[')) {
-                    console.log('‚úÖ FETCH NATIVO EXITOSO - Omitiendo rescate JSONP.');
+                    console.log('? FETCH NATIVO EXITOSO - Omitiendo rescate JSONP.');
                     return JSON.parse(responseText);
                 }
             }
             throw new Error('Formato de respuesta desconocido');
         } catch (fetchErr) {
-            console.warn('‚ö†Ô∏è Fetch nativo fallido (posible file://). Iniciando Rescate JSONP...', fetchErr.message);
+            console.warn('?? Fetch nativo fallido (posible file://). Iniciando Rescate JSONP...', fetchErr.message);
             
-            // MODO RESCATE: JSONP cl√°sico (El √∫nico que a veces funciona desde file:// local)
+            // MODO RESCATE: JSONP cl·sico (El ˙nico que a veces funciona desde file:// local)
             return new Promise((resolve, reject) => {
                 const callbackName = 'jsonp_' + Date.now() + '_' + Math.floor(Math.random() * 1000000);
                 const script = document.createElement('script');
@@ -2733,7 +2757,7 @@ async function callApi(data) {
 
                 script.onerror = (e) => {
                     cleanup();
-                    console.error("üö® ERROR CR√çTICO ABSOLUTO (Fetch + JSONP Fallidos):", e);
+                    console.error("?? ERROR CRÕTICO ABSOLUTO (Fetch + JSONP Fallidos):", e);
                     reject(new Error('Bloqueo total de red local'));
                 };
 
@@ -2748,7 +2772,7 @@ async function callApi(data) {
                 script.src = url + params.join('&');
                 document.body.appendChild(script);
 
-                // Prevenci√≥n de colgado eterno
+                // PrevenciÛn de colgado eterno
                 setTimeout(() => {
                     if (window[callbackName]) {
                         cleanup();
@@ -2759,7 +2783,7 @@ async function callApi(data) {
         }
     }
 
-    // Rutas de escritura/mutaci√≥n (POST) - Funcionan 100% si el login funcion√≥
+    // Rutas de escritura/mutaciÛn (POST) - Funcionan 100% si el login funcionÛ
     try {
         const response = await fetch(APP_CONFIG.scriptUrl, {
             method: 'POST',
@@ -2768,7 +2792,7 @@ async function callApi(data) {
         });
         return await response.json();
     } catch (err) {
-        console.error('Error de comunicaci√≥n POST:', err);
+        console.error('Error de comunicaciÛn POST:', err);
         return { success: false, message: err.message };
     }
 }
@@ -2820,7 +2844,7 @@ window.filterDashboardTable = function() {
 async function loadLaunches() {
     const selector = document.getElementById('launch-selector');
     
-    // OPTIMIZACI√ìN: Reusar cach√© si existe
+    // OPTIMIZACI”N: Reusar cachÈ si existe
     let launches = APP_CONFIG.launches;
     if (!launches || launches.length === 0) {
         launches = await callApi({ action: 'getLaunches' });
@@ -2845,10 +2869,10 @@ async function loadLaunches() {
         if (!pKey && keys.length > 0) pKey = keys[0];
         const prodName = pKey ? String(launch[pKey]) : 'Sin nombre';
         
-        // B√∫squeda din√°mica de la fecha de lanzamiento / activaci√≥n
+        // B˙squeda din·mica de la fecha de lanzamiento / activaciÛn
         let dateInfo = '';
         let dateObj = null;
-        const dateKey = Object.keys(launch).find(k => k.toLowerCase().includes('fecha') || k.toLowerCase().includes('inicio') || k.toLowerCase().includes('activaci√≥n') || k.toLowerCase().includes('date'));
+        const dateKey = Object.keys(launch).find(k => k.toLowerCase().includes('fecha') || k.toLowerCase().includes('inicio') || k.toLowerCase().includes('activaciÛn') || k.toLowerCase().includes('date'));
         
         if (dateKey && launch[dateKey]) {
             let rawDate = String(launch[dateKey]).trim();
@@ -2872,7 +2896,7 @@ async function loadLaunches() {
         launch._fechaParsed = dateInfo;
         launch._dateObj = dateObj;
 
-        // Calcular el m√°s cercano (hacia el futuro o el m√°s reciente pasado)
+        // Calcular el m·s cercano (hacia el futuro o el m·s reciente pasado)
         if (dateObj) {
             const diff = Math.abs(dateObj - now);
             if (diff < minDiff) {
@@ -2890,7 +2914,7 @@ async function loadLaunches() {
         }
     });
 
-    // Auto-seleccionar el lanzamiento m√°s cercano si existe
+    // Auto-seleccionar el lanzamiento m·s cercano si existe
     if (closestLaunch && selector) {
         selector.value = closestLaunch._prodName;
     }
@@ -2899,7 +2923,7 @@ async function loadLaunches() {
 window.loadMaterials = async function() {};
 
 async function loadMaterials() {
-    // La pesta√±a de materiales ahora es est√°tica en index.html
+    // La pestaÒa de materiales ahora es est·tica en index.html
     // No se realizan llamadas al backend
 }
 
@@ -3026,7 +3050,7 @@ window.loadLaunchStores = async function() {
         const myStores = APP_CONFIG.currentUser.tiendas || [];
         let tiendas = [];
         
-        // 1. Obtener las tiendas permitidas seg√∫n APP_CONFIG.launches (cruzando con myStores)
+        // 1. Obtener las tiendas permitidas seg˙n APP_CONFIG.launches (cruzando con myStores)
         if (APP_CONFIG.launches && APP_CONFIG.launches.length > 0) {
             const allAllowedStores = new Set();
             const allAllowedAccounts = new Set();
@@ -3093,7 +3117,7 @@ window.loadLaunchStores = async function() {
             };
         });
 
-        // 2. Poblar los selectores din√°micamente si es Admin
+        // 2. Poblar los selectores din·micamente si es Admin
         const cuentaSelect = document.getElementById('launch-cuenta-selector');
         const userSelect = document.getElementById('launch-user-selector');
         
@@ -3181,7 +3205,7 @@ window.loadLaunchStores = async function() {
             let cardContent = '';
             
             if (status === 'Realizada') {
-                badgeHtml = '<span class="status-badge" style="background: #e6f7ff; color: #1890ff; padding: 4px 8px; border-radius: 4px; font-size: 11px; font-weight: 600; border: 1px solid #91d5ff;"><span class="badge-icon"><i class="fas fa-check-circle" style="color: #52c41a; font-size: 18px;"></i></span><span class="badge-text">‚úÖ Realizada</span></span>';
+                badgeHtml = '<span class="status-badge" style="background: #e6f7ff; color: #1890ff; padding: 4px 8px; border-radius: 4px; font-size: 11px; font-weight: 600; border: 1px solid #91d5ff;"><span class="badge-icon"><i class="fas fa-check-circle" style="color: #52c41a; font-size: 18px;"></i></span><span class="badge-text">? Realizada</span></span>';
                 if (thumb) {
                     cardContent = `
                         <div style="width: 100%; height: 80px; overflow: hidden; margin-top: 10px; border-radius: 6px;">
@@ -3190,13 +3214,13 @@ window.loadLaunchStores = async function() {
                     `;
                 }
             } else if (status === 'Abierta') {
-                badgeHtml = '<span class="status-badge" style="background: #fff1f0; color: #f5222d; padding: 4px 8px; border-radius: 4px; font-size: 11px; font-weight: 600; border: 1px solid #ffa39e;"><span class="badge-icon"><i class="fas fa-exclamation-triangle" style="color: #f5222d; font-size: 18px;"></i></span><span class="badge-text">üö® Abierta</span></span>';
+                badgeHtml = '<span class="status-badge" style="background: #fff1f0; color: #f5222d; padding: 4px 8px; border-radius: 4px; font-size: 11px; font-weight: 600; border: 1px solid #ffa39e;"><span class="badge-icon"><i class="fas fa-exclamation-triangle" style="color: #f5222d; font-size: 18px;"></i></span><span class="badge-text">?? Abierta</span></span>';
             } else if (status === 'Revisada') {
-                badgeHtml = '<span class="status-badge" style="background: #fff7e6; color: #fa8c16; padding: 4px 8px; border-radius: 4px; font-size: 11px; font-weight: 600; border: 1px solid #ffd591;"><span class="badge-icon"><i class="fas fa-eye" style="color: #fa8c16; font-size: 18px;"></i></span><span class="badge-text">üëÄ Revisada</span></span>';
+                badgeHtml = '<span class="status-badge" style="background: #fff7e6; color: #fa8c16; padding: 4px 8px; border-radius: 4px; font-size: 11px; font-weight: 600; border: 1px solid #ffd591;"><span class="badge-icon"><i class="fas fa-eye" style="color: #fa8c16; font-size: 18px;"></i></span><span class="badge-text">?? Revisada</span></span>';
             } else if (status === 'Reportada') {
-                badgeHtml = '<span class="status-badge" style="background: #feffe6; color: #d4b106; padding: 4px 8px; border-radius: 4px; font-size: 11px; font-weight: 600; border: 1px solid #ffffb8;"><span class="badge-icon"><i class="fas fa-exclamation" style="color: #d4b106; font-size: 18px;"></i></span><span class="badge-text">‚ö†Ô∏è Reportada</span></span>';
+                badgeHtml = '<span class="status-badge" style="background: #feffe6; color: #d4b106; padding: 4px 8px; border-radius: 4px; font-size: 11px; font-weight: 600; border: 1px solid #ffffb8;"><span class="badge-icon"><i class="fas fa-exclamation" style="color: #d4b106; font-size: 18px;"></i></span><span class="badge-text">?? Reportada</span></span>';
             } else if (status === 'Cambiada') {
-                badgeHtml = '<span class="status-badge" style="background: #f6ffed; color: #52c41a; padding: 4px 8px; border-radius: 4px; font-size: 11px; font-weight: 600; border: 1px solid #b7eb8f;"><span class="badge-icon"><i class="fas fa-sync-alt" style="color: #52c41a; font-size: 18px;"></i></span><span class="badge-text">üîÑ Cambiada</span></span>';
+                badgeHtml = '<span class="status-badge" style="background: #f6ffed; color: #52c41a; padding: 4px 8px; border-radius: 4px; font-size: 11px; font-weight: 600; border: 1px solid #b7eb8f;"><span class="badge-icon"><i class="fas fa-sync-alt" style="color: #52c41a; font-size: 18px;"></i></span><span class="badge-text">?? Cambiada</span></span>';
             } else {
                 badgeHtml = '<span class="status-badge" style="background: #fff1f0; color: #f5222d; padding: 4px 8px; border-radius: 4px; font-size: 11px; font-weight: 600; border: 1px solid #ffa39e;"><span class="badge-icon"><i class="fas fa-exclamation-circle" style="color: #f5222d; font-size: 18px;"></i></span><span class="badge-text">Pendiente</span></span>';
             }
@@ -3354,27 +3378,27 @@ window.handleLaunchPhotos = async function(input, maxFiles = 99) {
     
     const files = Array.from(input.files);
     
-    // Validar m√°ximo de fotos
+    // Validar m·ximo de fotos
     const currentCount = APP_CONFIG.launchUploadedPhotos.length;
     const pendingThumbs = container.querySelectorAll('.local-thumb-wrapper:not(.uploaded)').length;
     if (currentCount + pendingThumbs + files.length > maxFiles) {
-        alert(`Solo se permite subir un m√°ximo de ${maxFiles} fotos.`);
+        alert(`Solo se permite subir un m·ximo de ${maxFiles} fotos.`);
         input.value = '';
         return;
     }
     
-    // Deshabilitar bot√≥n de enviar mientras se sube
+    // Deshabilitar botÛn de enviar mientras se sube
     if (submitBtn) {
         submitBtn.disabled = true;
     }
     
     for (const file of files) {
-        // Crear contenedor local instant√°neo
+        // Crear contenedor local instant·neo
         const wrapper = document.createElement('div');
         wrapper.className = 'local-thumb-wrapper';
         wrapper.style.cssText = 'position: relative; width: 80px; height: 80px; border-radius: 8px; overflow: hidden; border: 2px solid var(--mi-orange); background: #333; display: flex; align-items: center; justify-content: center;';
         
-        // Crear objeto URL local instant√°neo
+        // Crear objeto URL local instant·neo
         const localUrl = URL.createObjectURL(file);
         
         wrapper.innerHTML = `
@@ -3411,7 +3435,7 @@ window.handleLaunchPhotos = async function(input, maxFiles = 99) {
                 wrapper.dataset.url = uploadRes.url;
                 wrapper.style.borderColor = '#2ecc71';
                 
-                // Actualizar thumbnail con icono de borrado y √©xito
+                // Actualizar thumbnail con icono de borrado y Èxito
                 wrapper.innerHTML = `
                     <img src="${localUrl}" style="width: 100%; height: 100%; object-fit: cover;">
                     <div style="position: absolute; top: 2px; right: 2px; background: rgba(46, 204, 113, 0.9); color: #fff; width: 18px; height: 18px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 10px;">
@@ -3422,7 +3446,7 @@ window.handleLaunchPhotos = async function(input, maxFiles = 99) {
                     </button>
                 `;
                 
-                // Agregar acci√≥n de borrar
+                // Agregar acciÛn de borrar
                 wrapper.querySelector('.delete-thumb-btn').onclick = () => {
                     APP_CONFIG.launchUploadedPhotos = APP_CONFIG.launchUploadedPhotos.filter(url => url !== uploadRes.url);
                     wrapper.remove();
@@ -3502,8 +3526,32 @@ window.submitLaunch = async function(event) {
 
     try {
         const res = await callApi(reportData);
+        if (res && res.success) {
+            setTimeout(async () => {
+                try {
+                    const uRes = await callApi({ action: 'getMessagingUsers' });
+                    if (uRes && uRes.users) {
+                        const admins = uRes.users.filter(u => String(u.rol || '').trim().toUpperCase().includes('ADMIN'));
+                        const nombreUsu = APP_CONFIG.currentUser?.nombre || APP_CONFIG.currentUser?.usuario || 'Un usuario';
+                        const tiend = reportData.tienda || 'una tienda';
+                        const cat = reportData.categoria || 'Incidencia';
+                        for (const admin of admins) {
+                            const adminEmail = admin.email || admin.usuario;
+                            if (adminEmail) {
+                                callApi({
+                                    action: 'sendMessage',
+                                    remitente: 'Sistema',
+                                    destinatario: adminEmail,
+                                    mensaje: 'NUEVA INCIDENCIA ABIERTA: ' + nombreUsu + ' acaba de abrir un reporte de ' + cat + ' en ' + tiend + '. Por favor, revisalo para responder lo antes posible.'
+                                });
+                            }
+                        }
+                    }
+                } catch(e) { console.error('Error al notificar admins', e); }
+            }, 500);
+        }
         if (res.success) {
-            alert('Formulario de Lanzamiento enviado con √©xito.');
+            alert('Formulario de Lanzamiento enviado con Èxito.');
             closeLaunchChecklist();
             loadLaunchStores();
         } else {
@@ -3511,7 +3559,7 @@ window.submitLaunch = async function(event) {
         }
     } catch (e) {
         console.error(e);
-        alert('Error de conexi√≥n al guardar.');
+        alert('Error de conexiÛn al guardar.');
     } finally {
         btn.disabled = false;
         btn.innerHTML = originalText;
@@ -3524,12 +3572,12 @@ function setupForms() {
 }
 
 /* ====================================================
-   NUEVAS RUTINAS: GESTI√ìN AVANZADA LANZAMIENTOS
+   NUEVAS RUTINAS: GESTI”N AVANZADA LANZAMIENTOS
    ==================================================== */
 window.editValPhotosBuffer = [];
 
 /**
- * Abre la pesta√±a de lanzamientos y preselecciona la tienda de forma ultra r√°pida y sin peticiones redundantes
+ * Abre la pestaÒa de lanzamientos y preselecciona la tienda de forma ultra r·pida y sin peticiones redundantes
  */
 window.quickGoToLaunch = async function(launchName, storeName) {
     // Almacenar objetivos en variables globales temporales para consumo inmediato en showView
@@ -3541,7 +3589,7 @@ window.quickGoToLaunch = async function(launchName, storeName) {
 };
 
 /**
- * Abre el nuevo modal interactivo de validaci√≥n en modo VER, EDITAR o RESOLVER
+ * Abre el nuevo modal interactivo de validaciÛn en modo VER, EDITAR o RESOLVER
  */
 window.openLaunchValidationEditor = function(meta, mode) {
     const modal = document.getElementById('edit-validation-modal');
@@ -3553,7 +3601,7 @@ window.openLaunchValidationEditor = function(meta, mode) {
     document.getElementById('edit-val-photos-input').value = '';
     
     // Setup Title y data
-    document.getElementById('edit-val-title').textContent = mode === 'resolve' ? 'Resolver Incidencia Lanzamiento' : (mode === 'edit' ? 'Editar Validaci√≥n' : 'Detalles del Lanzamiento');
+    document.getElementById('edit-val-title').textContent = mode === 'resolve' ? 'Resolver Incidencia Lanzamiento' : (mode === 'edit' ? 'Editar ValidaciÛn' : 'Detalles del Lanzamiento');
     document.getElementById('edit-val-id').value = meta.id || '';
     document.getElementById('edit-val-store').value = meta.tienda || '';
     document.getElementById('edit-val-mode').value = mode;
@@ -3572,11 +3620,11 @@ window.openLaunchValidationEditor = function(meta, mode) {
     const inputBlock = document.getElementById('edit-val-photos-input');
     const submitBtn = document.getElementById('edit-val-submit-btn');
     
-    // L√≥gica fotos actuales
+    // LÛgica fotos actuales
     if (meta.fotos) {
         const urls = meta.fotos.split(/[\n,]+/).map(u => u.trim()).filter(Boolean);
         if (urls.length > 0) {
-            currPhotos.innerHTML = `<p style="font-size:11px; margin:0 0 5px; font-weight:600; color:#666;">Fotograf√≠as Actuales:</p>`;
+            currPhotos.innerHTML = `<p style="font-size:11px; margin:0 0 5px; font-weight:600; color:#666;">FotografÌas Actuales:</p>`;
             const grid = document.createElement('div');
             grid.className = 'modal-photo-grid';
             grid.innerHTML = urls.map(u => {
@@ -3613,7 +3661,7 @@ window.closeEditValidationModal = function() {
 };
 
 /**
- * Sube nuevas fotos desde el modal de edici√≥n a Google Drive
+ * Sube nuevas fotos desde el modal de ediciÛn a Google Drive
  */
 window.handleEditValPhotoUpload = async function(input) {
     const files = input.files;
@@ -3663,7 +3711,7 @@ window.handleEditValPhotoUpload = async function(input) {
 };
 
 /**
- * Lanza el submit de edici√≥n hacia el backend
+ * Lanza el submit de ediciÛn hacia el backend
  */
 window.handleEditValidationSubmit = async function(e) {
     e.preventDefault();
@@ -3673,7 +3721,7 @@ window.handleEditValidationSubmit = async function(e) {
     const com = document.getElementById('edit-val-comentario').value;
     
     if (!id) {
-        alert("No se puede actualizar un registro sin ID v√°lido.");
+        alert("No se puede actualizar un registro sin ID v·lido.");
         return;
     }
 
@@ -3688,20 +3736,20 @@ window.handleEditValidationSubmit = async function(e) {
             comentario: com
         };
         
-        // Si es resoluci√≥n, forzamos estado a OK
+        // Si es resoluciÛn, forzamos estado a OK
         if (mode === 'resolve') {
             payload.instalacionOk = 'OK';
         }
         
-        // Si subi√≥ nuevas fotos, enviarlas. 
-        // (Unimos el buffer separado por saltos de l√≠nea)
+        // Si subiÛ nuevas fotos, enviarlas. 
+        // (Unimos el buffer separado por saltos de lÌnea)
         if (window.editValPhotosBuffer.length > 0) {
             payload.fotos = window.editValPhotosBuffer.join('\n');
         }
         
         const res = await callApi(payload);
         if (res && res.success) {
-            alert(mode === 'resolve' ? "¬°Incidencia resuelta! El estado ha pasado a Realizado." : "Validaci√≥n actualizada con √©xito.");
+            alert(mode === 'resolve' ? "°Incidencia resuelta! El estado ha pasado a Realizado." : "ValidaciÛn actualizada con Èxito.");
             window.closeEditValidationModal();
             // Recargar dashboard para ver cambios
             await loadDashboard();
@@ -3710,7 +3758,7 @@ window.handleEditValidationSubmit = async function(e) {
         }
     } catch (err) {
         console.error(err);
-        alert("Error de conexi√≥n.");
+        alert("Error de conexiÛn.");
     } finally {
         btn.disabled = false;
         btn.textContent = original;
@@ -3718,11 +3766,11 @@ window.handleEditValidationSubmit = async function(e) {
 };
 
 /**
- * Elimina validaci√≥n llamando al backend con confirmaci√≥n
+ * Elimina validaciÛn llamando al backend con confirmaciÛn
  */
 window.deleteLaunchValidationHandler = async function(id) {
     if (!id) return;
-    const conf = await window.showConfirm("¬øEliminar Validaci√≥n?", "¬øEst√°s seguro de que deseas eliminar este reporte permanentemente? Esta acci√≥n borrar√° la fila del Excel.", true);
+    const conf = await window.showConfirm("øEliminar ValidaciÛn?", "øEst·s seguro de que deseas eliminar este reporte permanentemente? Esta acciÛn borrar· la fila del Excel.", true);
     if (!conf) return;
     
     try {
@@ -3731,7 +3779,7 @@ window.deleteLaunchValidationHandler = async function(id) {
             id: id
         });
         if (res && res.success) {
-            alert("Reporte eliminado con √©xito.");
+            alert("Reporte eliminado con Èxito.");
             // Recargar vista para refrescar lista modal y stats
             await loadDashboard(); 
             // Cierra modal del historial para forzar la recarga visual de la parrilla si el usuario quiere reabrirlo
@@ -3742,7 +3790,7 @@ window.deleteLaunchValidationHandler = async function(id) {
         }
     } catch (e) {
         console.error(e);
-        alert("Error en comunicaci√≥n con el servidor.");
+        alert("Error en comunicaciÛn con el servidor.");
     }
 };
 
@@ -3862,7 +3910,7 @@ window.openDashboardModal = function(status) {
 function checkStatusChanges(reports) {
     if (!reports || reports.length === 0) return;
     
-    // Obtener cach√© previa de estados e historial de notificaciones
+    // Obtener cachÈ previa de estados e historial de notificaciones
     let prevStates = JSON.parse(localStorage.getItem('xiaomi_states_cache_' + ((APP_CONFIG.currentUser?.email || APP_CONFIG.currentUser?.usuario) || '').toLowerCase()) || '{}');
     let notifications = JSON.parse(localStorage.getItem('xiaomi_notifications_' + ((APP_CONFIG.currentUser?.email || APP_CONFIG.currentUser?.usuario) || '').toLowerCase()) || '[]');
     let isInitial = Object.keys(prevStates).length === 0;
@@ -3915,11 +3963,11 @@ function checkStatusChanges(reports) {
         }
     });
 
-    // Guardar la nueva cach√© de estados para la pr√≥xima comparativa
+    // Guardar la nueva cachÈ de estados para la prÛxima comparativa
     localStorage.setItem('xiaomi_states_cache_' + ((APP_CONFIG.currentUser?.email || APP_CONFIG.currentUser?.usuario) || '').toLowerCase(), JSON.stringify(newStates));
     
     if (foundChanges.length > 0) {
-        // Limitar hist√≥rico de notificaciones para no saturar (ej. √∫ltimas 50)
+        // Limitar histÛrico de notificaciones para no saturar (ej. ˙ltimas 50)
         notifications = notifications.slice(0, 50);
         localStorage.setItem('xiaomi_notifications_' + ((APP_CONFIG.currentUser?.email || APP_CONFIG.currentUser?.usuario) || '').toLowerCase(), JSON.stringify(notifications));
         
@@ -3939,14 +3987,14 @@ function triggerNotificationAlert(changes) {
     let plainMsg = "";
     if (changes.length === 1) {
         const c = changes[0];
-        msg = `El estado de <strong>"${c.tienda}"</strong> cambi√≥ de <span style="opacity:0.7;">${c.oldState}</span> a <strong>${c.newState}</strong>.`;
-        plainMsg = `El estado de "${c.tienda}" cambi√≥ de ${c.oldState} a ${c.newState}.`;
+        msg = `El estado de <strong>"${c.tienda}"</strong> cambiÛ de <span style="opacity:0.7;">${c.oldState}</span> a <strong>${c.newState}</strong>.`;
+        plainMsg = `El estado de "${c.tienda}" cambiÛ de ${c.oldState} a ${c.newState}.`;
     } else {
         msg = `Se han detectado <strong>${changes.length}</strong> actualizaciones en tus incidencias.`;
         plainMsg = `Se han detectado ${changes.length} actualizaciones en tus incidencias.`;
     }
 
-    // --- L√ìGICA DE NOTIFICACI√ìN NATIVA ---
+    // --- L”GICA DE NOTIFICACI”N NATIVA ---
     if ('Notification' in window && Notification.permission === 'granted') {
         try {
             new Notification('Xiaomi Visual', {
@@ -3954,7 +4002,7 @@ function triggerNotificationAlert(changes) {
                 icon: 'logo.png'
             });
         } catch(e) {
-            console.log("Error enviando notificaci√≥n nativa:", e);
+            console.log("Error enviando notificaciÛn nativa:", e);
         }
     }
 
@@ -3963,7 +4011,7 @@ function triggerNotificationAlert(changes) {
     toast.innerHTML = `
         <div class="toast-icon"><i class="fas fa-bell"></i></div>
         <div class="toast-content">
-            <div class="toast-title">AVISO DE CAMBIO üîî</div>
+            <div class="toast-title">AVISO DE CAMBIO ??</div>
             <div class="toast-text">${msg}</div>
         </div>
         <button class="toast-close" title="Cerrar"><i class="fas fa-times"></i></button>
@@ -3977,7 +4025,7 @@ function triggerNotificationAlert(changes) {
     toast.querySelector('.toast-close').onclick = closeToast;
     container.appendChild(toast);
 
-    // Auto-destrucci√≥n tras 6 segundos
+    // Auto-destrucciÛn tras 6 segundos
     setTimeout(closeToast, 6000);
 }
 
@@ -3986,14 +4034,14 @@ function updateNavBadge() {
     const mobileBadge = document.getElementById('msg-mobile-badge');
     if (!badge) return;
     
-    // 1. Mensajes de chat no le√≠dos de la base de datos
+    // 1. Mensajes de chat no leÌdos de la base de datos
     const currentUser = String((APP_CONFIG.currentUser?.email || APP_CONFIG.currentUser?.usuario) || '').toLowerCase();
     const unreadChatCount = (window.inboxMessages || []).filter(m => 
         String(m.destinatario || '').toLowerCase() === currentUser && 
-        String(m.leido || '').trim().toLowerCase() !== 'le√≠do'
+        String(m.leido || '').trim().toLowerCase() !== 'leÌdo'
     ).length;
     
-    // 2. Notificaciones del sistema no le√≠das de localStorage
+    // 2. Notificaciones del sistema no leÌdas de localStorage
     const systemNotifs = JSON.parse(localStorage.getItem('xiaomi_notifications_' + ((APP_CONFIG.currentUser?.email || APP_CONFIG.currentUser?.usuario) || '').toLowerCase()) || '[]');
     const unreadSystemCount = systemNotifs.filter(n => !n.read).length;
     
@@ -4065,25 +4113,25 @@ window.renderNotificationsView = function() {
                     <small style="color: #999; font-size: 11px;">${n.timestamp}</small>
                 </div>
                 <p style="font-size: 13px; color: #666; margin: 0;">
-                    La incidencia en <strong>${n.tienda}</strong> pas√≥ de <span style="text-decoration: line-through; opacity: 0.7;">${n.oldState}</span> a <strong>${n.newState}</strong>.
+                    La incidencia en <strong>${n.tienda}</strong> pasÛ de <span style="text-decoration: line-through; opacity: 0.7;">${n.oldState}</span> a <strong>${n.newState}</strong>.
                 </p>
-                <small style="display:block; margin-top: 5px; color: var(--mi-gray-dark); font-size:11px;">Categor√≠a: ${n.tipo}</small>
+                <small style="display:block; margin-top: 5px; color: var(--mi-gray-dark); font-size:11px;">CategorÌa: ${n.tipo}</small>
                 
                 <!-- Acciones del mensaje enlazadas directamente -->
                 <div style="display: flex; gap: 8px; margin-top: 12px;">
                     <button class="action-go-link" style="background: var(--mi-orange); color:white; border:none; padding: 6px 12px; border-radius: 6px; font-size: 11px; font-weight: 600; cursor:pointer; display:flex; align-items:center; gap:5px; transition: background 0.2s;">
-                        <i class="fas fa-external-link-alt"></i> Ir a la Secci√≥n
+                        <i class="fas fa-external-link-alt"></i> Ir a la SecciÛn
                     </button>
                     ${!n.read ? `
                     <button class="action-mark-read" style="background: #f5f5f5; color:var(--mi-text-dark); border: 1px solid var(--mi-border); padding: 6px 12px; border-radius: 6px; font-size: 11px; font-weight: 600; cursor:pointer; display:flex; align-items:center; gap:5px; transition: all 0.2s;">
-                        <i class="fas fa-check"></i> Marcar como le√≠do
+                        <i class="fas fa-check"></i> Marcar como leÌdo
                     </button>
                     ` : ''}
                 </div>
             </div>
         `;
 
-        // Listener: Ir a la Secci√≥n (Redirecci√≥n con deep-linking)
+        // Listener: Ir a la SecciÛn (RedirecciÛn con deep-linking)
         const btnGo = item.querySelector('.action-go-link');
         if (btnGo) {
             btnGo.onclick = () => {
@@ -4101,7 +4149,7 @@ window.renderNotificationsView = function() {
                         window.showReportDetails(rep);
                     }, 300);
 
-                    // Auto-marcar como le√≠do al navegar
+                    // Auto-marcar como leÌdo al navegar
                     if (!n.read) {
                         window.markSingleNotificationRead(n.id);
                         n.read = true;
@@ -4110,12 +4158,12 @@ window.renderNotificationsView = function() {
                         if (btnRead) btnRead.remove();
                     }
                 } else {
-                    alert("El reporte original ya no se encuentra disponible (podr√≠a haber sido modificado o borrado).");
+                    alert("El reporte original ya no se encuentra disponible (podrÌa haber sido modificado o borrado).");
                 }
             };
         }
 
-        // Listener: Marcar Le√≠do individualmente
+        // Listener: Marcar LeÌdo individualmente
         const btnRead = item.querySelector('.action-mark-read');
         if (btnRead) {
             btnRead.onclick = () => {
@@ -4143,7 +4191,7 @@ setTimeout(updateNavBadge, 1000);
 
 
 // ==============================================================
-// --- M√ìDULO DE MENSAJER√çA INTERNA (ANTIGRAVITY PREMIUM) ---
+// --- M”DULO DE MENSAJERÕA INTERNA (ANTIGRAVITY PREMIUM) ---
 // ==============================================================
 
 window.inboxMessages = [];
@@ -4171,8 +4219,8 @@ window.loadMessagingUsers = async function() {
             const userRole = String(APP_CONFIG.currentUser?.rol || '').trim().toUpperCase();
             const isCurrentUserAdmin = userRole === 'ADMIN' || userRole === 'ADMINISTRADOR';
             
-            // Si el usuario actual es Admin, carga a los usuarios Est√°ndar.
-            // Si el usuario actual es Est√°ndar, carga a los Admins.
+            // Si el usuario actual es Admin, carga a los usuarios Est·ndar.
+            // Si el usuario actual es Est·ndar, carga a los Admins.
             const filteredUsers = res.users.filter(u => {
                 const targetIsAdmin = u.rol === 'ADMIN' || u.rol === 'ADMINISTRADOR';
                 if (isCurrentUserAdmin) {
@@ -4188,7 +4236,7 @@ window.loadMessagingUsers = async function() {
             filteredUsers.forEach(u => {
                 const opt = document.createElement('option');
                 opt.value = (u.email || u.usuario);
-                opt.textContent = `${(u.email || u.usuario)} (${isCurrentUserAdmin ? 'Est√°ndar' : 'Administrador'})`;
+                opt.textContent = `${(u.email || u.usuario)} (${isCurrentUserAdmin ? 'Est·ndar' : 'Administrador'})`;
                 select.appendChild(opt);
             });
             
@@ -4201,7 +4249,7 @@ window.loadMessagingUsers = async function() {
             select.innerHTML = `<option value="" disabled selected>Error: ${errReason}</option>`;
         }
     } catch (err) {
-        console.error("Excepci√≥n de carga de contactos:", err);
+        console.error("ExcepciÛn de carga de contactos:", err);
         select.innerHTML = `<option value="" disabled selected>Error de red: ${err.message || err}</option>`;
     }
 };
@@ -4230,17 +4278,17 @@ window.handleSendMessage = async function(e) {
         });
         
         if (res && res.success) {
-            alert("¬°Mensaje enviado con √©xito!");
+            alert("°Mensaje enviado con Èxito!");
             textInput.value = '';
             window.updateCharCounter(textInput);
-            // Recargar bandeja autom√°ticamente
+            // Recargar bandeja autom·ticamente
             await window.loadUserInbox();
         } else {
             alert("Error al enviar mensaje: " + (res.error || 'Error desconocido'));
         }
     } catch (err) {
         console.error(err);
-        alert("Error al comunicar con el servidor de mensajer√≠a.");
+        alert("Error al comunicar con el servidor de mensajerÌa.");
     } finally {
         submitBtn.disabled = false;
         submitBtn.innerHTML = originalContent;
@@ -4264,19 +4312,19 @@ window.loadUserInbox = async function() {
         
         if (res && res.success) {
             window.inboxMessages = res.messages || [];
-            window.lastInboxResponse = res; // Guardamos metadatos de depuraci√≥n para el panel visual
+            window.lastInboxResponse = res; // Guardamos metadatos de depuraciÛn para el panel visual
             window.renderInboxList(window.activeInboxFilter);
             updateNavBadge();
         } else {
             if (list) list.innerHTML = '<p style="color:red; text-align:center; font-size:12px;">Error cargando bandeja.</p>';
         }
     } catch (err) {
-        console.error("Error cr√≠tico en inbox loader:", err);
+        console.error("Error crÌtico en inbox loader:", err);
         if (list) list.innerHTML = `
             <div style="text-align:center; padding:20px; color:#cf1322; font-size:12px; background:#fff1f0; border:1px solid #ffa39e; border-radius:8px; margin:10px;">
                 <i class="fas fa-exclamation-circle" style="font-size:20px; margin-bottom:8px;"></i><br>
-                <strong>Error de Conexi√≥n:</strong><br>${err.message || err.toString()}<br>
-                <small style="color:#888; margin-top:5px; display:block;">Por favor reporta esta traza t√©cnica.</small>
+                <strong>Error de ConexiÛn:</strong><br>${err.message || err.toString()}<br>
+                <small style="color:#888; margin-top:5px; display:block;">Por favor reporta esta traza tÈcnica.</small>
             </div>
         `;
         if (list) list.style.display = 'block';
@@ -4289,7 +4337,7 @@ window.loadUserInbox = async function() {
 window.filterInbox = function(filterType, btn) {
     window.activeInboxFilter = filterType;
     
-    // Alternar estilos visuales del selector p√≠ldora
+    // Alternar estilos visuales del selector pÌldora
     document.querySelectorAll('.inbox-filter-pill').forEach(p => {
         p.style.background = 'transparent';
         p.style.color = '#666';
@@ -4310,7 +4358,7 @@ window.renderInboxList = function(filterType) {
     
     const currentUser = String((APP_CONFIG.currentUser.email || APP_CONFIG.currentUser.usuario)).toLowerCase();
     
-    // --- CONSTRUCCI√ìN DEL FEED AGREGADO Y CRONOL√ìGICO ---
+    // --- CONSTRUCCI”N DEL FEED AGREGADO Y CRONOL”GICO ---
     let combinedFeed = [];
     
     if (filterType === 'recibidos') {
@@ -4321,7 +4369,7 @@ window.renderInboxList = function(filterType) {
                 id: m.id,
                 time: new Date(m.fecha).getTime() || 0,
                 formattedDate: isNaN(new Date(m.fecha)) ? 'Fecha Desconocida' : new Date(m.fecha).toLocaleDateString('es-ES', {day:'2-digit', month:'2-digit', year:'numeric', hour:'2-digit', minute:'2-digit'}),
-                isRead: m.leido === 'Le√≠do',
+                isRead: m.leido === 'LeÌdo',
                 type: 'chat',
                 sender: m.remitente,
                 content: m.mensaje,
@@ -4347,12 +4395,12 @@ window.renderInboxList = function(filterType) {
                 };
             });
             
-        // Mezclar ambos arreglos y ordenar cronol√≥gicamente de m√°s reciente a m√°s antiguo
+        // Mezclar ambos arreglos y ordenar cronolÛgicamente de m·s reciente a m·s antiguo
         combinedFeed = [...chatMsgs, ...sysNotifs];
         combinedFeed.sort((a, b) => b.time - a.time);
         
     } else {
-        // Para la pesta√±a Enviados, solo chat saliente del usuario activo
+        // Para la pestaÒa Enviados, solo chat saliente del usuario activo
         combinedFeed = (window.inboxMessages || [])
             .filter(m => String(m.remitente || '').trim().toLowerCase() === currentUser.trim())
             .map(m => ({
@@ -4369,7 +4417,7 @@ window.renderInboxList = function(filterType) {
         combinedFeed.sort((a, b) => b.time - a.time);
     }
     
-    // Manejo de vista vac√≠a (Producci√≥n)
+    // Manejo de vista vacÌa (ProducciÛn)
     if (combinedFeed.length === 0) {
         list.innerHTML = '';
         if (fallback) {
@@ -4383,7 +4431,7 @@ window.renderInboxList = function(filterType) {
     }
     if (fallback) fallback.style.display = 'none';
     
-    // --- RENDERIZADO DIN√ÅMICO UNIFICADO ---
+    // --- RENDERIZADO DIN¡MICO UNIFICADO ---
     list.innerHTML = combinedFeed.map(item => {
         const peerLabel = filterType === 'recibidos' ? 'De:' : 'Para:';
         
@@ -4392,7 +4440,7 @@ window.renderInboxList = function(filterType) {
             const borderLeftColor = filterType === 'recibidos' ? (item.isRead ? '#ddd' : 'var(--mi-orange)') : '#1890ff';
             const badgeBg = filterType === 'recibidos' ? (item.isRead ? '#f0f0f0' : '#fff2e8') : '#e6f7ff';
             const badgeTextColor = filterType === 'recibidos' ? (item.isRead ? '#8c8c8c' : '#fa541c') : '#1890ff';
-            const badgeText = filterType === 'recibidos' ? (item.isRead ? 'Le√≠do' : 'Nuevo Chat') : 'Enviado';
+            const badgeText = filterType === 'recibidos' ? (item.isRead ? 'LeÌdo' : 'Nuevo Chat') : 'Enviado';
             
             const markReadTrigger = (filterType === 'recibidos' && !item.isRead) ? `onclick="window.markInboxMessageRead('${item.id}', this)"` : '';
             const cursorStyle = (filterType === 'recibidos' && !item.isRead) ? 'cursor: pointer;' : '';
@@ -4413,7 +4461,7 @@ window.renderInboxList = function(filterType) {
             `;
         }
         
-        // CASO B: ALERTAS DEL SISTEMA AUTOM√ÅTICAS
+        // CASO B: ALERTAS DEL SISTEMA AUTOM¡TICAS
         if (item.type === 'sistema') {
             const n = item.original;
             let iconClass = 'fa-exchange-alt';
@@ -4440,18 +4488,18 @@ window.renderInboxList = function(filterType) {
                         </div>
                         <strong style="font-size:13px; color:var(--mi-black); margin-top:2px;">Cambio de Estado: ${n.newState}</strong>
                         <p style="margin:2px 0; font-size:12px; color:#555; line-height:1.4;">
-                            La incidencia en <strong>${n.tienda}</strong> pas√≥ de <span style="text-decoration: line-through; opacity: 0.7;">${n.oldState}</span> a <strong>${n.newState}</strong>.
+                            La incidencia en <strong>${n.tienda}</strong> pasÛ de <span style="text-decoration: line-through; opacity: 0.7;">${n.oldState}</span> a <strong>${n.newState}</strong>.
                         </p>
-                        <small style="display:block; color:var(--mi-gray-dark); font-size:10px; margin-bottom: 4px;">Categor√≠a: ${n.tipo}</small>
+                        <small style="display:block; color:var(--mi-gray-dark); font-size:10px; margin-bottom: 4px;">CategorÌa: ${n.tipo}</small>
                         
                         <div style="display:flex; justify-content:space-between; align-items:center; margin-top:8px;">
                             <div style="display:flex; gap:8px;">
                                 <button onclick="window.handleSystemGo('${n.tipo}', '${n.lanzamientoId || ''}', '${n.tienda}')" style="background:var(--mi-orange); color:white; border:none; padding:6px 12px; border-radius:4px; font-size:10px; font-weight:600; cursor:pointer; display:flex; align-items:center; gap:4px;">
-                                    <i class="fas fa-external-link-alt"></i> Ir a Secci√≥n
+                                    <i class="fas fa-external-link-alt"></i> Ir a SecciÛn
                                 </button>
                                 ${!item.isRead ? `
                                 <button onclick="window.handleSystemMarkRead('${n.id}')" style="background:#ffffff; color:#555; border:1px solid #ddd; padding:6px 12px; border-radius:4px; font-size:10px; font-weight:600; cursor:pointer; display:flex; align-items:center; gap:4px;">
-                                    <i class="fas fa-check"></i> Le√≠do
+                                    <i class="fas fa-check"></i> LeÌdo
                                 </button>
                                 ` : ''}
                             </div>
@@ -4465,7 +4513,7 @@ window.renderInboxList = function(filterType) {
 };
 
 window.markInboxMessageRead = async function(msgId, cardEl) {
-    // Optimistic UI: marcado instant√°neo sin lag visual
+    // Optimistic UI: marcado instant·neo sin lag visual
     if (cardEl) {
         cardEl.style.borderColor = '#f0f0f0';
         cardEl.style.borderLeftColor = '#ddd';
@@ -4474,15 +4522,15 @@ window.markInboxMessageRead = async function(msgId, cardEl) {
         if (badge) {
             badge.style.background = '#f0f0f0';
             badge.style.color = '#8c8c8c';
-            badge.textContent = 'Le√≠do';
+            badge.textContent = 'LeÌdo';
         }
         cardEl.removeAttribute('onclick');
     }
     
     const localMsg = window.inboxMessages.find(m => m.id === msgId);
-    if (localMsg) localMsg.leido = 'Le√≠do';
+    if (localMsg) localMsg.leido = 'LeÌdo';
     
-    // Actualizar el contador visual de la barra de navegaci√≥n instant√°neamente
+    // Actualizar el contador visual de la barra de navegaciÛn instant·neamente
     updateNavBadge();
     
     try {
@@ -4491,7 +4539,7 @@ window.markInboxMessageRead = async function(msgId, cardEl) {
             messageId: msgId
         });
     } catch (err) {
-        console.error("Fallo al persistir le√≠do en servidor:", err);
+        console.error("Fallo al persistir leÌdo en servidor:", err);
     }
 };
 
@@ -4522,7 +4570,7 @@ window.handleSystemMarkRead = function(id) {
         notifications[idx].read = true;
         localStorage.setItem('xiaomi_notifications_' + ((APP_CONFIG.currentUser?.email || APP_CONFIG.currentUser?.usuario) || '').toLowerCase(), JSON.stringify(notifications));
     }
-    // Recalcular y refrescar UI instant√°neamente
+    // Recalcular y refrescar UI instant·neamente
     updateNavBadge();
     window.renderInboxList('recibidos');
 };
@@ -4559,7 +4607,7 @@ window.renderDashboardLaunches = async function() {
         const statuses = APP_CONFIG.launchStatuses || {};
         const myEmail = String((APP_CONFIG.currentUser?.email || APP_CONFIG.currentUser?.usuario) || '').trim().toLowerCase();
         
-        // Llenar selectores si est√°n vac√≠os (solo una vez)
+        // Llenar selectores si est·n vacÌos (solo una vez)
         if (filterCuenta && filterCuenta.options.length <= 1) {
             const cuentasSet = new Set();
             const usuariosSet = new Set();
@@ -4737,5 +4785,8 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 });
+
+
+
 
 
