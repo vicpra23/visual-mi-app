@@ -497,7 +497,7 @@ function handleSubmitReport(ss, data) {
     // Mantenemos el ID original si estamos editando, sino generamos uno nuevo
     const finalId = updateId || generateUUID(isFurniture ? 'REP_M' : 'REP_D');
     
-    const formulaTiempo = '=INT(TODAY() - INDIRECT("B"&ROW()))';
+    const formulaTiempo = '';
 
     if (isFurniture) {
       const sheet = getSheetDefensive(ss, 'Reporte mobiliario');
@@ -669,7 +669,7 @@ function handleSubmitLaunchChecklist(ss, data) {
     
     // 2. Fila para Incidencias Lanzamientos (13 columnas):
     // ID (0), Fecha (1), Usuario (2), Cuenta (3), Tienda (4), Código RMS (5), Ruta Incidencia (6), Comentario (7), Estado (8), Tiempo (9), Fotos (10), Lanzamiento (12)
-    const formulaTiempo = '=INT(TODAY() - INDIRECT("B"&ROW()))';
+    const formulaTiempo = '';
 
     const incRow = [
       generateUUID('INC'),                      

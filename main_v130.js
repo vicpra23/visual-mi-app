@@ -3,7 +3,7 @@
  */
 
 const APP_CONFIG = {
-    scriptUrl: 'https://script.google.com/macros/s/AKfycbxPQISs9fAs0jPaQx2qSbDVmxuNRpHh-arhKZcJ1TtEdOD34YwNHFtVKGi2zN3-hJIbJg/exec',
+    scriptUrl: 'https://script.google.com/macros/s/AKfycby17GE1gIHJHIQ_9YQ6Rt8OgQyu3bHnQJ3bQ4lktCzreUY6onl4tSEzuw4gh4jyAdc6gw/exec',
     currentUser: null,
     currentReport: {
         category: '',
@@ -643,11 +643,9 @@ function renderDashboardTable(reports) {
         // Fix UX: Priorizar valor de tiempo de Excel, solo calcular dinámico si está vacío
         let rawTiempo = r.tiempo;
         let displayTiempo = (rawTiempo !== undefined && rawTiempo !== null && rawTiempo !== '') ? String(rawTiempo).trim() : '';
-        const estTiempo = String(r.estado || '').trim().toLowerCase();
-        const isResolvedTiempo = estTiempo.includes('solucionado') || estTiempo.includes('cerrado');
-
+        const isResolvedTiempo = String(r.estado).trim().toLowerCase() === 'solucionado' || String(r.estado).trim().toLowerCase() === 'cerrada';
+        
         if (displayTiempo !== '') {
-            // Si viene un '0' desde Excel y NO está solucionado, es un fallo de fórmula, así que lo recalculamos abajo.
             // Si está solucionado y el Excel manda '0' o un número fijo, lo respetamos para que no siga sumando.
             if (displayTiempo === '0' && !isResolvedTiempo) {
                 displayTiempo = ''; // Forzamos recálculo
@@ -1919,12 +1917,12 @@ async function loadUsers() {
             return;
         }
     } catch (err) {
-        console.error('?? Bloqueo de red al cargar usuarios. Activando modo Rescate Local:', err);
+        console.error('⚠️ Bloqueo de red al cargar usuarios. Activando modo Rescate Local:', err);
     }
 
     // 3. ACTIVACIÓN DE EMERGENCIA
     if (!select.options.length || select.value === "") {
-        console.warn("?? Activando lista de usuarios de emergencia hardcoded por fallo de red.");
+        console.warn("🚨 Activando lista de usuarios de emergencia hardcoded por fallo de red.");
         renderUsersToDropdown(HARDCODED_FALLBACK, select);
         // Añadimos opción visual de que está en modo redundante
         const opt = document.createElement('option');
@@ -2715,7 +2713,7 @@ async function callApi(data) {
             queryParams.push('_nocache=' + Date.now());
             const fullUrl = queryUrl + queryParams.join('&');
 
-            console.log('?? Probando Fetch Nativo ->', data.action);
+            console.log('📡 Probando Fetch Nativo ->', data.action);
             const controller = new AbortController();
             const timeoutId = setTimeout(() => controller.abort(), 45000); 
             
@@ -2735,7 +2733,7 @@ async function callApi(data) {
             }
             throw new Error('Formato de respuesta desconocido');
         } catch (fetchErr) {
-            console.warn('?? Fetch nativo fallido (posible file://). Iniciando Rescate JSONP...', fetchErr.message);
+            console.warn('⚠️ Fetch nativo fallido (posible file://). Iniciando Rescate JSONP...', fetchErr.message);
             
             // MODO RESCATE: JSONP clásico (El único que a veces funciona desde file:// local)
             return new Promise((resolve, reject) => {
@@ -2757,7 +2755,7 @@ async function callApi(data) {
 
                 script.onerror = (e) => {
                     cleanup();
-                    console.error("?? ERROR CRÍTICO ABSOLUTO (Fetch + JSONP Fallidos):", e);
+                    console.error("⛔ ERROR CRÍTICO ABSOLUTO (Fetch + JSONP Fallidos):", e);
                     reject(new Error('Bloqueo total de red local'));
                 };
 
@@ -3214,13 +3212,13 @@ window.loadLaunchStores = async function() {
                     `;
                 }
             } else if (status === 'Abierta') {
-                badgeHtml = '<span class="status-badge" style="background: #fff1f0; color: #f5222d; padding: 4px 8px; border-radius: 4px; font-size: 11px; font-weight: 600; border: 1px solid #ffa39e;"><span class="badge-icon"><i class="fas fa-exclamation-triangle" style="color: #f5222d; font-size: 18px;"></i></span><span class="badge-text">?? Abierta</span></span>';
+                badgeHtml = '<span class="status-badge" style="background: #fff1f0; color: #f5222d; padding: 4px 8px; border-radius: 4px; font-size: 11px; font-weight: 600; border: 1px solid #ffa39e;"><span class="badge-icon"><i class="fas fa-exclamation-triangle" style="color: #f5222d; font-size: 18px;"></i></span><span class="badge-text">🔴 Abierta</span></span>';
             } else if (status === 'Revisada') {
-                badgeHtml = '<span class="status-badge" style="background: #fff7e6; color: #fa8c16; padding: 4px 8px; border-radius: 4px; font-size: 11px; font-weight: 600; border: 1px solid #ffd591;"><span class="badge-icon"><i class="fas fa-eye" style="color: #fa8c16; font-size: 18px;"></i></span><span class="badge-text">?? Revisada</span></span>';
+                badgeHtml = '<span class="status-badge" style="background: #fff7e6; color: #fa8c16; padding: 4px 8px; border-radius: 4px; font-size: 11px; font-weight: 600; border: 1px solid #ffd591;"><span class="badge-icon"><i class="fas fa-eye" style="color: #fa8c16; font-size: 18px;"></i></span><span class="badge-text">🟠 Revisada</span></span>';
             } else if (status === 'Reportada') {
-                badgeHtml = '<span class="status-badge" style="background: #feffe6; color: #d4b106; padding: 4px 8px; border-radius: 4px; font-size: 11px; font-weight: 600; border: 1px solid #ffffb8;"><span class="badge-icon"><i class="fas fa-exclamation" style="color: #d4b106; font-size: 18px;"></i></span><span class="badge-text">?? Reportada</span></span>';
+                badgeHtml = '<span class="status-badge" style="background: #feffe6; color: #d4b106; padding: 4px 8px; border-radius: 4px; font-size: 11px; font-weight: 600; border: 1px solid #ffffb8;"><span class="badge-icon"><i class="fas fa-exclamation" style="color: #d4b106; font-size: 18px;"></i></span><span class="badge-text">🟡 Reportada</span></span>';
             } else if (status === 'Cambiada') {
-                badgeHtml = '<span class="status-badge" style="background: #f6ffed; color: #52c41a; padding: 4px 8px; border-radius: 4px; font-size: 11px; font-weight: 600; border: 1px solid #b7eb8f;"><span class="badge-icon"><i class="fas fa-sync-alt" style="color: #52c41a; font-size: 18px;"></i></span><span class="badge-text">?? Cambiada</span></span>';
+                badgeHtml = '<span class="status-badge" style="background: #f6ffed; color: #52c41a; padding: 4px 8px; border-radius: 4px; font-size: 11px; font-weight: 600; border: 1px solid #b7eb8f;"><span class="badge-icon"><i class="fas fa-sync-alt" style="color: #52c41a; font-size: 18px;"></i></span><span class="badge-text">🟢 Cambiada</span></span>';
             } else {
                 badgeHtml = '<span class="status-badge" style="background: #fff1f0; color: #f5222d; padding: 4px 8px; border-radius: 4px; font-size: 11px; font-weight: 600; border: 1px solid #ffa39e;"><span class="badge-icon"><i class="fas fa-exclamation-circle" style="color: #f5222d; font-size: 18px;"></i></span><span class="badge-text">Pendiente</span></span>';
             }
@@ -4023,7 +4021,7 @@ function triggerNotificationAlert(changes) {
     toast.innerHTML = `
         <div class="toast-icon"><i class="fas fa-bell"></i></div>
         <div class="toast-content">
-            <div class="toast-title">AVISO DE CAMBIO ??</div>
+            <div class="toast-title">AVISO DE CAMBIO 🔄</div>
             <div class="toast-text">${msg}</div>
         </div>
         <button class="toast-close" title="Cerrar"><i class="fas fa-times"></i></button>
