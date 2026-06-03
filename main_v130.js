@@ -3569,6 +3569,18 @@ window.submitLaunch = async function(event) {
 // --- Form Handling ---
 function setupForms() {
     loginForm.addEventListener('submit', handleLogin);
+    
+    // Toggle Password Visibility
+    const togglePassword = document.getElementById('toggle-password');
+    const passwordInput = document.getElementById('login-password');
+    if (togglePassword && passwordInput) {
+        togglePassword.addEventListener('click', function () {
+            const type = passwordInput.getAttribute('type') === 'password' ? 'text' : 'password';
+            passwordInput.setAttribute('type', type);
+            this.classList.toggle('fa-eye-slash');
+            this.classList.toggle('fa-eye');
+        });
+    }
 }
 
 /* ====================================================
@@ -4495,11 +4507,11 @@ window.renderInboxList = function(filterType) {
                         <div style="display:flex; justify-content:space-between; align-items:center; margin-top:8px;">
                             <div style="display:flex; gap:8px;">
                                 <button onclick="window.handleSystemGo('${n.tipo}', '${n.lanzamientoId || ''}', '${n.tienda}')" style="background:var(--mi-orange); color:white; border:none; padding:6px 12px; border-radius:4px; font-size:10px; font-weight:600; cursor:pointer; display:flex; align-items:center; gap:4px;">
-                                    <i class="fas fa-external-link-alt"></i> Ir a Sección
+                                    <i class="fas fa-external-link-alt"></i> Ir a la Sección
                                 </button>
                                 ${!item.isRead ? `
                                 <button onclick="window.handleSystemMarkRead('${n.id}')" style="background:#ffffff; color:#555; border:1px solid #ddd; padding:6px 12px; border-radius:4px; font-size:10px; font-weight:600; cursor:pointer; display:flex; align-items:center; gap:4px;">
-                                    <i class="fas fa-check"></i> Leído
+                                    <i class="fas fa-check"></i> Marcar como leído
                                 </button>
                                 ` : ''}
                             </div>

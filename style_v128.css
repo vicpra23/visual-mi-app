@@ -82,7 +82,7 @@ h1, h2, h3, h4, .dashboard-welcome-title {
 .login-card {
     background: var(--mi-white);
     padding: 40px;
-    border-radius: var(--mi-radius-lg);
+    border-radius: 32px;
     box-shadow: 0 10px 40px rgba(0,0,0,0.04);
     width: 100%;
     max-width: 400px;
@@ -110,13 +110,24 @@ h1, h2, h3, h4, .dashboard-welcome-title {
 
 .login-card input, .login-card select {
     width: 100%;
-    padding: 12px 16px;
+    padding: 12px 20px;
     margin-bottom: 16px;
     border: 1px solid var(--mi-border);
-    border-radius: var(--mi-radius);
+    border-radius: 24px;
     font-size: 15px;
     background: var(--mi-white);
     transition: var(--transition);
+}
+
+.login-card select {
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    appearance: none;
+    background-image: url('data:image/svg+xml;utf8,<svg fill="%23999" height="24" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg"><path d="M7 10l5 5 5-5z"/></svg>');
+    background-repeat: no-repeat;
+    background-position: right 16px center;
+    padding-right: 40px;
+    cursor: pointer;
 }
 
 .login-card input:focus, .login-card select:focus {
@@ -131,7 +142,7 @@ h1, h2, h3, h4, .dashboard-welcome-title {
     background-color: var(--mi-orange);
     color: var(--mi-white);
     border: none;
-    border-radius: var(--mi-radius);
+    border-radius: 24px;
     font-size: 16px;
     font-weight: 500;
     cursor: pointer;
@@ -632,20 +643,31 @@ td {
 
 .form-control, select, input, textarea {
     width: 100%;
-    padding: 6px 4px;
-    border: none;
-    border-bottom: 1px solid var(--mi-border);
-    border-radius: 0;
+    padding: 10px 16px;
+    border: 1px solid var(--mi-border);
+    border-radius: 12px;
     font-size: 13px;
     font-family: inherit;
     background: transparent;
     transition: var(--transition);
 }
 
-.form-control:focus, select:focus, input:focus {
-    border-bottom: 2px solid var(--mi-orange);
+select {
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    appearance: none;
+    background-image: url('data:image/svg+xml;utf8,<svg fill="%23999" height="24" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg"><path d="M7 10l5 5 5-5z"/></svg>');
+    background-repeat: no-repeat;
+    background-position: right 12px center;
+    padding-right: 32px;
+    cursor: pointer;
+}
+
+.form-control:focus, select:focus, input:focus, textarea:focus {
+    border-color: var(--mi-orange);
     outline: none;
     background: transparent;
+    box-shadow: 0 0 0 2px rgba(255, 103, 0, 0.1);
 }
 
 textarea {
