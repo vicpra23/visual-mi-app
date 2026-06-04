@@ -2161,60 +2161,66 @@ function selectLevel(type, level, value) {
         }
     });
 
-    // --- EXCEPCIÓN: Flujo de Dispositivos en Nivel 3 ---
-    if (type === 'device' && level === 3) {
-        // Acabamos de pulsar Subcategoría. Ahora DEBEMOS abrir el Model Box filtrado por AMBOS.
-        // PROTECCIÓN CRÍTICA: Impedir borrado automático durante la precarga de edición!
-        if (!window.isAutoloadingReport) {
+    // --- EXCEPCIÓN: Flujo de Dispositivos en Nivel 3 y Nivel 4 ---
+    if (type === 'device' && (level === 3 || level === 4)) {
+        // En Nivel 3 (Subcategoría), limpiamos la selección actual
+        if (level === 3 && !window.isAutoloadingReport) {
             APP_CONFIG.currentSelectedDevices = [];
+            renderSelectedDevices();
         }
-        renderSelectedDevices();
         
         const dropdown = document.getElementById('device-selector-dropdown');
         dropdown.innerHTML = '<option value="">Seleccione modelo...</option>';
         
         const tipologyChosen = String(APP_CONFIG.currentReport.path[1] || '').trim().toUpperCase();
-        const subcategoryChosen = String(value || '').trim().toUpperCase();
+        const subcategoryChosen = String(APP_CONFIG.currentReport.path[2] || '').trim().toUpperCase();
+        const motivoChosen = String(APP_CONFIG.currentReport.path[3] || '').trim().toUpperCase();
         
         // CONTROL DINÁMICO: Para OTROS, mostramos el Input de escritura libre
         const customInput = document.getElementById('device-selector-custom');
         if (subcategoryChosen === 'OTROS') {
             dropdown.classList.add('hidden');
             customInput.classList.remove('hidden');
-            customInput.value = '';
+            if (level === 3) customInput.value = '';
         } else {
             dropdown.classList.remove('hidden');
             customInput.classList.add('hidden');
-            customInput.value = '';
+            if (level === 3) customInput.value = '';
         }
         
         const filtered = APP_CONFIG.deviceCatalog.filter(d => {
             const itemTip = String(d.col0 || d.Tipologia || d['Tipologia'] || '').trim().toUpperCase();
-            const tipologyMatch = (itemTip === tipologyChosen);
+            
+            // Flexibilidad: si en excel pone "LDU / DUMMY", matchTipology debe aceptar tanto LDU como DUMMY
+            let tipologyMatch = (itemTip === tipologyChosen);
+            if (!tipologyMatch && itemTip.includes(tipologyChosen)) {
+                tipologyMatch = true;
+            }
+            
             if (!tipologyMatch) return false;
+            
+            const searchPayload = normalizeString(d.col1 || d.Subcategoria || d.Subcategoria || '');
             
             if (tipologyChosen === 'POSM') {
                 const searchKey = normalizeString(subcategoryChosen);
                 if (!searchKey) return true;
-                
-                const searchPayload = normalizeString(d.col1 || d.Subcategoria || d.Subcategoria || '');
-                
-                // PROTECCIÓN LUMINOSO: Comparar estrictamente (ya normalizado) para no mezclarse con MINILUMINOSO
-                if (searchKey === 'LUMINOSO') {
-                    return searchPayload === 'LUMINOSO';
-                }
-                
-                // FLEXIBILIDAD RESTO (A4, Ficha Producto, etc): Ahora con normalizeString quita acentos y funciona SIEMPRE!
+                if (searchKey === 'LUMINOSO') return searchPayload === 'LUMINOSO';
                 return searchPayload.includes(searchKey);
+            } else {
+                // LDU y DUMMY
+                if (motivoChosen === 'ALARMADO') {
+                    // Si el Motivo es Alarmado, SOLO mostrar dispositivos que tengan ALARMADO en el excel
+                    return searchPayload === 'ALARMADO';
+                } else {
+                    // Si el Motivo NO es Alarmado, NO mostrar los alarmados en el listado normal
+                    return searchPayload !== 'ALARMADO';
+                }
             }
-            
-            return tipologyMatch;
         });
         
         filtered.forEach(d => {
             // User confirma: Coger de la Columna C (col2) el modelo final para todos.
             const model = String(d.col2 || d.Modelo || '').trim();
-            
             const code = d['Código Dispositivo'] || d.codigo || d.col3 || ''; 
             const repType = d['TIPO REPORTE'] || d['Tipo Reporte'] || d.col4 || d.col3 || '';
             
@@ -2228,19 +2234,18 @@ function selectLevel(type, level, value) {
             }
         });
         
-        const box = document.getElementById('device-models-box');
-        box.classList.remove('hidden');
-        
-        // REVELADO CONTINUO: El usuario quiere que salga toda la información del reporte de una sola vez
-        // Habilitamos el siguiente nivel ("Motivo") instantáneamente sin forzar clic intermedio
-        const nextBox = document.getElementById('device-l4');
-        if (nextBox) nextBox.classList.remove('hidden');
-        
-        const finalBox = document.getElementById('final-level-device');
-        if (finalBox) finalBox.classList.remove('hidden');
-        
-        box.scrollIntoView({ behavior: 'smooth', block: 'center' });
-        // Ya no hacemos RETURN; dejamos que fluya naturalmente
+        if (level === 3) {
+            const box = document.getElementById('device-models-box');
+            box.classList.remove('hidden');
+            
+            const nextBox = document.getElementById('device-l4');
+            if (nextBox) nextBox.classList.remove('hidden');
+            
+            const finalBox = document.getElementById('final-level-device');
+            if (finalBox) finalBox.classList.remove('hidden');
+            
+            box.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
     }
     
     // Show next level or final form
