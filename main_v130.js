@@ -3,7 +3,7 @@
  */
 
 const APP_CONFIG = {
-    scriptUrl: 'https://script.google.com/macros/s/AKfycby17GE1gIHJHIQ_9YQ6Rt8OgQyu3bHnQJ3bQ4lktCzreUY6onl4tSEzuw4gh4jyAdc6gw/exec',
+    scriptUrl: 'https://script.google.com/macros/s/AKfycbw3Ro4iXXtlQW2eRapD0G3GgZFPhl1WHELtmaBqG-gJFMTQnP1hASfLZgp_RpxICaLCJQ/exec',
     currentUser: null,
     currentReport: {
         category: '',
@@ -1876,6 +1876,7 @@ function filterStoresByAccount(type, cuenta) {
         filtered.forEach(t => {
             const opt = document.createElement('option');
             opt.value = t.nombre;
+            opt.dataset.owner = t.owner || t.usuario || '';
             opt.textContent = t.nombre;
             select.appendChild(opt);
         });
@@ -2087,9 +2088,10 @@ function startIncidentProcedure(centro) {
     if (!centro) return;
     APP_CONFIG.currentReport.centro = centro;
     document.getElementById('category-selection').classList.remove('hidden');
-    // Ensure both sub-procedures are hidden until chosen
+    // Ensure all sub-procedures are hidden until chosen
     document.getElementById('furniture-procedure').classList.add('hidden');
     document.getElementById('device-procedure').classList.add('hidden');
+    document.getElementById('screen-procedure').classList.add('hidden');
 }
 
 window.chooseMainCategory = function(category, btn) {
@@ -2099,7 +2101,13 @@ window.chooseMainCategory = function(category, btn) {
     resetProcedure(true);
 
     // Reset path completamente
-    APP_CONFIG.currentReport.path = [category === 'furniture' ? 'Mobiliario' : 'Dispositivo'];
+    if (category === 'furniture') {
+        APP_CONFIG.currentReport.path = ['Mobiliario'];
+    } else if (category === 'screen') {
+        APP_CONFIG.currentReport.path = ['Pantalla Digital'];
+    } else {
+        APP_CONFIG.currentReport.path = ['Dispositivo'];
+    }
     APP_CONFIG.currentReport.category = category;
 
     // UI Feedback for category buttons
@@ -2107,14 +2115,19 @@ window.chooseMainCategory = function(category, btn) {
     group.querySelectorAll('.bubble-btn').forEach(b => b.classList.remove('active'));
     btn.classList.add('active');
 
-    // Show corresponding procedure container, hide the other
+    // Show corresponding procedure container, hide the others
+    document.getElementById('furniture-procedure').classList.add('hidden');
+    document.getElementById('device-procedure').classList.add('hidden');
+    document.getElementById('screen-procedure').classList.add('hidden');
+
     if (category === 'furniture') {
         document.getElementById('furniture-procedure').classList.remove('hidden');
-        document.getElementById('device-procedure').classList.add('hidden');
         resetLevels('furniture');
+    } else if (category === 'screen') {
+        document.getElementById('screen-procedure').classList.remove('hidden');
+        document.getElementById('final-level-screen').classList.remove('hidden');
     } else {
         document.getElementById('device-procedure').classList.remove('hidden');
-        document.getElementById('furniture-procedure').classList.add('hidden');
         resetLevels('device');
     }
 };
@@ -2389,7 +2402,9 @@ async function submitFinalReport(event, type) {
     const originalText = btn.textContent;
     
     if (APP_CONFIG.incidentUploadedPhotos.length === 0) {
-        const zoneId = type === 'furniture' ? 'drop-zone-furniture' : 'drop-zone-device';
+        let zoneId = 'drop-zone-device';
+        if (type === 'furniture') zoneId = 'drop-zone-furniture';
+        else if (type === 'screen') zoneId = 'drop-zone-screen';
         const zone = document.getElementById(zoneId);
         if (zone) {
             zone.style.border = '2px dashed #ff4d4f';
@@ -2434,15 +2449,25 @@ async function submitFinalReport(event, type) {
 
     try {
         const isFurniture = type === 'furniture';
+        const isScreen = type === 'screen';
         
+        let reportCategory = 'Dispositivo';
+        if (isFurniture) reportCategory = 'Mobiliario';
+        if (isScreen) reportCategory = 'Pantalla Digital';
+
+        const storeSelect = document.getElementById('incident-centro');
+        const selectedOption = storeSelect.options[storeSelect.selectedIndex];
+        const storeOwner = selectedOption ? selectedOption.dataset.owner || '' : '';
+
         const reportData = {
             action: 'submitReport',
             usuario: (APP_CONFIG.currentUser.email || APP_CONFIG.currentUser.usuario),
             tienda: APP_CONFIG.currentReport.centro,
-            categoria: isFurniture ? 'Mobiliario' : 'Dispositivo',
+            owner: storeOwner,
+            categoria: reportCategory,
             descripcion: desc,
             photos: APP_CONFIG.incidentUploadedPhotos,
-            estado: 'Abierta' // NUEVO: Forza reactivación a abierta si es una nueva incidencia o reedición
+            estado: 'Abierta'
         };
 
         // NUEVO: Si hay ID activo de edición, lo inyectamos para que el backend sobreescriba
@@ -2502,6 +2527,11 @@ async function submitFinalReport(event, type) {
                 btn.textContent = originalText;
                 return alert('Falta Información: Por favor, indica el MOTIVO concreto del desperfecto.');
             }
+        } else if (isScreen) {
+            // Pantalla category just needs description and photos, which are already validated.
+            // No sub-categories or reasons required.
+            reportData.subcategoria = '';
+            reportData.motivo = '';
         } else {
             // Para Dispositivos
             if (APP_CONFIG.currentSelectedDevices.length === 0) {
@@ -3508,6 +3538,7 @@ window.submitLaunch = async function(event) {
         usuario: (APP_CONFIG.currentUser.email || APP_CONFIG.currentUser.usuario),
         cuenta: APP_CONFIG.currentLaunchStore.cuenta,
         tienda: APP_CONFIG.currentLaunchStore.nombre,
+        owner: APP_CONFIG.currentLaunchStore.owner || '',
         rms: APP_CONFIG.currentLaunchStore.rms || '',
         lanzamiento: document.getElementById('launch-selector').value,
         photos: APP_CONFIG.launchUploadedPhotos.join('\n'),

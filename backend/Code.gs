@@ -193,7 +193,8 @@ function handleLogin(ss, email, password) {
         nombre: r[2],  // Columna C (índice 2) es Tienda (Nombre)
         cuenta: r[1],  // Columna B (índice 1) es Cuenta
         rms: r[0] || '', // Columna A (índice 0) es Codigo RMS
-        usuario: r[3] || '' // Columna D (índice 3) es Usuario asignado
+        usuario: r[3] || '', // Columna D (índice 3) es Usuario asignado
+        owner: String(r[3] || '').trim() || String(r[4] || '').trim()
       }));
       
       debugInfo = {
@@ -308,6 +309,36 @@ function getDashboardData(ss, rol) {
     
     // Volcar a allReports
     Object.keys(devMap).forEach(k => allReports.push(devMap[k]));
+  }
+
+  // 3. Procesar Pantalla
+  const screenSheet = getSheetDefensive(ss, 'Reporte Pantalla');
+  let screenReports = screenSheet ? getFastValues(screenSheet) : [];
+  if (screenReports.length > 1) {
+    screenReports.shift();
+    screenReports.forEach(r => {
+      if (!r[0]) return;
+      const est = String(r[8] || '').trim().toLowerCase();
+      if (est === 'abierta') openTotal++;
+      if (est === 'pendiente') pendingTotal++;
+
+      allReports.push({
+        id: r[0],
+        fecha: r[1] instanceof Date ? Utilities.formatDate(r[1], tz, "yyyy-MM-dd HH:mm:ss") : r[1],
+        usuario: r[2],
+        cuenta: r[3],
+        tienda: r[4],
+        categoria: 'Pantalla Digital',
+        subcategoria: '',
+        enviar: '',
+        motivo: '',
+        descripcion: r[7] || '',
+        estado: r[8] || 'Abierta',
+        tiempo: r[9] || 0,
+        fotos: r[10] || '',
+        tipo: 'Pantalla Digital'
+      });
+    });
   }
 
   // Invertir para tener últimos primero por defecto en array separado de las incidencias de lanzamiento
@@ -450,29 +481,52 @@ function handleSubmitReport(ss, data) {
     // 1. Datos maestros compartidos
     let cuenta = '';
     let rms = '';
-    let owner = '';
+    let owner = String(data.owner || '').trim();
     const storesSheet = getSheetDefensive(ss, 'Tiendas');
     if (storesSheet) {
       const storesData = getFastValues(storesSheet);
       storesData.shift(); 
-      const storeRow = storesData.find(r => String(r[2]).trim().toLowerCase() === String(data.tienda).trim().toLowerCase());
-      if (storeRow) {
-        rms = storeRow[0] || '';
-        cuenta = storeRow[1] || '';
-        owner = storeRow[3] || ''; 
+    
+      if (!owner) {
+        const searchTienda = String(data.tienda || '').trim().toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+        
+        const storeRow = storesData.find(r => {
+          const rowTienda = String(r[2] || '').trim().toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+          return rowTienda === searchTienda;
+        });
+        
+        if (storeRow) {
+          rms = storeRow[0] || '';
+          cuenta = storeRow[1] || '';
+          owner = String(storeRow[3] || '').trim(); 
+          if (!owner) owner = String(storeRow[4] || '').trim();
+        }
+      } else {
+        const searchTienda = String(data.tienda || '').trim().toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+        const storeRow = storesData.find(r => {
+          const rowTienda = String(r[2] || '').trim().toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+          return rowTienda === searchTienda;
+        });
+        if (storeRow) {
+          rms = storeRow[0] || '';
+          cuenta = storeRow[1] || '';
+        }
       }
     }
+  
+    // Si encontramos un owner en Tiendas o vino desde frontend, lo usamos. Si no, usamos el usuario actual.
     const finalUser = owner || data.usuario || '';
     const now = new Date();
     const finalPhotos = Array.isArray(data.photos) ? data.photos.join('\n') : (data.photos || '');
     
     const isFurniture = String(data.categoria).toLowerCase() === 'mobiliario';
+    const isScreen = String(data.categoria).toLowerCase() === 'pantalla digital';
     const updateId = data.updateId || '';
     
     // LOGICA DE EDICIÓN: Si estamos editando, borramos el rastro previo para machacar los datos limpiamente
     if (updateId) {
       Logger.log("🛠️ [EDIT MODE] Intentando sobreescribir reporte ID: " + updateId);
-      const sheetNames = ['Reporte mobiliario', 'Reporte dispositivo'];
+      const sheetNames = ['Reporte mobiliario', 'Reporte dispositivo', 'Reporte Pantalla'];
       sheetNames.forEach(sn => {
         const sh = getSheetDefensive(ss, sn);
         if (sh) {
@@ -495,7 +549,7 @@ function handleSubmitReport(ss, data) {
     }
     
     // Mantenemos el ID original si estamos editando, sino generamos uno nuevo
-    const finalId = updateId || generateUUID(isFurniture ? 'REP_M' : 'REP_D');
+    const finalId = updateId || generateUUID(isFurniture ? 'REP_M' : (isScreen ? 'REP_P' : 'REP_D'));
     
     const formulaTiempo = '';
 
@@ -518,6 +572,25 @@ function handleSubmitReport(ss, data) {
         data.estado || 'Abierta',
         formulaTiempo,
         finalPhotos
+      ];
+      sheet.appendRow(row);
+      
+    } else if (isScreen) {
+      const sheet = getSheetDefensive(ss, 'Reporte Pantalla');
+      if (!sheet) return { success: false, message: 'Hoja "Reporte Pantalla" no encontrada' };
+      
+      const row = [
+        finalId,                 // 1. ID
+        now,                     // 2. Fecha
+        finalUser,               // 3. Usuario
+        cuenta,                  // 4. Cuenta
+        data.tienda || '',       // 5. Tienda
+        rms,                     // 6. Código RMS
+        data.categoria,          // 7. Categoría
+        data.descripcion || '',  // 8. Comentario
+        data.estado || 'Abierta',// 9. Estado
+        formulaTiempo || 0,      // 10. Tiempo
+        finalPhotos              // 11. Fotos
       ];
       sheet.appendRow(row);
       

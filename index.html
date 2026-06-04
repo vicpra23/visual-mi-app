@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Xiaomi VISUAL APP</title>
-    <link rel="stylesheet" href="style_v128.css?v=4">
+    <link rel="stylesheet" href="style_v128.css?v=11">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script>
@@ -219,8 +219,15 @@
                     <div id="category-selection" class="level-box hidden" data-level="1" style="margin-top: 2rem;">
                         <span class="level-label">Categoría</span>
                         <div class="bubble-group">
-                            <button class="bubble-btn furniture" onclick="chooseMainCategory('furniture', this)">Mobiliario</button>
-                            <button class="bubble-btn device" onclick="chooseMainCategory('device', this)">Dispositivo</button>
+                            <button class="bubble-btn furniture" onclick="chooseMainCategory('furniture', this)" style="border-color: #1890ff; color: #1890ff;">
+                                <span style="display:inline-block; width: 14px; height: 12px; border-top: 3px solid currentColor; border-left: 2px solid currentColor; border-right: 2px solid currentColor; margin-right: 6px; vertical-align: middle; position: relative; top: -1px; border-radius: 2px 2px 0 0;"></span> Mobiliario
+                            </button>
+                            <button class="bubble-btn device" onclick="chooseMainCategory('device', this)" style="border-color: #52c41a; color: #52c41a;">
+                                <i class="fas fa-mobile-alt" style="margin-right: 6px;"></i> Dispositivo
+                            </button>
+                            <button class="bubble-btn screen" onclick="chooseMainCategory('screen', this)" style="border-color: #722ed1; color: #722ed1;">
+                                <span style="display:inline-block; width: 10px; height: 16px; border: 2px solid currentColor; border-radius: 2px; margin-right: 6px; vertical-align: text-bottom; position: relative; top: -2px;"></span> Pantalla Digital
+                            </button>
                         </div>
                     </div>
 
@@ -255,7 +262,7 @@
                         <!-- Final Level Mobiliario Compacted -->
                         <div id="final-level-furniture" class="form-container hidden" style="max-width: 100%; margin-top: 2rem;">
                             <form onsubmit="submitFinalReport(event, 'furniture')">
-                                <div class="form-grid-2col" style="gap: 1.5rem; margin-bottom: 1.5rem;">
+                                <div class="form-grid-2col" style="gap: 1.5rem; margin-bottom: 1.5rem; align-items: start;">
                                     <!-- Columna 1 -->
                                     <div class="form-group">
                                         <label style="font-weight: 600; color: var(--mi-orange);"><i class="fas fa-truck"></i> ¿Dónde enviar el material? <span style="color:red;">*</span></label>
@@ -274,8 +281,8 @@
                                     <div class="form-group" style="position:relative;">
                                         <label style="font-weight: 600; display: block;"><i class="fas fa-camera"></i> Reporte fotográfico</label>
                                         <div style="display: flex; gap: 10px; margin-top: 10px; margin-bottom: 10px;">
-                                            <button type="button" class="btn-secondary" onclick="document.getElementById('furn-file-cam').click()" style="flex: 1; padding: 12px; font-weight: bold; background: #f0f0f0; border: 1px solid #ccc; color: #333;"><i class="fas fa-camera"></i> Abrir Cámara</button>
-                                            <button type="button" class="btn-secondary" onclick="document.getElementById('furn-file-gal').click()" style="flex: 1; padding: 12px; font-weight: bold; background: #f0f0f0; border: 1px solid #ccc; color: #333;"><i class="fas fa-images"></i> Abrir Galería</button>
+                                            <button type="button" class="btn-photo-upload" onclick="document.getElementById('furn-file-cam').click()"><i class="fas fa-camera"></i> Abrir Cámara</button>
+                                            <button type="button" class="btn-photo-upload" onclick="document.getElementById('furn-file-gal').click()"><i class="fas fa-images"></i> Abrir Galería</button>
                                         </div>
                                         <input type="file" id="furn-file-cam" accept="image/*" capture="environment" onchange="handleIncidentPhotos(this, 'furniture')" style="display: none;">
                                         <input type="file" id="furn-file-gal" multiple accept="image/*" onchange="handleIncidentPhotos(this, 'furniture')" style="display: none;">
@@ -288,6 +295,39 @@
                                 </button>
                             </form>
                         </div>
+
+                    <!-- Procedimiento Pantalla REDISEÑADO COMPACTO -->
+                    <div id="screen-procedure" class="hidden" style="margin-top: 2rem;">
+                        <div id="final-level-screen" class="form-container" style="max-width: 100%; margin-top: 2rem;">
+                            <form onsubmit="submitFinalReport(event, 'screen')">
+                                <div class="form-grid-2col" style="gap: 1.5rem; margin-bottom: 1.5rem; align-items: start;">
+                                    <!-- Comentario -->
+                                    <div class="form-group">
+                                        <label style="font-weight: 600; display:block;"><i class="fas fa-comment-alt"></i> Comentario *</label>
+                                        <textarea class="rep-desc" rows="4" required placeholder="Describe la incidencia de la pantalla..." style="margin-top: 0.5rem; resize: none;"></textarea>
+                                    </div>
+
+                                    <!-- Fotos -->
+                                    <div class="form-group" style="position:relative;">
+                                        <label style="font-weight: 600; display: block;"><i class="fas fa-camera"></i> Reporte fotográfico *</label>
+                                        <div style="display: flex; gap: 10px; margin-top: 10px; margin-bottom: 10px;">
+                                            <button type="button" class="btn-photo-upload" onclick="document.getElementById('screen-file-cam').click()"><i class="fas fa-camera"></i> Abrir Cámara</button>
+                                            <button type="button" class="btn-photo-upload" onclick="document.getElementById('screen-file-gal').click()"><i class="fas fa-images"></i> Abrir Galería</button>
+                                        </div>
+                                        <input type="file" id="screen-file-cam" accept="image/*" capture="environment" onchange="handleIncidentPhotos(this, 'screen')" style="display: none;">
+                                        <input type="file" id="screen-file-gal" multiple accept="image/*" onchange="handleIncidentPhotos(this, 'screen')" style="display: none;">
+                                        
+                                        <div id="drop-zone-screen" style="display:none;"></div>
+                                        <div id="incident-thumbnails-screen" class="thumbnail-container" style="display: flex; flex-wrap: wrap; gap: 10px; margin-top: 10px;"></div>
+                                        <small id="incident-uploading-msg-screen" style="display: none; color: var(--mi-orange); font-weight: 600;"><i class="fas fa-spinner fa-spin"></i> Subiendo fotos...</small>
+                                    </div>
+                                </div>
+                                <button type="submit" class="btn-primary" style="width: 100%; padding: 1rem; font-size: 1rem;">
+                                    <i class="fas fa-paper-plane"></i> Enviar Reporte de Pantalla Digital
+                                </button>
+                            </form>
+                        </div>
+                    </div>
 
                     <!-- Procedimiento Dispositivo REDISEÑADO COMPACTO -->
                     <div id="device-procedure" class="hidden" style="margin-top: 2rem;">
@@ -371,7 +411,7 @@
                                 </div>
 
                                 <!-- FILA 2: Comentarios + Fotos -->
-                                <div class="form-grid-2col" style="gap: 1.5rem; margin-bottom: 2rem;">
+                                <div class="form-grid-2col" style="gap: 1.5rem; margin-bottom: 2rem; align-items: start;">
                                     
                                     <!-- COLUMNA 1: COMENTARIOS -->
                                     <div class="form-group">
@@ -383,8 +423,8 @@
                                     <div class="form-group">
                                         <label style="font-weight: 600; display: block;"><i class="fas fa-camera"></i> Reporte fotográfico</label>
                                         <div style="display: flex; gap: 10px; margin-top: 10px; margin-bottom: 10px;">
-                                            <button type="button" class="btn-secondary" onclick="document.getElementById('dev-file-cam').click()" style="flex: 1; padding: 12px; font-weight: bold; background: #f0f0f0; border: 1px solid #ccc; color: #333;"><i class="fas fa-camera"></i> Abrir Cámara</button>
-                                            <button type="button" class="btn-secondary" onclick="document.getElementById('dev-file-gal').click()" style="flex: 1; padding: 12px; font-weight: bold; background: #f0f0f0; border: 1px solid #ccc; color: #333;"><i class="fas fa-images"></i> Abrir Galería</button>
+                                            <button type="button" class="btn-photo-upload" onclick="document.getElementById('dev-file-cam').click()"><i class="fas fa-camera"></i> Abrir Cámara</button>
+                                            <button type="button" class="btn-photo-upload" onclick="document.getElementById('dev-file-gal').click()"><i class="fas fa-images"></i> Abrir Galería</button>
                                         </div>
                                         <input type="file" id="dev-file-cam" accept="image/*" capture="environment" onchange="handleIncidentPhotos(this, 'device')" style="display: none;">
                                         <input type="file" id="dev-file-gal" multiple accept="image/*" onchange="handleIncidentPhotos(this, 'device')" style="display: none;">
@@ -1095,7 +1135,7 @@
 
     <!-- Archivos principales de la aplicación -->
     <link rel="stylesheet" href="style.css?v=5">
-    <script src="main_v130.js?v=13" defer></script>
+    <script src="main_v130.js?v=19" defer></script>
 </body>
 </html>
 </html>

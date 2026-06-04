@@ -602,15 +602,39 @@ td {
 }
 
 .bubble-btn:hover {
-    background: #FFF;
-    border-color: var(--mi-orange);
-    color: var(--mi-orange);
+    background: #fff3e0; /* Naranja sutil tipo login/dashboard */
 }
 
 .bubble-btn.active {
-    background: var(--mi-orange);
-    color: var(--mi-white);
+    background: #fff3e0;
+    color: var(--mi-orange);
     border-color: var(--mi-orange);
+}
+
+.btn-photo-upload {
+    flex: 1;
+    padding: 12px;
+    font-weight: 600;
+    font-size: 14px;
+    background: #ffffff;
+    border: 1px solid #d9d9d9;
+    border-radius: 8px;
+    color: #333333;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+}
+.btn-photo-upload:hover {
+    background: #fff3e0;
+    border-color: var(--mi-orange);
+    color: var(--mi-orange);
+}
+.btn-photo-upload i {
+    font-size: 16px;
 }
 
 /* --- Forms & Controls --- */
