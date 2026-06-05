@@ -4383,10 +4383,10 @@ window.loadMessagingMotivos = function() {
                     return false;
                 });
                 
-                // Si el usuario no tiene NINGÚN registro explícitamente a su nombre, cargamos TODOS para que el admin pueda elegir
-                if (filteredReports.length > 0) {
-                    reports = filteredReports;
-                }
+                console.log("🎯 Filtrando reportes para dest:", targetEmail, "| Nombre:", targetNombre);
+                console.log("📊 Total reportes antes:", reports.length, "| Después:", filteredReports.length);
+                
+                reports = filteredReports;
             } catch (e) {
                 console.error("Error filtrando motivos:", e);
                 reports = [];
