@@ -2742,7 +2742,7 @@ async function callApi(data) {
         return mockApi(data);
     }
 
-    const isRead = !['submitReport', 'uploadFile', 'submitLaunchChecklist', 'login', 'resolveIncident', 'deleteReport', 'sendMessage', 'markMessageRead', 'deleteLaunchValidation', 'updateLaunchValidation', 'getMessages'].includes(data.action);
+    const isRead = !['submitReport', 'uploadFile', 'submitLaunchChecklist', 'login', 'resolveIncident', 'deleteReport', 'sendMessage', 'markMessageRead', 'markAllMessagesRead', 'deleteLaunchValidation', 'updateLaunchValidation', 'getMessages'].includes(data.action);
 
     if (isRead) {
         // ESTRATEGIA HÍBRIDA INTELIGENTE V5
