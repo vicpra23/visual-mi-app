@@ -513,9 +513,18 @@
                         <form id="msg-compose-form" onsubmit="handleSendMessage(event)">
                             <div class="form-group" style="margin-bottom: 1.25rem;">
                                 <label style="font-weight:600; margin-bottom: 0.4rem; font-size: 12px; display: block; color: var(--mi-gray-dark);">Enviar a:</label>
-                                <select id="msg-destinatario" class="form-control" required style="width: 100%; height: 42px; border-radius: 8px; border: 1px solid var(--mi-border); background: #fafafa;">
+                                <select id="msg-destinatario" class="form-control" required style="width: 100%; height: 42px; border-radius: 8px; border: 1px solid var(--mi-border); background: #fafafa;" onchange="window.loadMessagingMotivos()">
                                     <option value="" disabled selected>Cargando destinatarios...</option>
                                 </select>
+                            </div>
+                            
+                            <div class="form-group" style="margin-bottom: 1.25rem;">
+                                <label style="font-weight:600; margin-bottom: 0.4rem; font-size: 12px; display: block; color: var(--mi-gray-dark);">Motivo:</label>
+                                <select id="msg-motivo" class="form-control" style="width: 100%; height: 42px; border-radius: 8px; border: 1px solid var(--mi-border); background: #fafafa; margin-bottom: 8px;" onchange="handleMotivoChange(this)">
+                                    <option value="" selected>Sin motivo / General</option>
+                                    <option value="nuevo">Escribir nuevo motivo...</option>
+                                </select>
+                                <input type="text" id="msg-custom-motivo" class="form-control" placeholder="Especifica el motivo brevemente" style="display: none; width: 100%; height: 42px; border-radius: 8px; border: 1px solid var(--mi-border); background: #fafafa;" maxlength="80">
                             </div>
                             
                             <div class="form-group" style="margin-bottom: 1.5rem; position: relative;">
@@ -533,7 +542,12 @@
                     <!-- COLUMNA DERECHA: BANDEJA DE ENTRADA -->
                     <div class="procedure-container" style="margin-bottom: 0; min-height: 400px;">
                         <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--mi-border); padding-bottom: 1rem; margin-bottom: 1.5rem;">
-                            <h3 style="margin: 0; font-size: 1.1rem;">Bandeja de Mensajes</h3>
+                            <div style="display: flex; align-items: center; gap: 15px;">
+                                <h3 style="margin: 0; font-size: 1.1rem;">Bandeja de Mensajes</h3>
+                                <button type="button" id="mark-all-read-btn" onclick="window.handleMarkAllRead()" style="background: none; border: 1px solid var(--mi-orange); color: var(--mi-orange); padding: 4px 10px; font-size: 11px; font-weight: 600; border-radius: 12px; cursor: pointer; display: none; transition: all 0.2s;">
+                                    <i class="fas fa-check-double" style="margin-right: 4px;"></i> Marcar todo leído
+                                </button>
+                            </div>
                             
                             <!-- Filtros Píldora -->
                             <div style="display: flex; gap: 8px; background: #f0f2f5; padding: 4px; border-radius: 30px;">
@@ -1135,7 +1149,7 @@
 
     <!-- Archivos principales de la aplicación -->
     <link rel="stylesheet" href="style.css?v=5">
-    <script src="main_v130.js?v=19" defer></script>
+    <script src="main_v130.js?v=42" defer></script>
 </body>
 </html>
 </html>

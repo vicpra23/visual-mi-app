@@ -96,6 +96,8 @@ function doPost(e) {
         return jsonResponse(getUserMessages(ss, data.email));
       case 'markMessageRead':
         return jsonResponse(markInstantMessageRead(ss, data.messageId));
+      case 'markAllMessagesRead':
+        return jsonResponse(markAllMessagesRead(ss, data.email, data.msgIds));
       default:
         return jsonResponse({ success: false, message: 'Acción POST no válida' });
     }
@@ -1052,8 +1054,8 @@ function getOrCreateMessagesSheet(ss) {
   let sheet = ss.getSheetByName('Mensajes');
   if (!sheet) {
     sheet = ss.insertSheet('Mensajes');
-    sheet.appendRow(['ID', 'Fecha', 'Remitente', 'Destinatario', 'Mensaje', 'Leido']);
-    sheet.getRange(1, 1, 1, 6).setFontWeight('bold').setBackground('#ffe6cc');
+    sheet.appendRow(['ID', 'Fecha', 'Remitente', 'Destinatario', 'Mensaje', 'Leido', 'Motivo']);
+    sheet.getRange(1, 1, 1, 7).setFontWeight('bold').setBackground('#ffe6cc');
   }
   return sheet;
 }
@@ -1083,16 +1085,70 @@ function sendInstantMessage(ss, data) {
     const fecha = new Date().toISOString();
     const remitente = String(data.remitente || '').trim();
     const destinatario = String(data.destinatario || '').trim();
-    const mensaje = String(data.mensaje || '').slice(0, 200); // Límite estricto de 200 caracteres
+    const mensaje = String(data.mensaje || '').trim();
+    const motivo = String(data.motivo || '').trim();
     const leido = 'Pendiente';
     
     if (!remitente || !destinatario || !mensaje) {
       return { success: false, error: 'Campos incompletos' };
     }
     
-    sheet.appendRow([id, fecha, remitente, destinatario, mensaje, leido]);
+    sheet.appendRow([id, fecha, remitente, destinatario, mensaje, leido, motivo]);
     SpreadsheetApp.flush(); // Forzar guardado en disco inmediato antes de liberar bloqueo
     return { success: true };
+  } catch (e) {
+    return { success: false, error: e.toString() };
+  } finally {
+    lock.releaseLock();
+  }
+}
+
+function markAllMessagesRead(ss, email, msgIdsStr) {
+  const lock = LockService.getScriptLock();
+  try {
+    lock.waitLock(15000);
+    const sheet = getOrCreateMessagesSheet(ss);
+    
+    const data = getFastValues(sheet);
+    let modified = false;
+    
+    // Normalizar: quitar acentos y caracteres especiales para un cruce robusto (con failsafe por si V8 falla)
+    const normalizeStr = (str) => {
+      if (!str) return '';
+      let s = String(str).toLowerCase();
+      try { s = s.normalize("NFD").replace(/[\u0300-\u036f]/g, ""); } catch(e) {}
+      return s.replace(/[^a-z0-9]/g, '');
+    };
+    
+    const targetEmail = normalizeStr(email);
+    let targetIds = [];
+    if (msgIdsStr) {
+      try {
+        targetIds = JSON.parse(msgIdsStr);
+      } catch (e) {}
+    }
+    
+    // Iteramos al revés por si queremos parar antes, o simplemente lo recorremos todo
+    for (let i = 1; i < data.length; i++) {
+      const msgId = String(data[i][0] || '').trim();
+      const dest = normalizeStr(data[i][3]);
+      let estadoNorm = normalizeStr(data[i][5]);
+      
+      // Si nos pasaron IDs exactos, los usamos. Si no, usamos el fallback del email
+      let shouldMark = false;
+      if (targetIds.length > 0) {
+        shouldMark = targetIds.includes(msgId);
+      } else {
+        shouldMark = targetEmail && dest && (dest.includes(targetEmail) || targetEmail.includes(dest)) && estadoNorm !== 'leido';
+      }
+      
+      if (shouldMark && estadoNorm !== 'leido') {
+        sheet.getRange(i + 1, 6).setValue('Leido');
+        modified = true;
+      }
+    }
+    
+    return { success: true, modified: modified };
   } catch (e) {
     return { success: false, error: e.toString() };
   } finally {
@@ -1129,7 +1185,8 @@ function getUserMessages(ss, email) {
     remitente: r[2],
     destinatario: r[3],
     mensaje: r[4],
-    leido: r[5]
+    leido: r[5],
+    motivo: r[6] || ''
   }));
   
   // Ordenar cronológico descendente
@@ -1156,7 +1213,7 @@ function markInstantMessageRead(ss, messageId) {
     
     for (let i = 1; i < data.length; i++) {
       if (data[i][0] === messageId) {
-        sheet.getRange(i + 1, 6).setValue('Leído');
+        sheet.getRange(i + 1, 6).setValue('Leido');
         return { success: true };
       }
     }

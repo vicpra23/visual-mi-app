@@ -3,7 +3,7 @@
  */
 
 const APP_CONFIG = {
-    scriptUrl: 'https://script.google.com/macros/s/AKfycbw3Ro4iXXtlQW2eRapD0G3GgZFPhl1WHELtmaBqG-gJFMTQnP1hASfLZgp_RpxICaLCJQ/exec',
+    scriptUrl: 'https://script.google.com/macros/s/AKfycbzESLO-rAWQUHZU3odG0W5AhMtQpEFty9f2IJcG54jhvNrDBKknf2lHVLijSJyFfkAoyw/exec',
     currentUser: null,
     currentReport: {
         category: '',
@@ -327,14 +327,19 @@ async function showView(viewName) {
             formattedTitle = 'Centro de Mensajes';
             iconHtml = '<i class="fas fa-bell" style="margin-right:8px; font-size:0.85em;"></i>';
         }
-        
-        document.getElementById('view-title').innerHTML = iconHtml + formattedTitle;
+document.getElementById('view-title').innerHTML = iconHtml + formattedTitle;
         
         // Cargar data según vista
         if (viewName === 'dashboard' || viewName === 'reportes') loadDashboard();
         if (viewName === 'mensajes') {
             window.loadMessagingUsers();
+            window.loadMessagingMotivos();
             window.loadUserInbox();
+            if (!APP_CONFIG.dashboardReports || APP_CONFIG.dashboardReports.length === 0) {
+                loadDashboard().then(() => {
+                    window.loadMessagingMotivos();
+                }).catch(e => console.error("Error pre-loading dashboard data:", e));
+            }
         }
         if (viewName === 'lanzamientos') {
             const userRole = String(APP_CONFIG.currentUser?.rol || '').trim().toUpperCase();
@@ -2614,7 +2619,11 @@ async function submitFinalReport(event, type) {
         if (res && res.success) {
             setTimeout(async () => {
                 try {
-                    const uRes = await callApi({ action: 'getMessagingUsers' });
+                    const uRes = await callApi({ 
+                        action: 'getMessagingUsers',
+                        email: APP_CONFIG.currentUser?.email || APP_CONFIG.currentUser?.usuario,
+                        token: APP_CONFIG.currentUser?.token
+                    });
                     if (uRes && uRes.users) {
                         const admins = uRes.users.filter(u => String(u.rol || '').trim().toUpperCase().includes('ADMIN'));
                         const nombreUsu = APP_CONFIG.currentUser?.nombre || APP_CONFIG.currentUser?.usuario || 'Un usuario';
@@ -2733,7 +2742,7 @@ async function callApi(data) {
         return mockApi(data);
     }
 
-    const isRead = !['submitReport', 'uploadFile', 'submitLaunchChecklist', 'login', 'resolveIncident', 'deleteReport', 'sendMessage', 'markMessageRead', 'deleteLaunchValidation', 'updateLaunchValidation', 'getMessages', 'getMessagingUsers'].includes(data.action);
+    const isRead = !['submitReport', 'uploadFile', 'submitLaunchChecklist', 'login', 'resolveIncident', 'deleteReport', 'sendMessage', 'markMessageRead', 'deleteLaunchValidation', 'updateLaunchValidation', 'getMessages'].includes(data.action);
 
     if (isRead) {
         // ESTRATEGIA HÍBRIDA INTELIGENTE V5
@@ -3563,7 +3572,11 @@ window.submitLaunch = async function(event) {
         if (res && res.success) {
             setTimeout(async () => {
                 try {
-                    const uRes = await callApi({ action: 'getMessagingUsers' });
+                    const uRes = await callApi({ 
+                        action: 'getMessagingUsers',
+                        email: APP_CONFIG.currentUser?.email || APP_CONFIG.currentUser?.usuario,
+                        token: APP_CONFIG.currentUser?.token
+                    });
                     if (uRes && uRes.users) {
                         const admins = uRes.users.filter(u => String(u.rol || '').trim().toUpperCase().includes('ADMIN'));
                         const nombreUsu = APP_CONFIG.currentUser?.nombre || APP_CONFIG.currentUser?.usuario || 'Un usuario';
@@ -4081,10 +4094,11 @@ function updateNavBadge() {
     if (!badge) return;
     
     // 1. Mensajes de chat no leídos de la base de datos
-    const currentUser = String((APP_CONFIG.currentUser?.email || APP_CONFIG.currentUser?.usuario) || '').toLowerCase();
+    const currentUser = String((APP_CONFIG.currentUser?.email || APP_CONFIG.currentUser?.usuario) || '').trim().toLowerCase();
     const unreadChatCount = (window.inboxMessages || []).filter(m => 
-        String(m.destinatario || '').toLowerCase() === currentUser && 
-        String(m.leido || '').trim().toLowerCase() !== 'leído'
+        String(m.destinatario || '').trim().toLowerCase() === currentUser && 
+        !String(m.leido || '').trim().toLowerCase().includes('leido') &&
+        !String(m.leido || '').trim().toLowerCase().includes('leído')
     ).length;
     
     // 2. Notificaciones del sistema no leídas de localStorage
@@ -4260,7 +4274,11 @@ window.loadMessagingUsers = async function() {
     if (!select) return;
     
     try {
-        const res = await callApi({ action: 'getMessagingUsers' });
+        const res = await callApi({ 
+            action: 'getMessagingUsers',
+            email: APP_CONFIG.currentUser?.email || APP_CONFIG.currentUser?.usuario,
+            token: APP_CONFIG.currentUser?.token
+        });
         if (res && res.success && res.users) {
             const userRole = String(APP_CONFIG.currentUser?.rol || '').trim().toUpperCase();
             const isCurrentUserAdmin = userRole === 'ADMIN' || userRole === 'ADMINISTRADOR';
@@ -4282,7 +4300,8 @@ window.loadMessagingUsers = async function() {
             filteredUsers.forEach(u => {
                 const opt = document.createElement('option');
                 opt.value = (u.email || u.usuario);
-                opt.textContent = `${(u.email || u.usuario)} (${isCurrentUserAdmin ? 'Estándar' : 'Administrador'})`;
+                opt.textContent = `${(u.nombre || u.email || u.usuario)} (${isCurrentUserAdmin ? 'Estándar' : 'Administrador'})`;
+                opt.dataset.nombre = String(u.nombre || '').trim().toLowerCase();
                 select.appendChild(opt);
             });
             
@@ -4300,14 +4319,115 @@ window.loadMessagingUsers = async function() {
     }
 };
 
+window.handleMotivoChange = function(select) {
+    const customInput = document.getElementById('msg-custom-motivo');
+    if (select.value === 'nuevo') {
+        customInput.style.display = 'block';
+        customInput.required = true;
+    } else {
+        customInput.style.display = 'none';
+        customInput.required = false;
+        customInput.value = '';
+    }
+};
+
+window.loadMessagingMotivos = function() {
+    const select = document.getElementById('msg-motivo');
+    const destSelect = document.getElementById('msg-destinatario');
+    if (!select) return;
+    
+    // Mantener las opciones básicas
+    select.innerHTML = '<option value="" selected>Sin motivo / General</option><option value="nuevo">Escribir nuevo motivo...</option>';
+    
+    // Cargar reportes si existen
+    let reports = APP_CONFIG.dashboardReports || [];
+    
+    // Si somos Admin, filtrar los reportes solo al usuario seleccionado
+    const userRole = String(APP_CONFIG.currentUser?.rol || '').trim().toUpperCase();
+    const isAdmin = userRole === 'ADMIN' || userRole === 'ADMINISTRADOR';
+    
+    if (isAdmin && destSelect) {
+        const selectedOption = destSelect.options[destSelect.selectedIndex];
+        if (selectedOption && !selectedOption.disabled) {
+            const targetEmail = String(selectedOption.value).trim().toLowerCase();
+            const targetNombre = String(selectedOption.dataset.nombre || '').trim().toLowerCase();
+            
+            try {
+                let filteredReports = reports.filter(r => {
+                    if (!r) return false;
+                    const repUser = String(r.usuario || '').trim().toLowerCase();
+                    const repOwner = String(r.owner || '').trim().toLowerCase();
+                    const repCuenta = String(r.cuenta || '').trim().toLowerCase();
+                    
+                    const normalizeStr = (str) => {
+                        if (!str) return '';
+                        let s = String(str).toLowerCase();
+                        try { s = s.normalize("NFD").replace(/[\u0300-\u036f]/g, ""); } catch(e) {}
+                        return s.replace(/[^a-z0-9]/g, '');
+                    };
+                    
+                    const cleanRepUser = normalizeStr(repUser);
+                    const cleanRepOwner = normalizeStr(repOwner);
+                    const cleanRepCuenta = normalizeStr(repCuenta);
+                    const cleanTargetEmail = normalizeStr(targetEmail);
+                    const cleanTargetNombre = normalizeStr(targetNombre);
+                    
+                    if (cleanTargetEmail && cleanRepUser && (cleanRepUser.includes(cleanTargetEmail) || cleanTargetEmail.includes(cleanRepUser))) return true;
+                    if (cleanTargetEmail && cleanRepOwner && cleanRepOwner.includes(cleanTargetEmail)) return true;
+                    if (cleanTargetEmail && cleanRepCuenta && cleanRepCuenta.includes(cleanTargetEmail)) return true;
+                    
+                    if (cleanTargetNombre && cleanRepUser && (cleanRepUser.includes(cleanTargetNombre) || cleanTargetNombre.includes(cleanRepUser))) return true;
+                    if (cleanTargetNombre && cleanRepOwner && cleanRepOwner.includes(cleanTargetNombre)) return true;
+                    if (cleanTargetNombre && cleanRepCuenta && cleanRepCuenta.includes(cleanTargetNombre)) return true;
+                    
+                    return false;
+                });
+                
+                // Si el usuario no tiene NINGÚN registro explícitamente a su nombre, cargamos TODOS para que el admin pueda elegir
+                if (filteredReports.length > 0) {
+                    reports = filteredReports;
+                }
+            } catch (e) {
+                console.error("Error filtrando motivos:", e);
+                reports = [];
+            }
+        } else {
+            reports = []; // Si no ha seleccionado usuario, no mostrar reportes aún
+        }
+    }
+    
+    if (reports.length > 0) {
+        reports.forEach(r => {
+            const idStr = r.id ? String(r.id) : 'Sin ID';
+            const categoriaStr = r.categoria || 'Sin categoría';
+            const subcategoriaStr = r.subcategoria ? String(r.subcategoria) : 'Sin subcategoría';
+            const estadoStr = r.estado || 'Sin estado';
+            let motivoDesc = 'Sin motivo';
+            
+            if (r.motivo) motivoDesc = String(r.motivo);
+            else if (r.descripcion) motivoDesc = String(r.descripcion).substring(0, 40) + '...';
+            
+            const optionText = `${idStr}, ${categoriaStr}, ${subcategoriaStr}, ${motivoDesc}, ${estadoStr}`;
+            const optionValue = optionText;
+            
+            const opt = document.createElement('option');
+            opt.value = optionValue;
+            opt.textContent = optionText;
+            select.appendChild(opt);
+        });
+    }
+};
+
 window.handleSendMessage = async function(e) {
     e.preventDefault();
     const destInput = document.getElementById('msg-destinatario');
     const textInput = document.getElementById('msg-texto');
+    const selectMotivo = document.getElementById('msg-motivo');
+    const customMotivo = document.getElementById('msg-custom-motivo');
     const submitBtn = document.getElementById('msg-submit-btn');
     
     if (!destInput.value || !textInput.value.trim()) {
-        alert("Por favor completa todos los campos.");
+        alert("Por favor completa todos los campos obligatorios.");
         return;
     }
     
@@ -4315,18 +4435,33 @@ window.handleSendMessage = async function(e) {
     submitBtn.disabled = true;
     submitBtn.innerHTML = '<i class="fa fa-spinner fa-spin"></i> Enviando...';
     
+    let finalMotivo = '';
+    if (selectMotivo && selectMotivo.value) {
+        if (selectMotivo.value === 'nuevo' && customMotivo) {
+            finalMotivo = customMotivo.value.trim();
+        } else {
+            finalMotivo = selectMotivo.value;
+        }
+    }
+    
     try {
         const res = await callApi({
             action: 'sendMessage',
             remitente: (APP_CONFIG.currentUser.email || APP_CONFIG.currentUser.usuario),
             destinatario: destInput.value,
-            mensaje: textInput.value.trim()
+            mensaje: textInput.value.trim(),
+            motivo: finalMotivo
         });
         
         if (res && res.success) {
             alert("¡Mensaje enviado con éxito!");
             textInput.value = '';
-            window.updateCharCounter(textInput);
+            if (selectMotivo) selectMotivo.value = '';
+            if (customMotivo) {
+                customMotivo.value = '';
+                customMotivo.style.display = 'none';
+            }
+            updateCharCounter(textInput);
             // Recargar bandeja automáticamente
             await window.loadUserInbox();
         } else {
@@ -4402,7 +4537,7 @@ window.renderInboxList = function(filterType) {
     const fallback = document.getElementById('no-inbox-fallback');
     if (!list) return;
     
-    const currentUser = String((APP_CONFIG.currentUser.email || APP_CONFIG.currentUser.usuario)).toLowerCase();
+    const currentUser = String((APP_CONFIG.currentUser?.email || APP_CONFIG.currentUser?.usuario) || '').trim().toLowerCase();
     
     // --- CONSTRUCCIÓN DEL FEED AGREGADO Y CRONOLÓGICO ---
     let combinedFeed = [];
@@ -4415,7 +4550,7 @@ window.renderInboxList = function(filterType) {
                 id: m.id,
                 time: new Date(m.fecha).getTime() || 0,
                 formattedDate: isNaN(new Date(m.fecha)) ? 'Fecha Desconocida' : new Date(m.fecha).toLocaleDateString('es-ES', {day:'2-digit', month:'2-digit', year:'numeric', hour:'2-digit', minute:'2-digit'}),
-                isRead: m.leido === 'Leído',
+                isRead: String(m.leido || '').toLowerCase().includes('leido') || String(m.leido || '').toLowerCase().includes('leído'),
                 type: 'chat',
                 sender: m.remitente,
                 content: m.mensaje,
@@ -4463,6 +4598,17 @@ window.renderInboxList = function(filterType) {
         combinedFeed.sort((a, b) => b.time - a.time);
     }
     
+    // --- BUTTON VISIBILITY ---
+    const markAllBtn = document.getElementById('mark-all-read-btn');
+    if (markAllBtn) {
+        const hasUnread = combinedFeed.some(item => !item.isRead);
+        if (filterType === 'recibidos' && hasUnread) {
+            markAllBtn.style.display = 'flex';
+        } else {
+            markAllBtn.style.display = 'none';
+        }
+    }
+    
     // Manejo de vista vacía (Producción)
     if (combinedFeed.length === 0) {
         list.innerHTML = '';
@@ -4488,18 +4634,37 @@ window.renderInboxList = function(filterType) {
             const badgeTextColor = filterType === 'recibidos' ? (item.isRead ? '#8c8c8c' : '#fa541c') : '#1890ff';
             const badgeText = filterType === 'recibidos' ? (item.isRead ? 'Leído' : 'Nuevo Chat') : 'Enviado';
             
-            const markReadTrigger = (filterType === 'recibidos' && !item.isRead) ? `onclick="window.markInboxMessageRead('${item.id}', this)"` : '';
-            const cursorStyle = (filterType === 'recibidos' && !item.isRead) ? 'cursor: pointer;' : '';
+            let extraButtons = '';
+            if (!item.isRead && filterType === 'recibidos') {
+                extraButtons += `
+                <button onclick="event.stopPropagation(); window.markInboxMessageRead('${item.id}', this.closest('.message-card'))" style="background:#ffffff; color:#555; border:1px solid #ddd; padding:6px 12px; border-radius:4px; font-size:10px; font-weight:600; cursor:pointer; display:flex; align-items:center; gap:4px; margin-top: 8px;">
+                    <i class="fas fa-check"></i> Marcar como leído
+                </button>
+                `;
+            }
+            if (String(item.sender).trim().toLowerCase() === 'sistema') {
+                extraButtons += `
+                <button onclick="event.stopPropagation(); window.loadView('reportes')" style="background:var(--mi-orange); color:white; border:none; padding:6px 12px; border-radius:4px; font-size:10px; font-weight:600; cursor:pointer; display:flex; align-items:center; gap:4px; margin-top: 8px;">
+                    <i class="fas fa-external-link-alt"></i> Ver Incidencias
+                </button>
+                `;
+            }
+            
+            const buttonsContainer = extraButtons ? `<div style="display:flex; gap:8px; justify-content:flex-start; border-top: 1px solid #f0f0f0; padding-top: 8px; margin-top: 4px;">${extraButtons}</div>` : '';
+            
+            const motivoBadge = item.original && item.original.motivo ? `<div style="margin: 4px 0 6px 0;"><span style="background: #f4f6f8; border: 1px solid #d9e2ec; color: #486581; font-size: 10px; padding: 3px 8px; border-radius: 4px; font-weight: 600;"><i class="fas fa-tag" style="margin-right: 4px; color: var(--mi-orange);"></i>Motivo: ${item.original.motivo}</span></div>` : '';
             
             return `
-                <div ${markReadTrigger} class="message-card chat-item" style="background:#ffffff; border-radius: 8px; padding: 14px; box-shadow: 0 2px 8px rgba(0,0,0,0.04); display:flex; flex-direction:column; gap:8px; transition:all 0.2s; ${cursorStyle} border: 1px solid #f0f0f0; border-left: 4px solid ${borderLeftColor}; margin-bottom: 10px;">
+                <div class="message-card chat-item" style="background:#ffffff; border-radius: 8px; padding: 14px; box-shadow: 0 2px 8px rgba(0,0,0,0.04); display:flex; flex-direction:column; gap:8px; transition:all 0.2s; border: 1px solid #f0f0f0; border-left: 4px solid ${borderLeftColor}; margin-bottom: 10px;">
                     <div style="display:flex; justify-content:space-between; align-items:center;">
                         <span style="font-size:11px; font-weight:700; color:var(--mi-gray-dark); text-transform:uppercase;">
                             ${peerLabel} <span style="color:var(--mi-black); text-transform:none; background:#f0f2f5; padding: 2px 8px; border-radius:4px; font-weight:600;">${item.sender}</span>
                         </span>
                         <span style="background:${badgeBg}; color:${badgeTextColor}; font-size:10px; font-weight:700; padding:2px 10px; border-radius:20px;">${badgeText}</span>
                     </div>
+                    ${motivoBadge}
                     <p style="margin:4px 0; font-size:13px; line-height:1.5; color:#333; word-break:break-word;">${item.content}</p>
+                    ${buttonsContainer}
                     <div style="display:flex; justify-content:flex-end; align-items:center;">
                         <small style="font-size:10px; color:#aaa;"><i class="far fa-clock"></i> ${item.formattedDate}</small>
                     </div>
@@ -4574,7 +4739,7 @@ window.markInboxMessageRead = async function(msgId, cardEl) {
     }
     
     const localMsg = window.inboxMessages.find(m => m.id === msgId);
-    if (localMsg) localMsg.leido = 'Leído';
+    if (localMsg) localMsg.leido = 'Leido';
     
     // Actualizar el contador visual de la barra de navegación instantáneamente
     updateNavBadge();
@@ -4619,6 +4784,83 @@ window.handleSystemMarkRead = function(id) {
     // Recalcular y refrescar UI instantáneamente
     updateNavBadge();
     window.renderInboxList('recibidos');
+};
+
+window.handleMarkAllRead = async function() {
+    const markAllBtn = document.getElementById('mark-all-read-btn');
+    if (!markAllBtn) return;
+    
+    // Deshabilitar botón durante proceso
+    const originalHtml = markAllBtn.innerHTML;
+    markAllBtn.disabled = true;
+    markAllBtn.innerHTML = '<i class="fas fa-spinner fa-spin" style="margin-right: 4px;"></i> Marcando...';
+    
+    const currentUser = String((APP_CONFIG.currentUser?.email || APP_CONFIG.currentUser?.usuario) || '').trim().toLowerCase();
+    
+    // 1. Marcar notificaciones del sistema como leídas
+    const localKey = 'xiaomi_notifications_' + currentUser;
+    let localNotifs = JSON.parse(localStorage.getItem(localKey) || '[]');
+    let localModified = false;
+    localNotifs.forEach(n => {
+        if (!n.read) {
+            n.read = true;
+            localModified = true;
+        }
+    });
+    if (localModified) {
+        localStorage.setItem(localKey, JSON.stringify(localNotifs));
+    }
+    
+    // 2. Llamada a la API para mensajes de chat
+    try {
+        const unreadIds = (window.inboxMessages || [])
+            .filter(m => String(m.estado || m.leido || '').trim().toLowerCase() !== 'leido' && String(m.estado || m.leido || '').trim().toLowerCase() !== 'leído')
+            .map(m => m.id);
+
+        const res = await callApi({
+            action: 'markAllMessagesRead',
+            email: currentUser,
+            msgIds: unreadIds.length > 0 ? JSON.stringify(unreadIds) : '[]'
+        });
+        
+        if (res && res.success) {
+            // Actualizar estado local en memoria
+            if (window.inboxMessages) {
+                const normalizeStr = (str) => {
+                    if (!str) return '';
+                    let s = String(str).toLowerCase();
+                    try { s = s.normalize("NFD").replace(/[\u0300-\u036f]/g, ""); } catch(e) {}
+                    return s.replace(/[^a-z0-9]/g, '');
+                };
+                const cleanCurrentUser = normalizeStr(currentUser);
+                
+                window.inboxMessages.forEach(m => {
+                    const isLeido = String(m.leido || '').toLowerCase().includes('leido') || String(m.leido || '').toLowerCase().includes('leído');
+                    const cleanDest = normalizeStr(String(m.destinatario || '').trim().toLowerCase());
+                    
+                    if (cleanDest === cleanCurrentUser && !isLeido) {
+                        m.leido = 'Leido';
+                    }
+                });
+            }
+        } else {
+            console.error("Error al marcar todos como leídos en la base de datos:", res);
+        }
+    } catch (e) {
+        console.error("Excepción marcando todos como leídos:", e);
+    }
+    
+    // Refrescar vista
+    markAllBtn.innerHTML = originalHtml;
+    markAllBtn.disabled = false;
+    markAllBtn.style.display = 'none';
+    
+    // Re-renderizar
+    const inboxFilter = document.querySelector('.inbox-filter-pill.active');
+    renderInboxList(inboxFilter ? (inboxFilter.textContent.trim().toLowerCase() === 'recibidos' ? 'recibidos' : 'enviados') : 'recibidos');
+    
+    // Si no es un read explícito desde click, refrescamos badge si procede
+    updateNavBadge();
 };
 
 
