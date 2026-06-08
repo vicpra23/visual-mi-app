@@ -2092,11 +2092,15 @@ function renderSelectedDevices() {
 function startIncidentProcedure(centro) {
     if (!centro) return;
     APP_CONFIG.currentReport.centro = centro;
-    document.getElementById('category-selection').classList.remove('hidden');
+    const catSelection = document.getElementById('category-selection');
+    if (catSelection) catSelection.classList.remove('hidden');
     // Ensure all sub-procedures are hidden until chosen
-    document.getElementById('furniture-procedure').classList.add('hidden');
-    document.getElementById('device-procedure').classList.add('hidden');
-    document.getElementById('screen-procedure').classList.add('hidden');
+    const fp = document.getElementById('furniture-procedure');
+    if (fp) fp.classList.add('hidden');
+    const dp = document.getElementById('device-procedure');
+    if (dp) dp.classList.add('hidden');
+    const sp = document.getElementById('screen-procedure');
+    if (sp) sp.classList.add('hidden');
 }
 
 window.chooseMainCategory = function(category, btn) {
@@ -2121,18 +2125,25 @@ window.chooseMainCategory = function(category, btn) {
     btn.classList.add('active');
 
     // Show corresponding procedure container, hide the others
-    document.getElementById('furniture-procedure').classList.add('hidden');
-    document.getElementById('device-procedure').classList.add('hidden');
-    document.getElementById('screen-procedure').classList.add('hidden');
+    const fp2 = document.getElementById('furniture-procedure');
+    if (fp2) fp2.classList.add('hidden');
+    const dp2 = document.getElementById('device-procedure');
+    if (dp2) dp2.classList.add('hidden');
+    const sp2 = document.getElementById('screen-procedure');
+    if (sp2) sp2.classList.add('hidden');
 
     if (category === 'furniture') {
-        document.getElementById('furniture-procedure').classList.remove('hidden');
+        const el = document.getElementById('furniture-procedure');
+        if (el) el.classList.remove('hidden');
         resetLevels('furniture');
     } else if (category === 'screen') {
-        document.getElementById('screen-procedure').classList.remove('hidden');
-        document.getElementById('final-level-screen').classList.remove('hidden');
+        const el1 = document.getElementById('screen-procedure');
+        if (el1) el1.classList.remove('hidden');
+        const el2 = document.getElementById('final-level-screen');
+        if (el2) el2.classList.remove('hidden');
     } else {
-        document.getElementById('device-procedure').classList.remove('hidden');
+        const el = document.getElementById('device-procedure');
+        if (el) el.classList.remove('hidden');
         resetLevels('device');
     }
 };
