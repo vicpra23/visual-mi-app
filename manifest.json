@@ -1,16 +1,17 @@
 {
-  "name": "Xiaomi VISUAL APP",
-  "short_name": "Xiaomi VISUAL APP",
+  "name": "Xiaomi Training APP",
+  "short_name": "Xiaomi Trainer",
+  "description": "Aplicación de gestión para entrenadores Xiaomi",
   "start_url": "./index.html",
   "display": "standalone",
   "background_color": "#ffffff",
-  "theme_color": "#ff6900",
-  "description": "App de gestión visual e incidencias para Xiaomi",
+  "theme_color": "#ff6700",
   "icons": [
     {
-      "src": "./logo.png",
-      "sizes": "192x192 512x512",
-      "type": "image/png"
+      "src": "Xiaomi_logo_(2021-).svg.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
     }
   ]
 }

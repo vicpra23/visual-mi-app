@@ -16,7 +16,12 @@ function renderLogin(container) {
                 
                 <div class="form-group">
                     <label for="password" class="form-label">Password</label>
-                    <input type="password" id="password" name="password" class="form-control" placeholder="*************" required>
+                    <div style="position: relative;">
+                        <input type="password" id="password" name="password" class="form-control" placeholder="*************" required style="padding-right: 40px; width: 100%;">
+                        <button type="button" id="togglePassword" style="position: absolute; right: 10px; top: 50%; transform: translateY(-50%); background: none; border: none; cursor: pointer; color: var(--text-muted); padding: 0; display: flex; align-items: center;" title="Mostrar/Ocultar contraseña">
+                            <i data-lucide="eye" id="eyeIcon" style="width: 20px;"></i>
+                        </button>
+                    </div>
                 </div>
                 
                 <button type="submit" id="btnSubmit" class="btn-primary" style="width: 100%; margin-top: 1.5rem; height: 50px; font-size: 1rem; border-radius: 12px;">
@@ -34,6 +39,22 @@ function renderLogin(container) {
     var errorMsg = document.getElementById('errorMsg');
     var btnSubmit = document.getElementById('btnSubmit');
     var userSelect = document.getElementById('username');
+    var togglePassword = document.getElementById('togglePassword');
+    var passwordInput = document.getElementById('password');
+
+    if (togglePassword && passwordInput) {
+        togglePassword.addEventListener('click', function() {
+            var type = passwordInput.getAttribute('type') === 'password' ? 'text' : 'password';
+            passwordInput.setAttribute('type', type);
+            var eyeIcon = document.getElementById('eyeIcon');
+            if (type === 'password') {
+                eyeIcon.setAttribute('data-lucide', 'eye');
+            } else {
+                eyeIcon.setAttribute('data-lucide', 'eye-off');
+            }
+            if (typeof lucide !== 'undefined') lucide.createIcons();
+        });
+    }
 
     // Mantenemos el endpoint original getUsersList
     api.getUsersList().then(function(res) {

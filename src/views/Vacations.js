@@ -226,28 +226,34 @@ function renderVacations(container) {
                     });
                 }
                 if (adminData.approvedRequests) {
-                    const userColors = [
-                        { bg: '#fae8ff', text: '#86198f', border: '#f5d0fe' }, // Purple
-                        { bg: '#dbeafe', text: '#1e40af', border: '#bfdbfe' }, // Blue
-                        { bg: '#ffedd5', text: '#9a3412', border: '#fed7aa' }, // Orange
-                        { bg: '#e0f2fe', text: '#075985', border: '#bae6fd' }, // Cyan
-                        { bg: '#f1f5f9', text: '#334155', border: '#e2e8f0' }, // Slate
-                        { bg: '#ffebf0', text: '#c01e52', border: '#ffccd8' }, // Pink
-                        { bg: '#fef3c7', text: '#92400e', border: '#fde68a' }, // Amber
-                        { bg: '#ccfbf1', text: '#115e59', border: '#99f6e4' }  // Teal
+                    const warmColors = [
+                        { bg: '#fee2e2', text: '#b91c1c', border: '#fca5a5' }, // Rojo Vivo
+                        { bg: '#ffedd5', text: '#c2410c', border: '#fdba74' }, // Naranja
+                        { bg: '#fef3c7', text: '#b45309', border: '#fcd34d' }, // Ambar
+                        { bg: '#fae8ff', text: '#a21caf', border: '#f0abfc' }, // Fucsia
+                        { bg: '#f3e8ff', text: '#7e22ce', border: '#d8b4fe' }, // Morado
+                        { bg: '#ffe4e6', text: '#be123c', border: '#fda4af' }, // Rosa Fuerte
+                        { bg: '#fcebe6', text: '#b33c00', border: '#f7c3b3' }, // Teja/Terracota
+                        { bg: '#fae6fa', text: '#990099', border: '#f0b3f0' }  // Magenta Oscuro
                     ];
-                    let colorIndex = 0;
-                    const otherUsers = Array.from(new Set(adminData.approvedRequests.map(r => r.user)))
-                        .filter(u => u && u.toLowerCase() !== targetUser.toLowerCase());
-                    otherUsers.forEach(u => {
-                        userColorMap[u.toString().trim().toLowerCase()] = userColors[colorIndex % userColors.length];
-                        colorIndex++;
+                    
+                    // Ordenamos a los usuarios alfabéticamente para que el color de cada uno sea fijo siempre
+                    const sortedUsers = [...adminData.allUsers]
+                        .map(u => u.user.toString().trim().toLowerCase())
+                        .sort((a,b) => a.localeCompare(b));
+                    
+                    sortedUsers.forEach((u, i) => {
+                        userColorMap[u] = warmColors[i % warmColors.length];
                     });
                 } else {
                     // Si el usuario no ha vuelto a desplegar, alertamos amigablemente
                     showToast("ℹ️ Aviso Backend", "Recuerda volver a desplegar tu script de Google Apps Script para activar la visualización del calendario del admin.", "#vacations");
                 }
-                updateLegend(userColorMap, userPositionMap);
+                
+                // Pasamos al legend solo los colores de los demas usuarios (el nuestro usa los estilos base)
+                let legendColorMap = { ...userColorMap };
+                delete legendColorMap[targetUser.toLowerCase()];
+                updateLegend(legendColorMap, userPositionMap);
                 renderAdminUI(); 
                 
                 // Mover aquí la población del selector para asegurar que adminData existe
@@ -411,12 +417,30 @@ function renderVacations(container) {
                     r.user && r.user.toString().trim().toLowerCase() !== targetUser.toLowerCase() && isInHistoryRange(date, r.fechas)
                 );
                 if (otherApproved.length > 0) {
-                    const firstOtherUser = otherApproved[0].user.toString().trim().toLowerCase();
-                    const color = colorMap[firstOtherUser];
-                    if (color && !cell.classList.contains('day-approved') && !cell.classList.contains('day-extra-ap') && !cell.classList.contains('day-pending')) {
-                        cell.style.background = color.bg;
-                        cell.style.color = color.text;
-                        cell.style.border = `1px solid ${color.border}`;
+                    const uniqueUsers = Array.from(new Set(otherApproved.map(r => r.user.toString().trim())));
+                    
+                    let existingTitle = cell.title ? cell.title + " | " : "";
+                    cell.title = existingTitle + `Otras vacaciones: ${uniqueUsers.join(', ')}`;
+
+                    if (!cell.classList.contains('day-approved') && !cell.classList.contains('day-extra-ap') && !cell.classList.contains('day-pending')) {
+                        const colors = uniqueUsers.map(u => colorMap[u.toLowerCase()]).filter(Boolean);
+                        
+                        if (colors.length === 1) {
+                            cell.style.background = colors[0].bg;
+                            cell.style.color = colors[0].text;
+                            cell.style.border = `1px solid ${colors[0].border}`;
+                        } else if (colors.length > 1) {
+                            let gradientStops = [];
+                            let step = 100 / colors.length;
+                            for (let i = 0; i < colors.length; i++) {
+                                let start = i * step;
+                                let end = (i + 1) * step;
+                                gradientStops.push(`${colors[i].bg} ${start}% ${end}%`);
+                            }
+                            cell.style.background = `linear-gradient(135deg, ${gradientStops.join(', ')})`;
+                            cell.style.color = 'var(--text-main)';
+                            cell.style.border = `1px solid var(--border-main)`;
+                        }
                         cell.style.fontWeight = '600';
                     }
                 }
@@ -641,22 +665,24 @@ function renderVacations(container) {
             
         const uContainer = document.getElementById('adminUserTableContainer');
         uContainer.innerHTML = adminData.allUsers.map(u => `
-            <div class="glass-card" style="padding: 0.8rem; margin-bottom: 0.6rem; border-radius: 12px; border: 1px solid var(--border-main); display: flex; flex-direction: column; gap: 8px;">
-                <div style="font-weight:700; font-size:0.85rem; color:var(--text-main); border-bottom: 1px solid var(--border-main); padding-bottom: 4px;">${u.name}</div>
+            <div class="glass-card" style="padding: 0.8rem; margin-bottom: 0.6rem; border-radius: 12px; border: 1px solid var(--border-main); display: flex; flex-direction: column; gap: 10px;">
+                <div style="font-weight:700; font-size:0.95rem; color:var(--text-main); border-bottom: 1px solid var(--border-main); padding-bottom: 4px;">${u.name}</div>
                 
-                <div style="display: flex; justify-content: space-between; align-items: center;">
-                    <div style="font-size:0.75rem; color:var(--text-muted); font-weight:600;">VAC: <b id="base-${u.user}" style="color:var(--xiaomi-orange); font-size:1rem;">${u.baseAvail}</b></div>
-                    <div style="display:flex; gap:3px;">
-                        <button class="btn-secondary btn-compact" style="width:24px; height:24px; font-size:0.8rem; display:flex; align-items:center; justify-content:center; padding:0; border-radius:6px;" onclick="window.adminAction.modifyBase('${u.user}', -1)">-</button>
-                        <button class="btn-secondary btn-compact" style="width:24px; height:24px; font-size:0.8rem; display:flex; align-items:center; justify-content:center; padding:0; border-radius:6px;" onclick="window.adminAction.modifyBase('${u.user}', 1)">+</button>
+                <div style="display: flex; align-items: center; gap: 12px; flex-wrap: wrap;">
+                    <div style="font-size:0.8rem; color:var(--text-muted); font-weight:600; width: 45px;">VAC:</div>
+                    <b id="base-${u.user}" style="color:var(--xiaomi-orange); font-size:1.1rem; width: 25px; text-align: center;">${u.baseAvail}</b>
+                    <div style="display:flex; gap:4px;">
+                        <button class="btn-secondary btn-compact" style="width:30px; height:30px; font-size:1rem; display:flex; align-items:center; justify-content:center; padding:0; border-radius:6px;" onclick="window.adminAction.modifyBase('${u.user}', -1)">-</button>
+                        <button class="btn-secondary btn-compact" style="width:30px; height:30px; font-size:1rem; display:flex; align-items:center; justify-content:center; padding:0; border-radius:6px;" onclick="window.adminAction.modifyBase('${u.user}', 1)">+</button>
                     </div>
                 </div>
 
-                <div style="display: flex; justify-content: space-between; align-items: center;">
-                    <div style="font-size:0.75rem; color:var(--text-muted); font-weight:600;">EXT: <b id="extra-${u.user}" style="color:#2196f3; font-size:1rem;">${u.extraAvail}</b></div>
-                    <div style="display:flex; gap:3px;">
-                        <button class="btn-secondary btn-compact" style="width:24px; height:24px; font-size:0.8rem; display:flex; align-items:center; justify-content:center; padding:0; border-radius:6px;" onclick="window.adminAction.modifyExtra('${u.user}', -1)">-</button>
-                        <button class="btn-secondary btn-compact" style="width:24px; height:24px; font-size:0.8rem; display:flex; align-items:center; justify-content:center; padding:0; border-radius:6px;" onclick="window.adminAction.modifyExtra('${u.user}', 1)">+</button>
+                <div style="display: flex; align-items: center; gap: 12px; flex-wrap: wrap;">
+                    <div style="font-size:0.8rem; color:var(--text-muted); font-weight:600; width: 45px;">EXT:</div>
+                    <b id="extra-${u.user}" style="color:#2196f3; font-size:1.1rem; width: 25px; text-align: center;">${u.extraAvail}</b>
+                    <div style="display:flex; gap:4px;">
+                        <button class="btn-secondary btn-compact" style="width:30px; height:30px; font-size:1rem; display:flex; align-items:center; justify-content:center; padding:0; border-radius:6px;" onclick="window.adminAction.modifyExtra('${u.user}', -1)">-</button>
+                        <button class="btn-secondary btn-compact" style="width:30px; height:30px; font-size:1rem; display:flex; align-items:center; justify-content:center; padding:0; border-radius:6px;" onclick="window.adminAction.modifyExtra('${u.user}', 1)">+</button>
                     </div>
                 </div>
             </div>
