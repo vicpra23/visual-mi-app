@@ -3,7 +3,7 @@
  */
 
 const APP_CONFIG = {
-    scriptUrl: 'https://script.google.com/macros/s/AKfycbzESLO-rAWQUHZU3odG0W5AhMtQpEFty9f2IJcG54jhvNrDBKknf2lHVLijSJyFfkAoyw/exec',
+    scriptUrl: 'https://script.google.com/macros/s/AKfycbwg1Hpmy3mGdzXhNK7zq9D88SbzrbDveVe6Zb4wjJh8HDApzTlKrxm9oi2eDjEel09O1Q/exec',
     currentUser: null,
     currentReport: {
         category: '',
@@ -15,7 +15,8 @@ const APP_CONFIG = {
     materials: [], // Caché de materiales
     incidentUploadedPhotos: [],
     deviceCatalog: [], // Lista global bajada de 'Dispositivos'
-    currentSelectedDevices: [] // Buffer temporal del reporte actual
+    currentSelectedDevices: [], // Buffer temporal del reporte actual
+    currentSelectedLonas: []
 };
 
 // --- MOTOR UNIVERSAL DE COMPRESIÓN Y RENDERIZADO (Baja Cobertura & CDN) ---
@@ -2066,6 +2067,7 @@ window.removeDeviceFromList = function(index) {
 
 function renderSelectedDevices() {
     const listContainer = document.getElementById('device-selected-list');
+    if (!listContainer) return;
     
     listContainer.innerHTML = '';
     
@@ -2082,6 +2084,76 @@ function renderSelectedDevices() {
             <div style="display:flex; align-items:center; gap:12px;">
                 <span style="background:#ff6700; color:white; padding: 2px 8px; border-radius: 20px; font-weight:bold; font-size:11px;">x${item.cantidad}</span>
                 <button type="button" onclick="removeDeviceFromList(${idx})" style="border:none; background:none; color:#ff4d4f; cursor:pointer; padding:0;"><i class="fa fa-trash"></i></button>
+            </div>
+        `;
+        listContainer.appendChild(div);
+    });
+}
+
+// LOGICA DE LONAS
+
+window.addLonaToList = function() {
+    const dropdown = document.getElementById('lona-selector-dropdown');
+    const customInput = document.getElementById('lona-selector-custom');
+    const qtyInput = document.getElementById('lona-quantity-input');
+    
+    let selectedModel = '';
+    let selectedCode = 'N/A';
+
+    const isCustom = !customInput.classList.contains('hidden');
+    
+    if (isCustom) {
+        selectedModel = customInput.value.trim();
+        selectedCode = 'OTRO';
+    } else {
+        selectedModel = dropdown.value;
+        selectedCode = dropdown.options[dropdown.selectedIndex]?.dataset.code || 'N/A';
+    }
+    
+    const selectedQty = parseInt(qtyInput.value) || 1;
+    
+    if (!selectedModel) {
+        alert(isCustom ? "Escribe el nombre del modelo de lona." : "Por favor seleccione un modelo de la lista.");
+        return;
+    }
+    
+    APP_CONFIG.currentSelectedLonas.push({
+        modelo: selectedModel,
+        cantidad: selectedQty,
+        codigoDispositivo: selectedCode
+    });
+    
+    qtyInput.value = 1;
+    dropdown.selectedIndex = 0;
+    customInput.value = '';
+    
+    renderSelectedLonas();
+};
+
+window.removeLonaFromList = function(index) {
+    APP_CONFIG.currentSelectedLonas.splice(index, 1);
+    renderSelectedLonas();
+};
+
+function renderSelectedLonas() {
+    const listContainer = document.getElementById('lona-selected-list');
+    if (!listContainer) return;
+    
+    listContainer.innerHTML = '';
+    
+    if (APP_CONFIG.currentSelectedLonas.length === 0) {
+        listContainer.innerHTML = '<p id="no-lonas-msg" style="font-style: italic; color: #999; margin: 0; font-size: 12px;">Ningún modelo añadido aún.</p>';
+        return;
+    }
+    
+    APP_CONFIG.currentSelectedLonas.forEach((item, idx) => {
+        const div = document.createElement('div');
+        div.style.cssText = 'display: flex; align-items: center; justify-content: space-between; background: white; border: 1px solid #eee; padding: 6px 10px; border-radius: 6px; font-size: 12px;';
+        div.innerHTML = `
+            <span><strong>${item.modelo}</strong> <small style="color:#666;">(${item.codigoDispositivo})</small></span>
+            <div style="display:flex; align-items:center; gap:12px;">
+                <span style="background:#ff6700; color:white; padding: 2px 8px; border-radius: 20px; font-weight:bold; font-size:11px;">x${item.cantidad}</span>
+                <button type="button" onclick="removeLonaFromList(${idx})" style="border:none; background:none; color:#ff4d4f; cursor:pointer; padding:0;"><i class="fa fa-trash"></i></button>
             </div>
         `;
         listContainer.appendChild(div);
@@ -2114,6 +2186,8 @@ window.chooseMainCategory = function(category, btn) {
         APP_CONFIG.currentReport.path = ['Mobiliario'];
     } else if (category === 'screen') {
         APP_CONFIG.currentReport.path = ['Pantalla Digital'];
+    } else if (category === 'lona') {
+        APP_CONFIG.currentReport.path = ['Lona'];
     } else {
         APP_CONFIG.currentReport.path = ['Dispositivo'];
     }
@@ -2131,6 +2205,8 @@ window.chooseMainCategory = function(category, btn) {
     if (dp2) dp2.classList.add('hidden');
     const sp2 = document.getElementById('screen-procedure');
     if (sp2) sp2.classList.add('hidden');
+    const lp2 = document.getElementById('lona-procedure');
+    if (lp2) lp2.classList.add('hidden');
 
     if (category === 'furniture') {
         const el = document.getElementById('furniture-procedure');
@@ -2141,6 +2217,14 @@ window.chooseMainCategory = function(category, btn) {
         if (el1) el1.classList.remove('hidden');
         const el2 = document.getElementById('final-level-screen');
         if (el2) el2.classList.remove('hidden');
+    } else if (category === 'lona') {
+        const el = document.getElementById('lona-procedure');
+        if (el) {
+            el.classList.remove('hidden');
+            const l2 = document.getElementById('lona-l2');
+            if (l2) l2.classList.remove('hidden');
+            el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
     } else {
         const el = document.getElementById('device-procedure');
         if (el) el.classList.remove('hidden');
@@ -2275,6 +2359,26 @@ function selectLevel(type, level, value) {
             
             box.scrollIntoView({ behavior: 'smooth', block: 'center' });
         }
+    } else if (type === 'lona' && level === 3) {
+        if (!window.isAutoloadingReport) {
+            APP_CONFIG.currentSelectedLonas = [];
+            if (typeof renderSelectedLonas === 'function') renderSelectedLonas();
+        }
+        
+        if (APP_CONFIG.deviceCatalog.length === 0) {
+            loadDeviceCatalog().then(() => populateLonaDropdown());
+        } else {
+            populateLonaDropdown();
+        }
+        
+        const final = document.getElementById(`final-level-${type}`);
+        if (final) {
+            final.classList.remove('hidden');
+            final.scrollIntoView({ behavior: 'smooth' });
+        }
+    } else {
+        // Generico: mostrar siguiente nivel o final
+        showFinalForm(type);
     }
     
     // Show next level or final form
@@ -2291,9 +2395,51 @@ function selectLevel(type, level, value) {
 
 function showFinalForm(type) {
     const final = document.getElementById(`final-level-${type}`);
+    if (final) {
+        final.classList.remove('hidden');
+        final.scrollIntoView({ behavior: 'smooth' });
+    }
+}
+
+function populateLonaDropdown() {
+    const dropdown = document.getElementById('lona-selector-dropdown');
+    if (!dropdown) return;
     
-    final.classList.remove('hidden');
-    final.scrollIntoView({ behavior: 'smooth' });
+    dropdown.innerHTML = '<option value="">Seleccione modelo...</option>';
+    
+    const tipologyChosen = String(APP_CONFIG.currentReport.path[1] || '').trim().toUpperCase();
+    const uniqueModels = new Set();
+    
+    APP_CONFIG.deviceCatalog.forEach(d => {
+        const modelo = String(d.col1 || d.Subcategoria || d.Subcategoria || '').trim();
+        const code = String(d.col2 || d.Codigo || d['Codigo Dispositivo'] || '').trim();
+        const repType = String(d.col0 || d.Tipologia || '').trim().toUpperCase();
+        const subCat = modelo.toUpperCase();
+        
+        if (!modelo) return;
+        
+        let tipologyMatch = false;
+        if (repType === tipologyChosen || repType.includes(tipologyChosen)) tipologyMatch = true;
+        if (subCat === tipologyChosen || subCat.includes(tipologyChosen)) tipologyMatch = true;
+        
+        if (!tipologyMatch && repType.includes('LONA') && tipologyChosen.includes('TOP TABLE') && (repType.includes('TOP TABLE') || subCat.includes('TOP TABLE'))) tipologyMatch = true;
+        if (!tipologyMatch && repType.includes('LONA') && tipologyChosen.includes('COLUMN') && (repType.includes('COLUMN') || subCat.includes('COLUMN'))) tipologyMatch = true;
+        if (!tipologyMatch && repType.includes('LONA') && tipologyChosen.includes('WALL') && (repType.includes('WALL') || subCat.includes('WALL'))) tipologyMatch = true;
+        if (!tipologyMatch && repType.includes('LONA') && !repType.includes('TOP TABLE') && !repType.includes('COLUMN') && !repType.includes('WALL') && !subCat.includes('TOP TABLE') && !subCat.includes('COLUMN') && !subCat.includes('WALL')) tipologyMatch = true; // Fallback
+        
+        if (tipologyMatch) {
+            const key = modelo + '_' + code;
+            if (!uniqueModels.has(key)) {
+                uniqueModels.add(key);
+                const opt = document.createElement('option');
+                opt.value = modelo;
+                opt.textContent = code && code !== 'N/A' ? `${modelo} (${code})` : modelo;
+                opt.dataset.code = code;
+                opt.dataset.repType = repType;
+                dropdown.appendChild(opt);
+            }
+        }
+    });
 }
 
 async function handleIncidentPhotos(input, type) {
@@ -2421,6 +2567,7 @@ async function submitFinalReport(event, type) {
         let zoneId = 'drop-zone-device';
         if (type === 'furniture') zoneId = 'drop-zone-furniture';
         else if (type === 'screen') zoneId = 'drop-zone-screen';
+        else if (type === 'lona') zoneId = 'drop-zone-lona';
         const zone = document.getElementById(zoneId);
         if (zone) {
             zone.style.border = '2px dashed #ff4d4f';
@@ -2466,10 +2613,12 @@ async function submitFinalReport(event, type) {
     try {
         const isFurniture = type === 'furniture';
         const isScreen = type === 'screen';
+        const isLona = type === 'lona';
         
         let reportCategory = 'Dispositivo';
         if (isFurniture) reportCategory = 'Mobiliario';
         if (isScreen) reportCategory = 'Pantalla Digital';
+        if (isLona) reportCategory = 'Lona';
 
         const storeSelect = document.getElementById('incident-centro');
         const selectedOption = storeSelect.options[storeSelect.selectedIndex];
@@ -2525,9 +2674,9 @@ async function submitFinalReport(event, type) {
                 }
                 btn.disabled = false;
                 btn.textContent = originalText;
-                return alert('Falta Información: Por favor, selecciona qué ELEMENTO de Mobiliario presenta el fallo.');
+                return alert('Falta Información: Por favor, indica la subcategoría del mobiliario.');
             }
-
+            
             // SEGURIDAD EXTREMA: Validar Motivo detallado de Mobiliario
             if (!reportData.motivo) {
                 const box = document.getElementById('furniture-l3');
@@ -2548,6 +2697,44 @@ async function submitFinalReport(event, type) {
             // No sub-categories or reasons required.
             reportData.subcategoria = '';
             reportData.motivo = '';
+        } else if (isLona) {
+            if (APP_CONFIG.currentSelectedLonas.length === 0) {
+                const box = document.getElementById('lona-models-box');
+                if (box) {
+                    box.style.border = '2px solid #ff4d4f';
+                    box.style.boxShadow = '0 0 12px rgba(255,77,79,0.4)';
+                    box.style.transition = 'all 0.3s ease';
+                    box.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    setTimeout(() => {
+                        box.style.border = '1px solid var(--mi-border)';
+                        box.style.boxShadow = 'none';
+                    }, 4000);
+                }
+                btn.disabled = false;
+                btn.textContent = originalText;
+                return;
+            }
+            const enviarSelect = form.querySelector('.rep-enviar');
+            if (!enviarSelect || !enviarSelect.value) {
+                if (enviarSelect) {
+                    enviarSelect.style.border = '2px solid #ff4d4f';
+                    enviarSelect.style.boxShadow = '0 0 10px rgba(255,77,79,0.3)';
+                    enviarSelect.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    enviarSelect.focus();
+                    setTimeout(() => {
+                        enviarSelect.style.border = '1px solid var(--mi-border)';
+                        enviarSelect.style.boxShadow = 'none';
+                    }, 4000);
+                }
+                btn.disabled = false;
+                btn.textContent = originalText;
+                return;
+            }
+
+            reportData.tipologia = APP_CONFIG.currentReport.path[1] || '';
+            reportData.motivo = APP_CONFIG.currentReport.path[2] || ''; 
+            reportData.enviar = enviarSelect.value; 
+            reportData.dispositivos = APP_CONFIG.currentSelectedLonas;
         } else {
             // Para Dispositivos
             if (APP_CONFIG.currentSelectedDevices.length === 0) {
@@ -2683,8 +2870,19 @@ function resetProcedure(preserveStoreContext = false) {
         centro: preserveStoreContext ? storedCentro : '', 
         path: [] 
     };
+
+    // Reset notes/inputs
+    document.querySelectorAll('.rep-desc').forEach(el => el.value = '');
+    
+    const submitBtn = document.getElementById('dash-submit-btn');
+    if (submitBtn) {
+        submitBtn.disabled = false;
+        submitBtn.textContent = 'Confirmar y Enviar Reporte';
+    }
+    
     APP_CONFIG.incidentUploadedPhotos = [];
     APP_CONFIG.currentSelectedDevices = []; // Reset de buffer temporal
+    APP_CONFIG.currentSelectedLonas = [];
     
     // Limpiar miniaturas
     document.querySelectorAll('.thumbnail-container').forEach(c => c.innerHTML = '');
@@ -2880,9 +3078,13 @@ function fillSelect(id, set, defaultText) {
 }
 
 window.filterDashboardTable = function() {
-    const cuenta = document.getElementById('filter-cuenta').value;
-    const tienda = document.getElementById('filter-tienda').value;
-    const usuario = document.getElementById('filter-usuario').value;
+    const cuentaEl = document.getElementById('dash-filter-cuenta');
+    const tiendaEl = document.getElementById('dash-filter-tienda');
+    const usuarioEl = document.getElementById('dash-filter-usuario');
+    
+    const cuenta = cuentaEl ? cuentaEl.value : 'all';
+    const tienda = tiendaEl ? tiendaEl.value : 'all';
+    const usuario = usuarioEl ? usuarioEl.value : 'all';
 
     const filtered = APP_CONFIG.dashboardReports.filter(r => {
         const matchCuenta = cuenta === 'all' || r.cuenta === cuenta;

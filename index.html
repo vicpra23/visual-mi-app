@@ -228,6 +228,9 @@
                             <button class="bubble-btn screen" onclick="chooseMainCategory('screen', this)" style="border-color: #722ed1; color: #722ed1;">
                                 <span style="display:inline-block; width: 10px; height: 16px; border: 2px solid currentColor; border-radius: 2px; margin-right: 6px; vertical-align: text-bottom; position: relative; top: -2px;"></span> Pantalla Digital
                             </button>
+                            <button class="bubble-btn lona" onclick="chooseMainCategory('lona', this)" style="border-color: #ff4d4f; color: #ff4d4f;">
+                                <span style="display:inline-block; width: 16px; height: 10px; border: 2px solid currentColor; border-radius: 2px; margin-right: 6px; vertical-align: middle; position: relative;"></span> Lona
+                            </button>
                         </div>
                     </div>
 
@@ -252,11 +255,9 @@
                                     <button class="bubble-btn reason" onclick="selectLevel('furniture', 3, 'NO RECIBIDO')">NO RECIBIDO</button>
                                     <button class="bubble-btn reason" onclick="selectLevel('furniture', 3, 'DETERIORO')">DETERIORO</button>
                                     <button class="bubble-btn reason" onclick="selectLevel('furniture', 3, 'ILUMINACIÓN')">ILUMINACIÓN</button>
-                                    <button class="bubble-btn reason" onclick="selectLevel('furniture', 3, 'TEXTIL')">TEXTIL</button>
                                     <button class="bubble-btn reason" onclick="selectLevel('furniture', 3, 'OTROS')">OTROS</button>
                                 </div>
                             </div>
-                        </div>
                         </div>
                         
                         <!-- Final Level Mobiliario Compacted -->
@@ -295,6 +296,7 @@
                                 </button>
                             </form>
                         </div>
+                    </div>
 
                     <!-- Procedimiento Pantalla REDISEÑADO COMPACTO -->
                     <div id="screen-procedure" class="hidden" style="margin-top: 2rem;">
@@ -392,7 +394,7 @@
                                     </div>
 
                                     <!-- COLUMNA 2: LOGISTICA -->
-                                    <div class="form-group">
+                                    <div class="form-group" style="padding-top: 1rem;">
                                         <label style="font-weight:600; color:var(--mi-gray-dark); display:flex; align-items:center; gap:6px;">
                                             <i class="fas fa-truck"></i> ¿Dónde enviar el material? <span style="color:red;">*</span>
                                         </label>
@@ -433,6 +435,103 @@
                                     </div>
                                 </div>
 
+                                <button type="submit" class="btn-primary" style="width: 100%; padding: 1rem; font-size: 1.1rem; font-weight: 700;">
+                                    <i class="fas fa-check-circle"></i> Confirmar y Enviar Reporte
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+
+                    <!-- Procedimiento Lona -->
+                    <div id="lona-procedure" class="hidden" style="margin-top: 2rem;">
+                        <div class="procedure-col lona-col" style="width: 100%;">
+                            
+                            <div id="lona-l2" class="level-box hidden" data-level="2">
+                                <span class="level-label">Tipología</span>
+                                <div class="bubble-group">
+                                    <button class="bubble-btn tipology" onclick="selectLevel('lona', 2, 'Top Table')">Top Table</button>
+                                    <button class="bubble-btn tipology" onclick="selectLevel('lona', 2, 'Lightbox Column')">Lightbox Column</button>
+                                    <button class="bubble-btn tipology" onclick="selectLevel('lona', 2, 'Lightbox Wall')">Lightbox Wall</button>
+                                </div>
+                            </div>
+                            
+                            <div id="lona-l3" class="level-box hidden" data-level="3" style="margin-bottom: 2rem;">
+                                <span class="level-label">Motivo</span>
+                                <div class="bubble-group">
+                                    <button class="bubble-btn reason" onclick="selectLevel('lona', 3, 'Medidas')">Medidas</button>
+                                    <button class="bubble-btn reason" onclick="selectLevel('lona', 3, 'Roto')">Roto</button>
+                                    <button class="bubble-btn reason" onclick="selectLevel('lona', 3, 'Deterioro')">Deterioro</button>
+                                    <button class="bubble-btn reason" onclick="selectLevel('lona', 3, 'No Recibido')">No Recibido</button>
+                                    <button class="bubble-btn reason" onclick="selectLevel('lona', 3, 'Idioma')">Idioma</button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Bloque Final Lona -->
+                        <div id="final-level-lona" class="form-container hidden" style="max-width: 100%; margin-top: 0;">
+                            <form onsubmit="submitFinalReport(event, 'lona')">
+                                <div class="form-grid-2col" style="gap: 1.5rem; margin-bottom: 1.5rem; align-items: start;">
+                                    
+                                    <!-- COLUMNA 1: GESTION DE ARTICULOS -->
+                                    <div class="form-group" id="lona-models-box" style="background: #fff; border: 1px solid var(--mi-border); padding: 1rem; border-radius: 10px; box-shadow: 0 2px 8px rgba(0,0,0,0.02);">
+                                        <label style="font-weight:700; color:var(--mi-orange); display:flex; align-items:center; gap:6px; margin-bottom:1rem;">
+                                            <i class="fas fa-box-open"></i> Modelo y Cantidad
+                                        </label>
+                                        
+                                        <div style="display: flex; gap: 6px; align-items: flex-end; margin-bottom: 1rem;">
+                                            <div style="flex: 1;">
+                                                <select id="lona-selector-dropdown" class="form-control" style="font-size: 12px; height: 35px;">
+                                                    <option value="">Seleccione modelo...</option>
+                                                </select>
+                                                <input type="text" id="lona-selector-custom" class="form-control hidden" placeholder="Nombre del artículo..." style="font-size: 12px; height: 35px; border-bottom: 2px solid var(--mi-orange);">
+                                            </div>
+                                            <div style="width: 60px;">
+                                                <input type="number" id="lona-quantity-input" class="form-control" min="1" value="1" style="font-size: 13px; height: 35px; text-align: center;" title="Cantidad">
+                                            </div>
+                                            <button type="button" onclick="addLonaToList()" style="background: var(--mi-orange); color: white; border: none; border-radius: 4px; height: 35px; width: 35px; cursor: pointer; font-weight: bold; font-size: 1.2rem; display: flex; align-items: center; justify-content: center;">+</button>
+                                        </div>
+                                        
+                                        <div id="lona-selected-list" style="max-height: 100px; overflow-y: auto; background: #f9f9f9; padding: 0.5rem; border-radius: 6px; display: flex; flex-direction: column; gap: 5px;">
+                                            <p id="no-lonas-msg" style="font-style: italic; color: #999; margin: 0; font-size: 11px;">Ningún modelo añadido.</p>
+                                        </div>
+                                    </div>
+
+                                    <!-- COLUMNA 2: LOGISTICA -->
+                                    <div class="form-group" style="padding-top: 1rem;">
+                                        <label style="font-weight:600; color:var(--mi-gray-dark); display:flex; align-items:center; gap:6px;">
+                                            <i class="fas fa-truck"></i> ¿Dónde enviar el material? <span style="color:red;">*</span>
+                                        </label>
+                                        <select class="form-control rep-enviar" required style="margin-top: 0.5rem; height: 42px;">
+                                            <option value="" disabled selected>Seleccione destino...</option>
+                                            <option value="Tienda">Tienda</option>
+                                            <option value="GPV">GPV</option>
+                                            <option value="Recoger en almacén">Recoger en almacén</option>
+                                            <option value="No se necesita enviar material">No se necesita enviar material</option>
+                                        </select>
+                                    </div>
+                                </div>
+
+                                <!-- FILA 2: Comentarios + Fotos -->
+                                <div class="form-grid-2col" style="gap: 1.5rem; margin-bottom: 2rem; align-items: start;">
+                                    <!-- COLUMNA 1: COMENTARIOS -->
+                                    <div class="form-group">
+                                        <label style="font-weight: 600; display:block;"><i class="fas fa-comment-alt"></i> Comentarios adicionales</label>
+                                        <textarea class="rep-desc" rows="5" placeholder="Escribe aquí cualquier detalle..." style="margin-top: 0.5rem; resize: none;"></textarea>
+                                    </div>
+
+                                    <!-- COLUMNA 2: FOTOS -->
+                                    <div class="form-group" style="position:relative;">
+                                        <label style="font-weight: 600; display: block;"><i class="fas fa-camera"></i> Reporte fotográfico</label>
+                                        <div style="display: flex; gap: 10px; margin-top: 10px; margin-bottom: 10px;">
+                                            <button type="button" class="btn-photo-upload" onclick="document.getElementById('lona-file-cam').click()"><i class="fas fa-camera"></i> Cámara</button>
+                                            <button type="button" class="btn-photo-upload" onclick="document.getElementById('lona-file-gal').click()"><i class="fas fa-images"></i> Galería</button>
+                                        </div>
+                                        <input type="file" id="lona-file-cam" accept="image/*" capture="environment" onchange="handleIncidentPhotos(this, 'lona')" style="display: none;">
+                                        <input type="file" id="lona-file-gal" multiple accept="image/*" onchange="handleIncidentPhotos(this, 'lona')" style="display: none;">
+                                        <div id="incident-thumbnails-lona" class="thumbnail-container" style="display: flex; flex-wrap: wrap; gap: 10px; margin-top: 10px;"></div>
+                                        <small id="incident-uploading-msg-lona" style="display: none; color: var(--mi-orange); font-weight: 600;"><i class="fas fa-spinner fa-spin"></i> Subiendo fotos...</small>
+                                    </div>
+                                </div>
                                 <button type="submit" class="btn-primary" style="width: 100%; padding: 1rem; font-size: 1.1rem; font-weight: 700;">
                                     <i class="fas fa-check-circle"></i> Confirmar y Enviar Reporte
                                 </button>
@@ -1149,7 +1248,7 @@
 
     <!-- Archivos principales de la aplicación -->
     <link rel="stylesheet" href="style.css?v=5">
-    <script src="main_v130.js?v=46" defer></script>
+    <script src="main_v130.js?v=47" defer></script>
 </body>
 </html>
 </html>

@@ -343,6 +343,52 @@ function getDashboardData(ss, rol) {
     });
   }
 
+  // 4. Procesar Lonas
+  const lonaSheet = getSheetDefensive(ss, 'Reportes Lonas');
+  let lonaReports = lonaSheet ? getFastValues(lonaSheet) : [];
+  if (lonaReports.length > 1) {
+    lonaReports.shift();
+    const lonaMap = {};
+    lonaReports.forEach(r => {
+      if (!r[0]) return;
+      const id = r[0];
+      const item = {
+        modelo: r[9] || '',
+        codigoDispositivo: r[10] || '',
+        cantidad: r[11] || 1
+      };
+      
+      if (!lonaMap[id]) {
+        const est = String(r[14] || '').trim().toLowerCase();
+        if (est === 'abierta') openTotal++;
+        if (est === 'pendiente') pendingTotal++;
+        
+        lonaMap[id] = {
+          id: id,
+          fecha: r[1] instanceof Date ? Utilities.formatDate(r[1], tz, "yyyy-MM-dd HH:mm:ss") : r[1],
+          usuario: r[2],
+          cuenta: r[3],
+          tienda: r[4],
+          categoria: 'Lona',
+          tipologia: r[7] || '', 
+          subcategoria: r[7] || '', // Usamos tipologa como subcategora para compatibilidad de la vista
+          enviar: r[12] || '',
+          motivo: r[8] || '',
+          descripcion: r[13] || '',
+          estado: r[14] || 'Abierta',
+          tiempo: r[15] || 0,
+          fotos: r[16] || '',
+          dispositivos: [item],
+          tipo: `Lona: ${r[7] || ''} > ${r[8] || ''}`
+        };
+      } else {
+        lonaMap[id].dispositivos.push(item);
+      }
+    });
+    
+    Object.keys(lonaMap).forEach(k => allReports.push(lonaMap[k]));
+  }
+
   // Invertir para tener últimos primero por defecto en array separado de las incidencias de lanzamiento
   allReports = allReports.reverse();
 
@@ -523,12 +569,13 @@ function handleSubmitReport(ss, data) {
     
     const isFurniture = String(data.categoria).toLowerCase() === 'mobiliario';
     const isScreen = String(data.categoria).toLowerCase() === 'pantalla digital';
+    const isLona = String(data.categoria).toLowerCase() === 'lona' || String(data.categoria).toLowerCase() === 'lonas';
     const updateId = data.updateId || '';
     
     // LOGICA DE EDICIÓN: Si estamos editando, borramos el rastro previo para machacar los datos limpiamente
     if (updateId) {
       Logger.log("🛠️ [EDIT MODE] Intentando sobreescribir reporte ID: " + updateId);
-      const sheetNames = ['Reporte mobiliario', 'Reporte dispositivo', 'Reporte Pantalla'];
+      const sheetNames = ['Reporte mobiliario', 'Reporte dispositivo', 'Reporte Pantalla', 'Reportes Lonas'];
       sheetNames.forEach(sn => {
         const sh = getSheetDefensive(ss, sn);
         if (sh) {
@@ -551,7 +598,7 @@ function handleSubmitReport(ss, data) {
     }
     
     // Mantenemos el ID original si estamos editando, sino generamos uno nuevo
-    const finalId = updateId || generateUUID(isFurniture ? 'REP_M' : (isScreen ? 'REP_P' : 'REP_D'));
+    const finalId = updateId || generateUUID(isFurniture ? 'REP_M' : (isScreen ? 'REP_P' : (isLona ? 'REP_L' : 'REP_D')));
     
     const formulaTiempo = '';
 
@@ -595,6 +642,36 @@ function handleSubmitReport(ss, data) {
         finalPhotos              // 11. Fotos
       ];
       sheet.appendRow(row);
+      
+    } else if (isLona) {
+      const sheet = getSheetDefensive(ss, 'Reportes Lonas');
+      if (!sheet) return { success: false, message: 'Hoja "Reportes Lonas" no encontrada' };
+      
+      const lonaList = data.dispositivos || [];
+      if (lonaList.length === 0) return { success: false, message: 'No se seleccionaron modelos de lona.' };
+      
+      lonaList.forEach(item => {
+        const row = [
+          finalId,                 // 1. ID
+          now,                     // 2. Fecha
+          finalUser,               // 3. Usuario
+          cuenta,                  // 4. Cuenta
+          data.tienda || '',       // 5. Tienda
+          rms,                     // 6. Cdigo RMS
+          data.categoria,          // 7. Categora
+          data.tipologia || '',    // 8. Tipologa
+          data.motivo || '',       // 9. Motivo
+          item.modelo || '',       // 10. Modelo
+          item.codigoDispositivo || '', // 11. Cdigo Dispositivo
+          item.cantidad || 1,      // 12. Cantidad
+          data.enviar || '',       // 13. Enviar
+          data.descripcion || '',  // 14. Comentario
+          data.estado || 'Abierta',// 15. Estado
+          formulaTiempo || 0,      // 16. Tiempo
+          finalPhotos              // 17. Fotos
+        ];
+        sheet.appendRow(row);
+      });
       
     } else {
       const sheet = getSheetDefensive(ss, 'Reporte dispositivo');
@@ -913,7 +990,27 @@ function resolveIncident(ss, data) {
       if (foundAny) return { success: true };
     }
     
-    // 3. Buscar en pestaña 'Incidencias Lanzamientos'
+    // 3. Buscar en pestaña 'Reportes Lonas'
+    const lonaSheet = getSheetDefensive(ss, 'Reportes Lonas');
+    if (lonaSheet) {
+      const reports = getFastValues(lonaSheet);
+      let foundAny = false;
+      for (let i = 1; i < reports.length; i++) {
+        if (reports[i][0] === id) {
+          foundAny = true;
+          lonaSheet.getRange(i + 1, 15).setValue(status); // Columna O (índice 14) es Estado
+          lonaSheet.getRange(i + 1, 16).setValue(calculateDaysFromDate(reports[i][1])); // Congelar tiempo
+          if (newPhotos) {
+            const oldPhotos = reports[i][16] || ''; // Columna Q (índice 16) es Fotos
+            const combinedPhotos = oldPhotos ? oldPhotos + '\n' + newPhotos : newPhotos;
+            lonaSheet.getRange(i + 1, 17).setValue(combinedPhotos);
+          }
+        }
+      }
+      if (foundAny) return { success: true };
+    }
+    
+    // 4. Buscar en pestaña 'Incidencias Lanzamientos'
     const incSheet = getSheetDefensive(ss, 'Incidencias Lanzamientos');
     if (incSheet) {
       const incs = getFastValues(incSheet);
@@ -1003,7 +1100,7 @@ function deleteReport(ss, id) {
   const lock = LockService.getScriptLock();
   try {
     lock.waitLock(CONFIG.LOCK_TIMEOUT);
-    const sheetsToCheck = ['Reporte mobiliario', 'Reporte dispositivo', 'Incidencias Lanzamientos'];
+    const sheetsToCheck = ['Reporte mobiliario', 'Reporte dispositivo', 'Reporte Pantalla', 'Reportes Lonas', 'Incidencias Lanzamientos'];
     let deletedAny = false;
     sheetsToCheck.forEach(sn => {
       const sheet = getSheetDefensive(ss, sn);
