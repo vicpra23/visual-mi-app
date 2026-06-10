@@ -552,6 +552,13 @@
                             <select id="dash-filter-tienda" class="capsule-select" style="width: auto !important; min-width: 140px; height: 36px; padding: 0 8px; font-size: 12px;" onchange="filterDashboardTable()">
                                 <option value="all">Todas Tiendas</option>
                             </select>
+                            <select id="dash-filter-tipo" class="capsule-select" style="width: auto !important; min-width: 120px; height: 36px; padding: 0 8px; font-size: 12px;" onchange="filterDashboardTable()">
+                                <option value="all">Todos Tipos</option>
+                                <option value="dispositivo">Dispositivo</option>
+                                <option value="mobiliario">Mobiliario</option>
+                                <option value="pantalla">Pantalla Digital</option>
+                                <option value="lona">Lona</option>
+                            </select>
                             <select id="dash-filter-usuario" class="capsule-select" style="display: none; width: auto !important; min-width: 140px; height: 36px; padding: 0 8px; font-size: 12px;" onchange="filterDashboardTable()">
                                 <option value="all">Todos Usuarios</option>
                             </select>
@@ -987,6 +994,13 @@
                 </select>
                 <select id="modal-filter-tienda" class="capsule-select" style="flex: 1; min-width: 0; height: 36px; padding: 0 10px; font-size: 13px; outline: none; border: 1px solid var(--mi-border); border-radius: 6px;" onchange="window.applyModalFilters()">
                     <option value="all">Todas las Tiendas</option>
+                </select>
+                <select id="modal-filter-tipo" class="capsule-select" style="flex: 1; min-width: 0; height: 36px; padding: 0 10px; font-size: 13px; outline: none; border: 1px solid var(--mi-border); border-radius: 6px;" onchange="window.applyModalFilters()">
+                    <option value="all">Todos los Tipos</option>
+                    <option value="dispositivo">Dispositivo</option>
+                    <option value="mobiliario">Mobiliario</option>
+                    <option value="pantalla">Pantalla Digital</option>
+                    <option value="lona">Lona</option>
                 </select>
                 <select id="modal-filter-usuario" class="capsule-select" style="flex: 1; min-width: 0; height: 36px; padding: 0 10px; font-size: 13px; outline: none; border: 1px solid var(--mi-border); border-radius: 6px;" onchange="window.applyModalFilters()">
                     <option value="all">Todos los Usuarios</option>

@@ -1473,6 +1473,7 @@ window.submitResolution = async function() {
 window.filterDashboardTable = function() {
     const selCuenta = document.getElementById('dash-filter-cuenta')?.value || 'all';
     const selTienda = document.getElementById('dash-filter-tienda')?.value || 'all';
+    const selTipo = document.getElementById('dash-filter-tipo')?.value || 'all';
     const selEstado = document.getElementById('dash-filter-estado')?.value || 'all';
     const selUsuario = document.getElementById('dash-filter-usuario')?.value || 'all';
     
@@ -1485,6 +1486,15 @@ window.filterDashboardTable = function() {
         const matchCuenta = selCuenta === 'all' || String(r.cuenta || '').trim() === selCuenta;
         const matchTienda = selTienda === 'all' || String(r.tienda || '').trim() === selTienda;
         
+        let matchTipo = true;
+        if (selTipo !== 'all') {
+            const rCat = String(r.categoria || '').trim().toLowerCase();
+            let rTipoFinal = rCat;
+            if (String(r.tipo || '').trim().toLowerCase().includes('lanzamiento')) rTipoFinal = 'lanzamiento';
+            if (rCat.includes('pantalla')) rTipoFinal = 'pantalla';
+            matchTipo = rTipoFinal === selTipo;
+        }
+        
         let matchUsuario = true;
         if (isAdmin && selUsuario !== 'all') {
             matchUsuario = String(r.usuario || '').trim() === selUsuario;
@@ -1496,7 +1506,7 @@ window.filterDashboardTable = function() {
             matchEstado = rowEst.includes(selEstado);
         }
         
-        return matchCuenta && matchTienda && matchUsuario && matchEstado;
+        return matchCuenta && matchTienda && matchTipo && matchUsuario && matchEstado;
     });
     
     renderDashboardTable(filtered);
@@ -1689,6 +1699,7 @@ window.applyModalFilters = function() {
     
     const cuentaVal = document.getElementById('modal-filter-cuenta')?.value || 'all';
     const tiendaVal = document.getElementById('modal-filter-tienda')?.value || 'all';
+    const tipoVal = document.getElementById('modal-filter-tipo')?.value || 'all';
     const usuarioVal = document.getElementById('modal-filter-usuario')?.value || 'all';
     const estadoVal = document.getElementById('modal-filter-estado')?.value || 'all';
     
@@ -1709,6 +1720,14 @@ window.applyModalFilters = function() {
         if (cuentaVal !== 'all' && String(r.cuenta || '').trim() !== cuentaVal) return false;
         
         if (tiendaVal !== 'all' && String(r.tienda || '').trim() !== tiendaVal) return false;
+        
+        if (tipoVal !== 'all') {
+            const rCat = String(r.categoria || '').trim().toLowerCase();
+            let rTipoFinal = rCat;
+            if (String(r.tipo || '').trim().toLowerCase().includes('lanzamiento')) rTipoFinal = 'lanzamiento';
+            if (rCat.includes('pantalla')) rTipoFinal = 'pantalla';
+            if (rTipoFinal !== tipoVal) return false;
+        }
         
         if (isAdmin && usuarioVal !== 'all') {
             const rUsuario = String(r.usuario || '').trim();
