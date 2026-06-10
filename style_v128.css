@@ -1282,9 +1282,10 @@ textarea {
         border-radius: 24px 24px 0 0 !important;
         margin-bottom: 0 !important;
         max-height: 90vh !important;
+        min-height: 35vh !important;
         animation: slideUpMobile 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards !important;
         box-shadow: 0 -10px 40px rgba(0,0,0,0.15) !important;
-        padding: 24px 16px 40px 16px !important; /* High bottom padding to avoid bottom line */
+        padding: 24px 16px max(60px, env(safe-area-inset-bottom)) 16px !important; /* High bottom padding and safe-area to avoid bottom line */
     }
     
     .bottom-sheet-drag-handle {
