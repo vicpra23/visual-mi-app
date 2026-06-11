@@ -649,7 +649,6 @@ function renderDashboardTable(reports) {
         // Fix UX: Priorizar valor de tiempo de Excel, solo calcular dinámico si está vacío
         let rawTiempo = r.tiempo;
         let displayTiempo = (rawTiempo !== undefined && rawTiempo !== null && rawTiempo !== '') ? String(rawTiempo).trim() : '';
-        const est = String(r.estado).trim().toLowerCase();
         const isResolvedTiempo = est === 'solucionado' || est === 'cerrada' || est === 'cerrado' || est === 'realizado' || est === 'realizada';
         
         if (displayTiempo !== '') {
