@@ -1509,7 +1509,46 @@ window.filterDashboardTable = function() {
         return matchCuenta && matchTienda && matchTipo && matchUsuario && matchEstado;
     });
     
+    function getSortValue(r) {
+        const est = String(r.estado).trim().toLowerCase();
+        const isResolvedTiempo = est === 'solucionado' || est === 'cerrada' || est === 'cerrado' || est === 'realizado' || est === 'realizada';
+        let rawTiempo = r.tiempo;
+        let displayTiempo = (rawTiempo !== undefined && rawTiempo !== null && rawTiempo !== '') ? String(rawTiempo).trim() : '';
+        if (displayTiempo !== '') {
+            if (!(displayTiempo === '0' && !isResolvedTiempo)) {
+                return !isNaN(displayTiempo) ? Math.max(0, parseInt(displayTiempo)) : 0;
+            }
+        }
+        const fechaStr = String(r.fecha || '');
+        const reportDate = new Date(fechaStr.replace(/-/g, '/')); 
+        if (!isNaN(reportDate.getTime())) {
+            if (isResolvedTiempo) return 0;
+            const diffTime = Math.abs(Date.now() - reportDate.getTime());
+            return Math.floor(diffTime / (1000 * 60 * 60 * 24));
+        }
+        return 0;
+    }
+
+    if (window.dashboardTimeSortOrder) {
+        filtered.sort((a, b) => {
+            const valA = getSortValue(a);
+            const valB = getSortValue(b);
+            return window.dashboardTimeSortOrder === 'desc' ? valB - valA : valA - valB;
+        });
+    }
+    
     renderDashboardTable(filtered);
+};
+
+window.dashboardTimeSortOrder = 'desc';
+
+window.sortDashboardByTime = function() {
+    window.dashboardTimeSortOrder = window.dashboardTimeSortOrder === 'desc' ? 'asc' : 'desc';
+    const icon = document.getElementById('sort-tiempo-icon');
+    if (icon) {
+        icon.className = window.dashboardTimeSortOrder === 'desc' ? 'fas fa-sort-numeric-down-alt' : 'fas fa-sort-numeric-up';
+    }
+    window.filterDashboardTable();
 };
 
 window.renderHistorialRows = function(items, isLanzamientos) {
@@ -2242,7 +2281,6 @@ window.chooseMainCategory = function(category, btn) {
             el.classList.remove('hidden');
             const l2 = document.getElementById('lona-l2');
             if (l2) l2.classList.remove('hidden');
-            el.scrollIntoView({ behavior: 'smooth', block: 'start' });
         }
     } else {
         const el = document.getElementById('device-procedure');
@@ -3096,24 +3134,7 @@ function fillSelect(id, set, defaultText) {
     });
 }
 
-window.filterDashboardTable = function() {
-    const cuentaEl = document.getElementById('dash-filter-cuenta');
-    const tiendaEl = document.getElementById('dash-filter-tienda');
-    const usuarioEl = document.getElementById('dash-filter-usuario');
-    
-    const cuenta = cuentaEl ? cuentaEl.value : 'all';
-    const tienda = tiendaEl ? tiendaEl.value : 'all';
-    const usuario = usuarioEl ? usuarioEl.value : 'all';
-
-    const filtered = APP_CONFIG.dashboardReports.filter(r => {
-        const matchCuenta = cuenta === 'all' || r.cuenta === cuenta;
-        const matchTienda = tienda === 'all' || r.tienda === tienda;
-        const matchUsuario = usuario === 'all' || r.usuario === usuario;
-        return matchCuenta && matchTienda && matchUsuario;
-    });
-
-    updateRecentTable(filtered);
-};
+// Duplicate filterDashboardTable removed.
 
 async function loadLaunches() {
     const selector = document.getElementById('launch-selector');
@@ -3205,38 +3226,7 @@ function renderMaterialsToContainer(materials, container) {
     // Obsoleto
 }
 
-function updateRecentTable(reports) {
-    const tbody = document.querySelector('#recent-reports-table tbody');
-    tbody.innerHTML = '';
-    
-    if (!reports || reports.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="6" style="text-align: center;">No hay reportes que mostrar</td></tr>';
-        return;
-    }
-
-    reports.forEach(r => {
-        const tr = document.createElement('tr');
-        // El backend ahora devuelve objetos mapeados (r.fecha, r.usuario, r.cuenta, r.tienda, r.tipo, r.estado)
-        const dateRaw = r.fecha || r[1] || '';
-        const dateStr = dateRaw ? new Date(dateRaw).toLocaleDateString() : '-';
-        
-        const usr = r.usuario || r[2] || '-';
-        const cta = r.cuenta || 'Otras';
-        const tnd = r.tienda || r[3] || '-';
-        const tip = r.tipo || r[4] || '-';
-        const est = r.estado || r[7] || 'Pendiente';
-
-        tr.innerHTML = `
-            <td>${dateStr}</td>
-            <td>${usr}</td>
-            <td>${cta}</td>
-            <td>${tnd}</td>
-            <td>${tip}</td>
-            <td><span class="badge status ${est.toLowerCase().replace(' ', '-')}">${est}</span></td>
-        `;
-        tbody.appendChild(tr);
-    });
-}
+// updateRecentTable removed.
 
 // --- Launch Procedure Logic ---
 APP_CONFIG.launchUploadedPhotos = [];
