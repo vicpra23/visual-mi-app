@@ -191,13 +191,22 @@ function handleLogin(ss, email, password) {
             return true; // Devolver todas las tiendas para el Admin, pero con la info del usuario incluida
         }
         return storeUser === cleanEmail;
-      }).map(r => ({
-        nombre: r[2],  // Columna C (índice 2) es Tienda (Nombre)
-        cuenta: r[1],  // Columna B (índice 1) es Cuenta
-        rms: r[0] || '', // Columna A (índice 0) es Codigo RMS
-        usuario: r[3] || '', // Columna D (índice 3) es Usuario asignado
-        owner: String(r[3] || '').trim() || String(r[4] || '').trim()
-      }));
+      }).map(r => {
+        const storeObj = {
+          nombre: r[2],  // Columna C (índice 2) es Tienda (Nombre)
+          cuenta: r[1],  // Columna B (índice 1) es Cuenta
+          rms: r[0] || '', // Columna A (índice 0) es Codigo RMS
+          usuario: r[3] || '', // Columna D (índice 3) es Usuario asignado
+          owner: String(r[3] || '').trim() || String(r[4] || '').trim()
+        };
+        // Mapear el resto de cabeceras dinámicamente (Mesa, Columna, Wall, etc.)
+        headers.forEach((header, index) => {
+          if (header && String(header).trim() !== '') {
+            storeObj[String(header).trim()] = r[index];
+          }
+        });
+        return storeObj;
+      });
       
       debugInfo = {
         isAdmin: isAdmin,
@@ -241,7 +250,7 @@ function getDashboardData(ss, rol) {
     mobReports.shift();
     mobReports.forEach(r => {
       if (!r[0]) return; 
-      const est = String(r[11] || '').trim().toLowerCase(); 
+      const est = String(r[14] || '').trim().toLowerCase(); 
       if (est === 'abierta') openTotal++;
       if (est === 'pendiente') pendingTotal++;
       
@@ -255,10 +264,14 @@ function getDashboardData(ss, rol) {
         subcategoria: r[7],
         enviar: r[8],
         motivo: r[9],
-        descripcion: r[10], 
-        estado: r[11],  
-        tiempo: r[12],  
-        fotos: r[13] || '',
+        modelo: r[10] || '',
+        codigoDispositivo: r[11] || '',
+        cantidad: r[12] || '',
+        descripcion: r[13] || '', 
+        estado: r[14],  
+        fechaCierre: r[15] || '',
+        tiempo: r[16],  
+        fotos: r[17] || '',
         tipo: `Mobiliario: ${r[7] || ''} > ${r[9] || ''}`
       });
     });
@@ -298,8 +311,9 @@ function getDashboardData(ss, rol) {
           motivo: r[14],
           descripcion: r[15],
           estado: r[16],
-          tiempo: r[17],
-          fotos: r[18] || '',
+          fechaCierre: r[17] || '',
+          tiempo: r[18],
+          fotos: r[19] || '',
           dispositivos: [item],
           // Armar texto del tipo dinámico
           tipo: `Dispositivo: ${r[12] || ''} > ${r[14] || ''}`
@@ -336,8 +350,9 @@ function getDashboardData(ss, rol) {
         motivo: '',
         descripcion: r[7] || '',
         estado: r[8] || 'Abierta',
-        tiempo: r[9] || 0,
-        fotos: r[10] || '',
+        fechaCierre: r[9] || '',
+        tiempo: r[10] || 0,
+        fotos: r[11] || '',
         tipo: 'Pantalla Digital'
       });
     });
@@ -376,8 +391,9 @@ function getDashboardData(ss, rol) {
           motivo: r[8] || '',
           descripcion: r[13] || '',
           estado: r[14] || 'Abierta',
-          tiempo: r[15] || 0,
-          fotos: r[16] || '',
+          fechaCierre: r[15] || '',
+          tiempo: r[16] || 0,
+          fotos: r[17] || '',
           dispositivos: [item],
           tipo: `Lona: ${r[7] || ''} > ${r[8] || ''}`
         };
@@ -606,23 +622,55 @@ function handleSubmitReport(ss, data) {
       const sheet = getSheetDefensive(ss, 'Reporte mobiliario');
       if (!sheet) return { success: false, message: 'Hoja "Reporte mobiliario" no encontrada' };
       
-      const row = [
-        finalId,
-        now,
-        finalUser,
-        cuenta,
-        data.tienda || '',
-        rms,
-        data.categoria,
-        data.subcategoria || '',
-        data.enviar || '',  
-        data.motivo || '',
-        data.descripcion || '',
-        data.estado || 'Abierta',
-        formulaTiempo,
-        finalPhotos
-      ];
-      sheet.appendRow(row);
+      const alarmadoList = (data.motivo === 'ALARMADO' && Array.isArray(data.dispositivos)) ? data.dispositivos : null;
+      
+      if (alarmadoList && alarmadoList.length > 0) {
+        alarmadoList.forEach(item => {
+          const row = [
+            finalId,
+            now,
+            finalUser,
+            cuenta,
+            data.tienda || '',
+            rms,
+            data.categoria,
+            data.subcategoria || '',
+            data.enviar || '',  
+            data.motivo || '',
+            item.modelo || '',
+            item.codigoDispositivo || '',
+            item.cantidad || '',
+            data.descripcion || '',
+            data.estado || 'Abierta',
+            '', // Fecha Cierre
+            formulaTiempo,
+            finalPhotos
+          ];
+          sheet.appendRow(row);
+        });
+      } else {
+        const row = [
+          finalId,
+          now,
+          finalUser,
+          cuenta,
+          data.tienda || '',
+          rms,
+          data.categoria,
+          data.subcategoria || '',
+          data.enviar || '',  
+          data.motivo || '',
+          data.modelo || '',
+          data.codigoDispositivo || '',
+          data.cantidad || '',
+          data.descripcion || '',
+          data.estado || 'Abierta',
+          '', // Fecha Cierre
+          formulaTiempo,
+          finalPhotos
+        ];
+        sheet.appendRow(row);
+      }
       
     } else if (isScreen) {
       const sheet = getSheetDefensive(ss, 'Reporte Pantalla');
@@ -638,8 +686,9 @@ function handleSubmitReport(ss, data) {
         data.categoria,          // 7. Categoría
         data.descripcion || '',  // 8. Comentario
         data.estado || 'Abierta',// 9. Estado
-        formulaTiempo || 0,      // 10. Tiempo
-        finalPhotos              // 11. Fotos
+        '',                      // 10. Fecha Cierre
+        formulaTiempo || 0,      // 11. Tiempo
+        finalPhotos              // 12. Fotos
       ];
       sheet.appendRow(row);
       
@@ -667,8 +716,9 @@ function handleSubmitReport(ss, data) {
           data.enviar || '',       // 13. Enviar
           data.descripcion || '',  // 14. Comentario
           data.estado || 'Abierta',// 15. Estado
-          formulaTiempo || 0,      // 16. Tiempo
-          finalPhotos              // 17. Fotos
+          '',                      // 16. Fecha Cierre
+          formulaTiempo || 0,      // 17. Tiempo
+          finalPhotos              // 18. Fotos
         ];
         sheet.appendRow(row);
       });
@@ -699,6 +749,7 @@ function handleSubmitReport(ss, data) {
           data.motivo || '',
           data.descripcion || '',
           data.estado || 'Abierta',
+          '', // Fecha Cierre
           formulaTiempo,
           finalPhotos
         ];

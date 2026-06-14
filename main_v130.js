@@ -3,7 +3,7 @@
  */
 
 const APP_CONFIG = {
-    scriptUrl: 'https://script.google.com/macros/s/AKfycbwg1Hpmy3mGdzXhNK7zq9D88SbzrbDveVe6Zb4wjJh8HDApzTlKrxm9oi2eDjEel09O1Q/exec',
+    scriptUrl: 'https://script.google.com/macros/s/AKfycbyYOyYKP_KL8-g-1Q7HFF-PNxe2eaGRWBbtJs6PV_Sk_i-dlABse2QzaCcDzu4XyoUIZw/exec',
     currentUser: null,
     currentReport: {
         category: '',
@@ -16,7 +16,8 @@ const APP_CONFIG = {
     incidentUploadedPhotos: [],
     deviceCatalog: [], // Lista global bajada de 'Dispositivos'
     currentSelectedDevices: [], // Buffer temporal del reporte actual
-    currentSelectedLonas: []
+    currentSelectedLonas: [],
+    currentSelectedAlarmados: []
 };
 
 // --- MOTOR UNIVERSAL DE COMPRESIÓN Y RENDERIZADO (Baja Cobertura & CDN) ---
@@ -167,6 +168,20 @@ window.showConfirm = function(title, message, isDanger = true) {
 function normalizeString(str) {
     return String(str || '').normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim().toUpperCase();
 }
+
+// Función para actualizar código de dispositivo
+window.updateDeviceCode = function(selectId, inputId) {
+    const select = document.getElementById(selectId);
+    const input = document.getElementById(inputId);
+    if (select && input) {
+        const selectedOption = select.options[select.selectedIndex];
+        if (selectedOption && selectedOption.dataset.code) {
+            input.value = selectedOption.dataset.code;
+        } else {
+            input.value = '';
+        }
+    }
+};
 
 // DOM Elements
 const views = {
@@ -322,7 +337,11 @@ async function showView(viewName) {
             iconHtml = '<i class="fas fa-rocket" style="margin-right:8px; font-size:0.85em;"></i>';
         }
         if (viewName === 'materiales') {
-            iconHtml = '<i class="fas fa-folder-open" style="margin-right:8px; font-size:0.85em;"></i>';
+            formattedTitle = 'Tiendas';
+            iconHtml = '<i class="fas fa-store" style="margin-right:8px; font-size:0.85em;"></i>';
+            if (typeof renderTiendasView === 'function') {
+                renderTiendasView();
+            }
         }
         if (viewName === 'mensajes') {
             formattedTitle = 'Centro de Mensajes';
@@ -352,50 +371,44 @@ document.getElementById('view-title').innerHTML = iconHtml + formattedTitle;
             
             // Popula selector y carga tiendas de forma asíncrona (evita condición de carrera en la UI)
             (async () => {
-                    try {
-                        await loadLaunches();
-                        
-                        const presetLaunch = APP_CONFIG.presetLaunchName;
-                        if (presetLaunch) {
-                            const sel = document.getElementById('launch-selector');
-                            if (sel) {
-                                const exists = Array.from(sel.options).find(o => o.value === presetLaunch);
-                                if (exists) sel.value = presetLaunch;
-                            }
-                            APP_CONFIG.presetLaunchName = null; // Consume and clear
+                try {
+                    await loadLaunches();
+                    
+                    const presetLaunch = APP_CONFIG.presetLaunchName;
+                    if (presetLaunch) {
+                        const sel = document.getElementById('launch-selector');
+                        if (sel) {
+                            const exists = Array.from(sel.options).find(o => o.value === presetLaunch);
+                            if (exists) sel.value = presetLaunch;
                         }
-                        
-                        // Si venimos de un redireccionamiento rápido, fijar lanzamiento correcto ANTES del fetch
-                        if (window._pendingQuickLaunch) {
-                            const select = document.getElementById('launch-selector');
-                            if (select) select.value = window._pendingQuickLaunch;
-                            window._pendingQuickLaunch = null; // Consumido
-                        }
-                        
-                        // ÚNICA CARGA LIMPIA DE DATOS (Acelerado)
-                        await loadLaunchStores();
-                        
-                        // Selección automática inmediata sin polling al tener el DOM listo
-                        if (window._pendingQuickStore) {
-                            const storeToOpen = window._pendingQuickStore;
-                            window._pendingQuickStore = null; // Consumido
-                            
-                            const grid = document.getElementById('launch-store-grid');
-                            if (grid) {
-                                const cards = grid.querySelectorAll('.dashboard-card');
-                                const target = String(storeToOpen).trim().toLowerCase();
-                                for (const card of cards) {
-                                    const cardText = card.innerText.replace(/\s+/g, ' ').trim().toLowerCase();
-                                    if (cardText.includes(target)) {
-                                        card.click(); // Gatillar apertura inmediata del checklist
-                                        break;
-                                    }
-                                }
-                            }
-                        }
-                    } catch (e) {
-                        console.error("Error cargando lanzamientos en background:", e);
+                        APP_CONFIG.presetLaunchName = null; // Consume and clear
                     }
+                    
+                    // Si venimos de un redireccionamiento rápido, fijar lanzamiento correcto ANTES del fetch
+                    if (window._pendingQuickLaunch) {
+                        const select = document.getElementById('launch-selector');
+                        if (select) select.value = window._pendingQuickLaunch;
+                        window._pendingQuickLaunch = null; // Consumido
+                    }
+                    
+                    // ÚNICA CARGA LIMPIA DE DATOS (Acelerado)
+                    await loadLaunchStores();
+                    
+                    // Selección automática inmediata sin polling al tener el DOM listo
+                    if (window._pendingQuickStore) {
+                        const storeToOpen = window._pendingQuickStore;
+                        window._pendingQuickStore = null; // Consumido
+                        
+                        const grid = document.getElementById('launch-store-grid');
+                        if (grid) {
+                            const cards = grid.querySelectorAll('.dashboard-card');
+                            const target = String(storeToOpen).trim().toLowerCase();
+                            for (const card of cards) {
+                                // Logic for auto-opening
+                            }
+                        }
+                    }
+                } catch(e) { console.error(e); }
             })();
         }
         
@@ -413,6 +426,277 @@ document.getElementById('view-title').innerHTML = iconHtml + formattedTitle;
         }
     }
 }
+
+// ==============================================================
+// TIENDAS VIEW LOGIC
+// ==============================================================
+
+window.renderTiendasView = function() {
+    const grid = document.getElementById('tiendas-grid');
+    if (!grid) return;
+    
+    // Obtener las tiendas del usuario (ya sea Admin o Standard)
+    let stores = APP_CONFIG.currentUser.tiendas || [];
+    
+    // Configurar filtros la primera vez
+    const userRole = String(APP_CONFIG.currentUser.rol || '').trim().toUpperCase();
+    const isAdmin = userRole === 'ADMIN' || userRole === 'ADMINISTRADOR';
+    
+    const filterCuenta = document.getElementById('tiendas-filter-cuenta');
+    const filterTienda = document.getElementById('tiendas-filter-tienda');
+    const filterUsuario = document.getElementById('tiendas-filter-usuario');
+    
+    if (!window.tiendasFiltersInitialized) {
+        window.tiendasFiltersInitialized = true;
+        
+        // Rellenar select de Cuentas
+        const cuentas = [...new Set(stores.map(t => String(t.cuenta || '').trim()))].filter(Boolean).sort();
+        filterCuenta.innerHTML = '<option value="all">Todas las Cuentas</option>';
+        cuentas.forEach(c => {
+            const opt = document.createElement('option');
+            opt.value = c; opt.textContent = c;
+            filterCuenta.appendChild(opt);
+        });
+        
+        // Rellenar datalist de Tiendas
+        const datalistTiendas = document.getElementById('datalist-tiendas');
+        if (datalistTiendas) {
+            datalistTiendas.innerHTML = '';
+            const tiendas = [...new Set(stores.map(t => String(t.nombre || '').trim()))].filter(Boolean).sort();
+            tiendas.forEach(t => {
+                const opt = document.createElement('option');
+                opt.value = t;
+                datalistTiendas.appendChild(opt);
+            });
+        }
+        
+        // Rellenar select de Usuarios (Solo Admin)
+        if (isAdmin && filterUsuario) {
+            filterUsuario.style.display = 'inline-block';
+            const usuarios = [...new Set(stores.map(t => String(t.usuario || t.owner || '').trim()))].filter(Boolean).sort();
+            filterUsuario.innerHTML = '<option value="all">Todos los Usuarios</option>';
+            usuarios.forEach(u => {
+                const opt = document.createElement('option');
+                opt.value = u; opt.textContent = u;
+                filterUsuario.appendChild(opt);
+            });
+        } else if (filterUsuario) {
+            filterUsuario.style.display = 'none';
+        }
+        
+        // Event Listeners
+        filterCuenta.addEventListener('change', renderTiendasGrid);
+        filterTienda.addEventListener('input', renderTiendasGrid);
+        if (filterUsuario) filterUsuario.addEventListener('change', renderTiendasGrid);
+    }
+    
+    renderTiendasGrid();
+};
+
+window.renderTiendasGrid = function() {
+    const grid = document.getElementById('tiendas-grid');
+    if (!grid) return;
+    
+    const userRole = String(APP_CONFIG.currentUser.rol || '').trim().toUpperCase();
+    const isAdmin = userRole === 'ADMIN' || userRole === 'ADMINISTRADOR';
+    
+    const fCuenta = document.getElementById('tiendas-filter-cuenta').value;
+    const fTienda = document.getElementById('tiendas-filter-tienda').value.toLowerCase().trim();
+    const fUsuario = document.getElementById('tiendas-filter-usuario') ? document.getElementById('tiendas-filter-usuario').value : 'all';
+    
+    let stores = APP_CONFIG.currentUser.tiendas || [];
+    
+    // ESTADO EN BLANCO PARA ADMIN: Si es admin y no ha seleccionado NADA (todo está en 'all' y texto vacío)
+    if (isAdmin && fCuenta === 'all' && fTienda === '' && fUsuario === 'all') {
+        grid.innerHTML = '<div style="grid-column: 1 / -1; text-align: center; color: #888; padding: 2rem 0; font-size: 0.95rem;"><i class="fas fa-search" style="font-size: 2rem; color: #ddd; margin-bottom: 10px; display: block;"></i>Utiliza los filtros de arriba para buscar y mostrar tiendas.</div>';
+        return;
+    }
+    
+    // Aplicar filtros
+    let filtered = stores.filter(t => {
+        let match = true;
+        
+        if (fCuenta !== 'all' && String(t.cuenta || '').trim() !== fCuenta) match = false;
+        
+        if (fTienda !== '') {
+            const tName = String(t.nombre || '').toLowerCase();
+            const tRms = String(t.rms || '').toLowerCase();
+            if (!tName.includes(fTienda) && !tRms.includes(fTienda)) match = false;
+        }
+        
+        if (isAdmin && fUsuario !== 'all') {
+            const tOwner = String(t.usuario || t.owner || '').trim();
+            if (tOwner !== fUsuario) match = false;
+        }
+        
+        return match;
+    });
+    
+    grid.innerHTML = '';
+    
+    if (filtered.length === 0) {
+        grid.innerHTML = '<div style="grid-column: 1 / -1; text-align: center; color: #888; padding: 2rem 0;">No se encontraron tiendas con estos filtros.</div>';
+        return;
+    }
+    
+    // Ordenar alfabéticamente por nombre de tienda
+    filtered.sort((a, b) => String(a.nombre || '').localeCompare(String(b.nombre || '')));
+    
+    filtered.forEach(t => {
+        const getVal = (key) => {
+            if (t[key] !== undefined && t[key] !== null) return t[key];
+            if (t[key.toLowerCase()] !== undefined && t[key.toLowerCase()] !== null) return t[key.toLowerCase()];
+            if (t[key.toUpperCase()] !== undefined && t[key.toUpperCase()] !== null) return t[key.toUpperCase()];
+            return 0;
+        };
+        const getStr = (key) => {
+            if (t[key] !== undefined && t[key] !== null) return t[key];
+            if (t[key.toLowerCase()] !== undefined && t[key.toLowerCase()] !== null) return t[key.toLowerCase()];
+            if (t[key.toUpperCase()] !== undefined && t[key.toUpperCase()] !== null) return t[key.toUpperCase()];
+            return '';
+        };
+
+        const valMesa = parseFloat(getVal('Mesa')) || 0;
+        const valTopTable = getVal('Top Table');
+        const valColumna = parseFloat(getVal('Columna')) || 0;
+        const valLightboxColumn = getVal('Lightbox Column');
+        const valWall = parseFloat(getVal('Wall')) || 0;
+        const valLightboxWall = getVal('Lightbox Wall');
+        const valUrl = getStr('Url Guia');
+
+        // No mostrar la tienda si las 3 mtricas son 0
+        if (valMesa === 0 && valColumna === 0 && valWall === 0) {
+            return;
+        }
+
+        const card = document.createElement('div');
+        card.style.background = '#fff';
+        card.style.border = '1px solid #eee';
+        card.style.borderRadius = '8px';
+        card.style.padding = '15px';
+        card.style.boxShadow = '0 2px 5px rgba(0,0,0,0.02)';
+        card.style.display = 'flex';
+        card.style.flexDirection = 'column';
+        card.style.gap = '8px';
+        card.style.height = '100%';
+        card.style.minHeight = '90px';
+        card.style.boxSizing = 'border-box';
+        
+        const nombre = t.nombre || 'Sin Nombre';
+        let fontSize = '1.05rem';
+        if (nombre.length > 22) {
+            fontSize = '0.85rem';
+        } else if (nombre.length > 16) {
+            fontSize = '0.95rem';
+        }
+
+        let html = `
+            <div style="display: flex; justify-content: space-between; align-items: center; gap: 8px;">
+                <h4 style="margin: 0; color: #333; font-size: ${fontSize}; display: flex; align-items: center; gap: 8px; flex-wrap: nowrap; overflow: hidden; white-space: nowrap;">
+                    <i class="fas fa-store" style="color: var(--mi-orange); font-size: 0.9rem; flex-shrink: 0;"></i> 
+                    <span style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${nombre}</span>
+                    <span style="font-size: 0.75rem; background: #e6f7ff; color: #0050b3; padding: 2px 6px; border-radius: 4px; border: 1px solid #91d5ff; font-weight: normal; flex-shrink: 0;">${t.cuenta || 'Sin Cuenta'}</span>
+                </h4>
+            </div>
+        `;
+
+        html += `
+            <div style="display: flex; gap: 15px; margin-top: auto; flex-wrap: wrap; align-items: flex-start; padding-top: 10px; border-top: 1px solid #f0f0f0;">
+        `;
+        
+        if (valMesa > 0) {
+            html += `
+                <!-- Mesa -->
+                <div style="display: flex; flex-direction: column; align-items: center; cursor: pointer; min-width: 45px;" onclick="const s = this.querySelector('.subcat-content'); s.style.display = s.style.display === 'none' ? 'block' : 'none';">
+                    <span style="display:inline-block; width: 20px; height: 14px; border-top: 3px solid #666; border-left: 2px solid #666; border-right: 2px solid #666; border-radius: 2px 2px 0 0;"></span>
+                    <span style="font-size: 0.8rem; font-weight: bold; margin-top: 4px; color: #444;">${valMesa}</span>
+                    <div class="subcat-content" style="display: none; font-size: 0.7rem; color: #888; margin-top: 4px; text-align: center; background: #f9f9f9; padding: 4px; border-radius: 4px; border: 1px solid #eee;">TOP TABLE<br><b style="color:#444">${valTopTable}</b></div>
+                </div>
+            `;
+        }
+        
+        if (valColumna > 0) {
+            html += `
+                <!-- Columna -->
+                <div style="display: flex; flex-direction: column; align-items: center; cursor: pointer; min-width: 45px;" onclick="const s = this.querySelector('.subcat-content'); s.style.display = s.style.display === 'none' ? 'block' : 'none';">
+                    <div style="display: flex; flex-direction: column; align-items: center; color: #666;">
+                      <div style="width: 14px; height: 6px; border: 2px solid currentColor; border-bottom: none;"></div>
+                      <div style="width: 20px; height: 2px; background: currentColor;"></div>
+                      <div style="width: 14px; height: 14px; border: 2px solid currentColor; border-top: none;"></div>
+                    </div>
+                    <span style="font-size: 0.8rem; font-weight: bold; margin-top: 4px; color: #444;">${valColumna}</span>
+                    <div class="subcat-content" style="display: none; font-size: 0.7rem; color: #888; margin-top: 4px; text-align: center; background: #f9f9f9; padding: 4px; border-radius: 4px; border: 1px solid #eee;">Lightbox Column<br><b style="color:#444">${valLightboxColumn}</b></div>
+                </div>
+            `;
+        }
+
+        if (valWall > 0) {
+            html += `
+                <!-- Wall -->
+                <div style="display: flex; flex-direction: column; align-items: center; cursor: pointer; min-width: 45px;" onclick="const s = this.querySelector('.subcat-content'); s.style.display = s.style.display === 'none' ? 'block' : 'none';">
+                    <div style="display: flex; flex-direction: column; align-items: center; color: #666;">
+                      <div style="width: 22px; height: 12px; border: 2px solid currentColor; border-bottom: none; border-radius: 2px 2px 0 0;"></div>
+                      <div style="width: 26px; height: 2px; background: currentColor;"></div>
+                      <div style="width: 22px; height: 8px; background: currentColor;"></div>
+                    </div>
+                    <span style="font-size: 0.8rem; font-weight: bold; margin-top: 4px; color: #444;">${valWall}</span>
+                    <div class="subcat-content" style="display: none; font-size: 0.7rem; color: #888; margin-top: 4px; text-align: center; background: #f9f9f9; padding: 4px; border-radius: 4px; border: 1px solid #eee;">Lightbox Wall<br><b style="color:#444">${valLightboxWall}</b></div>
+                </div>
+            `;
+        }
+        
+        if (valMesa > 0 && valUrl && String(valUrl).trim() !== '' && String(valUrl).trim() !== '0') {
+            html += `
+                <!-- Url Guia -->
+                <div style="display: flex; flex-direction: column; align-items: center; cursor: pointer; margin-left: auto;" onclick="window.open('${valUrl}', '_blank')">
+                    <i class="fas fa-file-invoice" style="font-size: 1.2rem; color: var(--mi-orange);"></i>
+                    <span style="font-size: 0.7rem; color: var(--mi-orange); margin-top: 4px; font-weight: bold;">Guía</span>
+                </div>
+            `;
+        }
+        
+        html += `</div>`;
+        
+        if (isAdmin && (t.usuario || t.owner)) {
+            html += `<div style="margin-top: 8px; font-size: 0.8rem; color: #666; border-top: 1px dashed #eee; padding-top: 5px;"><i class="fas fa-user-circle"></i> ${t.usuario || t.owner}</div>`;
+        }
+        
+        card.innerHTML = html;
+        grid.appendChild(card);
+    });
+};
+
+window.clearTiendasFilters = function() {
+    const filterCuenta = document.getElementById('tiendas-filter-cuenta');
+    const filterTienda = document.getElementById('tiendas-filter-tienda');
+    const filterUsuario = document.getElementById('tiendas-filter-usuario');
+    
+    if (filterCuenta) filterCuenta.value = 'all';
+    if (filterTienda) filterTienda.value = '';
+    if (filterUsuario) filterUsuario.value = 'all';
+    
+    if (typeof window.renderTiendasGrid === 'function') {
+        window.renderTiendasGrid();
+    }
+};
+
+window.clearDashboardFilters = function() {
+    const fCuenta = document.getElementById('dash-filter-cuenta');
+    const fTienda = document.getElementById('dash-filter-tienda');
+    const fTipo = document.getElementById('dash-filter-tipo');
+    const fUsuario = document.getElementById('dash-filter-usuario');
+    const fEstado = document.getElementById('dash-filter-estado');
+    
+    if (fCuenta) fCuenta.value = 'all';
+    if (fTienda) fTienda.value = 'all';
+    if (fTipo) fTipo.value = 'all';
+    if (fUsuario) fUsuario.value = 'all';
+    if (fEstado) fEstado.value = 'all';
+    
+    if (typeof window.filterDashboardTable === 'function') {
+        window.filterDashboardTable();
+    }
+};
 window.refreshAllDashboardData = async function() {
     const btn = document.querySelector('.capsule-search-btn');
     if (btn) {
@@ -615,6 +899,14 @@ function renderDashboardFromData(userReports, explicitIsAdmin = null) {
 }
 
 function renderDashboardTable(reports) {
+    const userRole = String(APP_CONFIG.currentUser?.rol || '').trim().toUpperCase();
+    const isAdmin = userRole === 'ADMIN' || userRole === 'ADMINISTRADOR';
+    
+    const thUsuario = document.getElementById('th-usuario');
+    if (thUsuario) {
+        thUsuario.style.display = isAdmin ? '' : 'none';
+    }
+
     const tableBody = document.querySelector('#recent-reports-table tbody');
     tableBody.innerHTML = '';
     
@@ -673,8 +965,19 @@ function renderDashboardTable(reports) {
             const reportDate = new Date(fechaStr.replace(/-/g, '/')); 
             if (!isNaN(reportDate.getTime())) {
                 if (isResolvedTiempo) {
-                    // Si está solucionado pero el Excel lo mandó vacío, al menos ponemos '0 días' en vez de texto o sumar infinito
-                    displayTiempo = '0 días'; 
+                    // Si está solucionado pero el Excel lo mandó vacío, probamos con fechaCierre
+                    if (r.fechaCierre) {
+                        const closeDate = new Date(String(r.fechaCierre).replace(/-/g, '/'));
+                        if (!isNaN(closeDate.getTime())) {
+                            const diffTime = Math.abs(closeDate.getTime() - reportDate.getTime());
+                            const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+                            displayTiempo = `${diffDays} días`;
+                        } else {
+                            displayTiempo = '0 días';
+                        }
+                    } else {
+                        displayTiempo = '0 días'; 
+                    }
                 } else {
                     const diffTime = Math.abs(Date.now() - reportDate.getTime());
                     const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
@@ -685,9 +988,11 @@ function renderDashboardTable(reports) {
             }
         }
         
+        const usuarioTd = isAdmin ? `<td>${r.usuario}</td>` : '';
+        
         row.innerHTML = `
             <td>${r.fecha}</td>
-            <td>${r.usuario}</td>
+            ${usuarioTd}
             <td>${r.cuenta}</td>
             <td>${r.tienda}</td>
             <td>${r.tipo}</td>
@@ -761,8 +1066,6 @@ function renderDashboardTable(reports) {
         }
 
         // Special Admin Direct Buttons in dashboard table row
-        const userRole = String(APP_CONFIG.currentUser?.rol || '').trim().toUpperCase();
-        const isAdmin = userRole === 'ADMIN' || userRole === 'ADMINISTRADOR';
         
         if (isAdmin) {
             if (est === 'abierta') {
@@ -1080,6 +1383,11 @@ window.openDetailsModalFromQuickBox = function() {
 
 window.editReportFromQuickBox = function() {
     if (window.selectedReportForQuickBox) {
+        const box = document.getElementById('quick-detail-box');
+        if (box) {
+            box.style.display = 'none';
+            box.classList.add('hidden');
+        }
         window.jumpToCreateReportForStore(window.selectedReportForQuickBox);
     }
 };
@@ -1522,7 +1830,16 @@ window.filterDashboardTable = function() {
         const fechaStr = String(r.fecha || '');
         const reportDate = new Date(fechaStr.replace(/-/g, '/')); 
         if (!isNaN(reportDate.getTime())) {
-            if (isResolvedTiempo) return 0;
+            if (isResolvedTiempo) {
+                if (r.fechaCierre) {
+                    const closeDate = new Date(String(r.fechaCierre).replace(/-/g, '/'));
+                    if (!isNaN(closeDate.getTime())) {
+                        const diffTime = Math.abs(closeDate.getTime() - reportDate.getTime());
+                        return Math.floor(diffTime / (1000 * 60 * 60 * 24));
+                    }
+                }
+                return 0;
+            }
             const diffTime = Math.abs(Date.now() - reportDate.getTime());
             return Math.floor(diffTime / (1000 * 60 * 60 * 24));
         }
@@ -1690,8 +2007,6 @@ window.renderHistorialRows = function(items, isLanzamientos) {
             }
             
             // 4. Permisos Admin
-            const userRole = String(APP_CONFIG.currentUser?.rol || '').toUpperCase();
-            const isAdmin = userRole.includes('ADMIN');
             if (isAdmin) {
                 if (rawEst === 'abierta' || rawEst === 'abierto') {
                     const repBtn = document.createElement('button');
@@ -2218,6 +2533,70 @@ function renderSelectedLonas() {
     });
 }
 
+// ---- LOGICA DE MOBILIARIO ALARMADOS (MULTI-ITEM) ----
+window.addAlarmadoToList = function() {
+    const dropdown = document.getElementById('furn-rep-modelo');
+    const qtyInput = document.getElementById('furn-rep-cantidad');
+    
+    const selectedOption = dropdown.options[dropdown.selectedIndex];
+    if (!selectedOption || !selectedOption.value) {
+        alert('Por favor, selecciona un modelo de Alarmado.');
+        dropdown.focus();
+        return;
+    }
+    
+    const selectedModel = selectedOption.value;
+    const selectedCode = selectedOption.dataset.code || '';
+    const selectedQty = parseInt(qtyInput.value) || 1;
+    
+    if (selectedQty < 1) {
+        alert('La cantidad debe ser al menos 1.');
+        qtyInput.focus();
+        return;
+    }
+    
+    APP_CONFIG.currentSelectedAlarmados.push({
+        modelo: selectedModel,
+        cantidad: selectedQty,
+        codigoDispositivo: selectedCode
+    });
+    
+    dropdown.value = '';
+    qtyInput.value = '1';
+    
+    renderSelectedAlarmados();
+};
+
+window.removeAlarmadoFromList = function(index) {
+    APP_CONFIG.currentSelectedAlarmados.splice(index, 1);
+    renderSelectedAlarmados();
+};
+
+function renderSelectedAlarmados() {
+    const listContainer = document.getElementById('furn-alarmado-selected-list');
+    if (!listContainer) return;
+    
+    listContainer.innerHTML = '';
+    
+    if (APP_CONFIG.currentSelectedAlarmados.length === 0) {
+        listContainer.innerHTML = '<p id="no-alarmados-msg" style="font-style: italic; color: #999; margin: 0; font-size: 11px;">Ningún modelo añadido aún.</p>';
+        return;
+    }
+    
+    APP_CONFIG.currentSelectedAlarmados.forEach((item, idx) => {
+        const div = document.createElement('div');
+        div.style.cssText = 'display: flex; align-items: center; justify-content: space-between; background: white; border: 1px solid #eee; padding: 6px 10px; border-radius: 6px; font-size: 12px;';
+        div.innerHTML = `
+            <span><strong>${item.modelo}</strong> <small style="color:#666;">(${item.codigoDispositivo})</small></span>
+            <div style="display:flex; align-items:center; gap:12px;">
+                <span style="background:#ff6700; color:white; padding: 2px 8px; border-radius: 20px; font-weight:bold; font-size:11px;">x${item.cantidad}</span>
+                <button type="button" onclick="removeAlarmadoFromList(${idx})" style="border:none; background:none; color:#ff4d4f; cursor:pointer; padding:0;"><i class="fa fa-trash"></i></button>
+            </div>
+        `;
+        listContainer.appendChild(div);
+    });
+}
+
 // --- Procedure Logic ---
 function startIncidentProcedure(centro) {
     if (!centro) return;
@@ -2331,6 +2710,57 @@ function selectLevel(type, level, value) {
         }
     });
 
+    // --- LOGICA DE MOBILIARIO PARA ALARMADO ---
+    if (type === 'furniture' && level === 3) {
+        const alarmadoFields = document.getElementById('furniture-alarmado-fields');
+        const alarmadoInfo = document.getElementById('furn-alarmado-info');
+        if (value === 'ALARMADO') {
+            if (alarmadoFields) alarmadoFields.style.display = 'block';
+            if (alarmadoInfo) alarmadoInfo.style.display = 'flex';
+            
+            if (!window.isAutoloadingReport) {
+                APP_CONFIG.currentSelectedAlarmados = [];
+                if (typeof renderSelectedAlarmados === 'function') renderSelectedAlarmados();
+            }
+            
+            // Poblar dropdown de modelos de alarmado (igual que en Dispositivos pero filtramos por 'ALARMADO')
+            const dropdown = document.getElementById('furn-rep-modelo');
+            if (dropdown) {
+                dropdown.innerHTML = '<option value="">Seleccione modelo...</option>';
+                const filtered = APP_CONFIG.deviceCatalog.filter(d => {
+                    const searchPayload = normalizeString(d.col1 || d.Subcategoria || d.Subcategoria || '');
+                    return searchPayload === 'ALARMADO';
+                });
+                
+                filtered.forEach(d => {
+                    const model = String(d.col2 || d.Modelo || '').trim();
+                    const code = d['Código Dispositivo'] || d.codigo || d.col3 || ''; 
+                    
+                    if (model && model !== '' && model.toUpperCase() !== 'MODELO') {
+                        const opt = document.createElement('option');
+                        opt.value = model;
+                        opt.textContent = code ? `${model} - ${code}` : model;
+                        opt.dataset.code = code; 
+                        dropdown.appendChild(opt);
+                    }
+                });
+            }
+            
+        } else {
+            if (alarmadoFields) alarmadoFields.style.display = 'none';
+            if (alarmadoInfo) alarmadoInfo.style.display = 'none';
+            // Limpiar inputs
+            const dropdown = document.getElementById('furn-rep-modelo');
+            if (dropdown) dropdown.value = '';
+            const cantInput = document.getElementById('furn-rep-cantidad');
+            if (cantInput) cantInput.value = '';
+            
+            if (!window.isAutoloadingReport) {
+                APP_CONFIG.currentSelectedAlarmados = [];
+            }
+        }
+    }
+
     // --- EXCEPCIÓN: Flujo de Dispositivos en Nivel 3 y Nivel 4 ---
     if (type === 'device' && (level === 3 || level === 4)) {
         // En Nivel 3 (Subcategoría), limpiamos la selección actual
@@ -2346,9 +2776,9 @@ function selectLevel(type, level, value) {
         const subcategoryChosen = String(APP_CONFIG.currentReport.path[2] || '').trim().toUpperCase();
         const motivoChosen = String(APP_CONFIG.currentReport.path[3] || '').trim().toUpperCase();
         
-        // CONTROL DINÁMICO: Para OTROS, mostramos el Input de escritura libre
+        // CONTROL DINÁMICO: Para OTROS, mostramos el Input de escritura libre (excepto en LDU y DUMMY)
         const customInput = document.getElementById('device-selector-custom');
-        if (subcategoryChosen === 'OTROS') {
+        if (subcategoryChosen === 'OTROS' && tipologyChosen !== 'LDU' && tipologyChosen !== 'DUMMY') {
             dropdown.classList.add('hidden');
             customInput.classList.remove('hidden');
             if (level === 3) customInput.value = '';
@@ -2619,12 +3049,35 @@ async function submitFinalReport(event, type) {
     const form = event.target;
     const btn = form.querySelector('button[type="submit"]');
     const originalText = btn.textContent;
+    const descEl = form.querySelector('.rep-desc');
+    const desc = descEl ? descEl.value.trim() : '';
+    const enviarSelect = form.querySelector('.rep-enviar');
+    const enviarVal = enviarSelect ? enviarSelect.value : '';
+
+    const isFurniture = type === 'furniture';
+    const isScreen = type === 'screen';
+    const isLona = type === 'lona';
+    
+    let reportCategory = 'Dispositivo';
+    if (isFurniture) reportCategory = 'Mobiliario';
+    if (isScreen) reportCategory = 'Pantalla Digital';
+    if (isLona) reportCategory = 'Lona';
+
+    // Validate Alarmado inputs if furniture
+    if (isFurniture) {
+        const isAlarmado = APP_CONFIG.currentReport.path[2] === 'Alarmado';
+        if (isAlarmado) {
+            const modVal = document.getElementById('furn-rep-modelo').value;
+            const cantVal = document.getElementById('furn-rep-cantidad').value;
+            if (!modVal || !cantVal || parseInt(cantVal) < 1) {
+                alert('Por favor, seleccione un modelo y una cantidad válida para el alarmado.');
+                return;
+            }
+        }
+    }
     
     if (APP_CONFIG.incidentUploadedPhotos.length === 0) {
-        let zoneId = 'drop-zone-device';
-        if (type === 'furniture') zoneId = 'drop-zone-furniture';
-        else if (type === 'screen') zoneId = 'drop-zone-screen';
-        else if (type === 'lona') zoneId = 'drop-zone-lona';
+        let zoneId = `drop-zone-${type}`;
         const zone = document.getElementById(zoneId);
         if (zone) {
             zone.style.border = '2px dashed #ff4d4f';
@@ -2637,17 +3090,12 @@ async function submitFinalReport(event, type) {
                 zone.style.background = '#f9f9f9';
             }, 4000);
         }
-        btn.disabled = false;
-        btn.textContent = originalText;
         return;
     }
 
     btn.disabled = true;
     btn.textContent = 'Enviando...';
 
-    const descEl = form.querySelector('.rep-desc');
-    const desc = descEl ? descEl.value.trim() : '';
-    
     // Obligar a que el comentario descriptivo no esté vacío
     if (!desc) {
         if (descEl) {
@@ -2668,15 +3116,6 @@ async function submitFinalReport(event, type) {
     }
 
     try {
-        const isFurniture = type === 'furniture';
-        const isScreen = type === 'screen';
-        const isLona = type === 'lona';
-        
-        let reportCategory = 'Dispositivo';
-        if (isFurniture) reportCategory = 'Mobiliario';
-        if (isScreen) reportCategory = 'Pantalla Digital';
-        if (isLona) reportCategory = 'Lona';
-
         const storeSelect = document.getElementById('incident-centro');
         const selectedOption = storeSelect.options[storeSelect.selectedIndex];
         const storeOwner = selectedOption ? selectedOption.dataset.owner || '' : '';
@@ -2687,17 +3126,41 @@ async function submitFinalReport(event, type) {
             tienda: APP_CONFIG.currentReport.centro,
             owner: storeOwner,
             categoria: reportCategory,
+            subcategoria: APP_CONFIG.currentReport.path[1] || '',
+            motivo: isFurniture ? (APP_CONFIG.currentReport.path[2] || '') : (isScreen ? (APP_CONFIG.currentReport.path[2] || '') : (APP_CONFIG.currentReport.path[3] || '')),
             descripcion: desc,
+            enviar: enviarVal,
             photos: APP_CONFIG.incidentUploadedPhotos,
-            estado: 'Abierta'
+            estado: isFurniture ? 'Abierta' : 'Pendiente',
+            updateId: window.editingIncidentId || APP_CONFIG.currentReport.updateId || null
         };
-
-        // NUEVO: Si hay ID activo de edición, lo inyectamos para que el backend sobreescriba
-        if (window.editingIncidentId) {
-            reportData.updateId = window.editingIncidentId;
-        }
         
         if (isFurniture) {
+            const isAlarmado = APP_CONFIG.currentReport.path[2] === 'ALARMADO';
+            if (isAlarmado) {
+                if (APP_CONFIG.currentSelectedAlarmados.length === 0) {
+                    const box = document.getElementById('furniture-alarmado-fields');
+                    if (box) {
+                        box.style.border = '2px solid #ff4d4f';
+                        box.style.boxShadow = '0 0 12px rgba(255,77,79,0.4)';
+                        box.style.transition = 'all 0.3s ease';
+                        box.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                        setTimeout(() => {
+                            box.style.border = '1px solid var(--mi-border)';
+                            box.style.boxShadow = 'none';
+                        }, 4000);
+                    }
+                    btn.disabled = false;
+                    btn.textContent = originalText;
+                    return;
+                }
+                reportData.dispositivos = APP_CONFIG.currentSelectedAlarmados;
+            } else {
+                reportData.modelo = '';
+                reportData.codigoDispositivo = '';
+                reportData.cantidad = '';
+            }
+
             const enviarSelect = form.querySelector('.rep-enviar');
             if (!enviarSelect || !enviarSelect.value) {
                 if (enviarSelect) {
@@ -2940,6 +3403,7 @@ function resetProcedure(preserveStoreContext = false) {
     APP_CONFIG.incidentUploadedPhotos = [];
     APP_CONFIG.currentSelectedDevices = []; // Reset de buffer temporal
     APP_CONFIG.currentSelectedLonas = [];
+    APP_CONFIG.currentSelectedAlarmados = [];
     
     // Limpiar miniaturas
     document.querySelectorAll('.thumbnail-container').forEach(c => c.innerHTML = '');
@@ -2958,6 +3422,16 @@ function resetProcedure(preserveStoreContext = false) {
     const listContainer = document.getElementById('device-selected-list');
     if (listContainer) {
         listContainer.innerHTML = '<p id="no-devices-msg" style="font-style: italic; color: #999; margin: 0; font-size: 12px;">Ningún modelo añadido aún.</p>';
+    }
+    
+    const lonaListContainer = document.getElementById('lona-selected-list');
+    if (lonaListContainer) {
+        lonaListContainer.innerHTML = '<p id="no-lonas-msg" style="font-style: italic; color: #999; margin: 0; font-size: 12px;">Ningún modelo añadido aún.</p>';
+    }
+    
+    const alarmadoListContainer = document.getElementById('furn-alarmado-selected-list');
+    if (alarmadoListContainer) {
+        alarmadoListContainer.innerHTML = '<p id="no-alarmados-msg" style="font-style: italic; color: #999; margin: 0; font-size: 11px;">Ningún modelo añadido aún.</p>';
     }
     
     // Reset all selects and hide boxes (Excluyendo cuenta y tienda si preservamos contexto)

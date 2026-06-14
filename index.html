@@ -81,7 +81,7 @@
                 <li data-target="dashboard" class="active"><i class="fas fa-chart-line"></i> Dashboard</li>
                 <li data-target="reportes"><i class="fas fa-clipboard-list"></i> Incidencias</li>
                 <!-- <li data-target="lanzamientos"><i class="fas fa-rocket"></i> Lanzamientos</li> -->
-                <li data-target="materiales"><i class="fas fa-folder-open"></i> Materiales</li>
+                <li data-target="materiales"><i class="fas fa-store"></i> Tiendas</li>
                 <li data-target="mensajes" style="position:relative;">
                     <i class="fas fa-bell"></i> Mensajes
                     <span id="msg-nav-badge" class="nav-badge">0</span>
@@ -255,6 +255,7 @@
                                     <button class="bubble-btn reason" onclick="selectLevel('furniture', 3, 'NO RECIBIDO')">NO RECIBIDO</button>
                                     <button class="bubble-btn reason" onclick="selectLevel('furniture', 3, 'DETERIORO')">DETERIORO</button>
                                     <button class="bubble-btn reason" onclick="selectLevel('furniture', 3, 'ILUMINACIÓN')">ILUMINACIÓN</button>
+                                    <button class="bubble-btn reason" onclick="selectLevel('furniture', 3, 'ALARMADO')">ALARMADO</button>
                                     <button class="bubble-btn reason" onclick="selectLevel('furniture', 3, 'OTROS')">OTROS</button>
                                 </div>
                             </div>
@@ -264,23 +265,63 @@
                         <div id="final-level-furniture" class="form-container hidden" style="max-width: 100%; margin-top: 2rem;">
                             <form onsubmit="submitFinalReport(event, 'furniture')">
                                 <div class="form-grid-2col" style="gap: 1.5rem; margin-bottom: 1.5rem; align-items: start;">
-                                    <!-- Columna 1 -->
-                                    <div class="form-group">
-                                        <label style="font-weight: 600; color: var(--mi-orange);"><i class="fas fa-truck"></i> ¿Dónde enviar el material? <span style="color:red;">*</span></label>
-                                        <select class="form-control rep-enviar" required style="margin-top: 0.5rem;">
-                                            <option value="" disabled selected>Seleccione destino...</option>
-                                            <option value="Tienda">Tienda</option>
-                                            <option value="GPV">GPV</option>
-                                            <option value="Recoger en almacén">Recoger en almacén</option>
-                                            <option value="No se necesita enviar material">No se necesita enviar material</option>
-                                        </select>
+                                    <!-- Columna 1: Artículos/Alarmado y Comentarios -->
+                                    <div class="form-group" style="display: flex; flex-direction: column; gap: 1.5rem;">
                                         
-                                        <label style="font-weight: 600; margin-top: 1.2rem; display:block;"><i class="fas fa-comment-alt"></i> Comentarios adicionales</label>
-                                        <textarea class="rep-desc" rows="4" placeholder="Escribe aquí cualquier detalle..." style="margin-top: 0.5rem; resize: none;"></textarea>
+                                        <!-- Caja de Artículos y Cantidad (Solo para Alarmado) -->
+                                        <div id="furniture-alarmado-fields" style="display: none; background: #fff; border: 1px solid var(--mi-border); padding: 1rem; border-radius: 10px; box-shadow: 0 2px 8px rgba(0,0,0,0.02);">
+                                            <label style="font-weight:700; color:var(--mi-orange); display:flex; align-items:center; gap:6px; margin-bottom:1rem;">
+                                                <i class="fas fa-box-open"></i> Artículos y Cantidad
+                                            </label>
+                                            
+                                            <div style="display: flex; gap: 6px; align-items: flex-end; margin-bottom: 1rem;">
+                                                <div style="flex: 1;">
+                                                    <select id="furn-rep-modelo" class="form-control" style="font-size: 12px; height: 35px;">
+                                                        <option value="" disabled selected>Buscando modelos...</option>
+                                                    </select>
+                                                </div>
+                                                <div style="width: 60px;">
+                                                    <input type="number" id="furn-rep-cantidad" class="form-control" min="1" value="1" style="font-size: 13px; height: 35px; text-align: center;" title="Cantidad">
+                                                </div>
+                                                <button type="button" onclick="addAlarmadoToList()" style="background: var(--mi-orange); color: white; border: none; border-radius: 4px; height: 35px; width: 35px; cursor: pointer; font-weight: bold; font-size: 1.2rem; display: flex; align-items: center; justify-content: center;">+</button>
+                                            </div>
+                                            
+                                            <div id="furn-alarmado-selected-list" style="max-height: 100px; overflow-y: auto; background: #f9f9f9; padding: 0.5rem; border-radius: 6px; display: flex; flex-direction: column; gap: 5px;">
+                                                <p id="no-alarmados-msg" style="font-style: italic; color: #999; margin: 0; font-size: 11px;">Ningún modelo añadido aún.</p>
+                                            </div>
+                                        </div>
+                                        
+                                        <!-- Comentarios -->
+                                        <div>
+                                            <label style="font-weight: 600; color: #666; font-size: 0.85rem; display:flex; align-items:center; gap:6px; margin-bottom:0.5rem;"><i class="fas fa-comment-alt"></i> COMENTARIOS</label>
+                                            <textarea class="rep-desc" rows="3" placeholder="Escribe aquí cualquier detalle necesario..." style="resize: none; border-radius: 8px; font-size: 0.9rem; border: 1px solid var(--mi-border); padding: 0.8rem; width: 100%; box-sizing: border-box;"></textarea>
+                                        </div>
                                     </div>
-                                    <!-- Columna 2 -->
-                                    <div class="form-group" style="position:relative;">
-                                        <label style="font-weight: 600; display: block;"><i class="fas fa-camera"></i> Reporte fotográfico</label>
+                                    
+                                    <!-- Columna 2: Envío y Fotos -->
+                                    <div class="form-group" style="display: flex; flex-direction: column; gap: 1.5rem;">
+                                        
+                                        <!-- Envío -->
+                                        <div>
+                                            <label style="font-weight: 600; color: #666; font-size: 0.85rem; display:flex; align-items:center; gap:6px; margin-bottom:0.5rem;"><i class="fas fa-truck"></i> ¿DÓNDE ENVIAR EL MATERIAL? <span style="color:red;">*</span></label>
+                                            <select class="form-control rep-enviar" required style="font-size: 0.9rem; border-radius: 8px; height: 42px; border: 1px solid var(--mi-border); padding: 0 1rem; width: 100%;">
+                                                <option value="" disabled selected>Seleccione destino...</option>
+                                                <option value="Tienda">Tienda</option>
+                                                <option value="GPV">GPV</option>
+                                                <option value="Recoger en almacén">Recoger en almacén</option>
+                                                <option value="No se necesita enviar material">No se necesita enviar material</option>
+                                            </select>
+                                            
+                                            <!-- Info de lista solo visible con Alarmado -->
+                                            <div id="furn-alarmado-info" style="display:none; margin-top: 1rem; padding: 0.8rem; background: #e6f7ff; border: 1px solid #91d5ff; border-radius: 6px; font-size: 0.85rem; color: #0050b3; display: flex; align-items: flex-start; gap: 8px;">
+                                                <i class="fas fa-info-circle" style="margin-top: 2px;"></i>
+                                                <div>Recuerda añadir al menos 1 artículo en la caja de la izquierda.</div>
+                                            </div>
+                                        </div>
+                                        
+                                        <!-- Reporte Fotográfico -->
+                                        <div style="position:relative;">
+                                            <label style="font-weight: 600; color: #666; font-size: 0.85rem; display:flex; align-items:center; gap:6px; margin-bottom:0.5rem;"><i class="fas fa-camera"></i> REPORTE FOTOGRÁFICO</label>
                                         <div style="display: flex; gap: 10px; margin-top: 10px; margin-bottom: 10px;">
                                             <button type="button" class="btn-photo-upload" onclick="document.getElementById('furn-file-cam').click()"><i class="fas fa-camera"></i> Abrir Cámara</button>
                                             <button type="button" class="btn-photo-upload" onclick="document.getElementById('furn-file-gal').click()"><i class="fas fa-images"></i> Abrir Galería</button>
@@ -297,6 +338,7 @@
                             </form>
                         </div>
                     </div>
+                </div>
 
                     <!-- Procedimiento Pantalla REDISEÑADO COMPACTO -->
                     <div id="screen-procedure" class="hidden" style="margin-top: 2rem;">
@@ -356,7 +398,6 @@
                                     <button class="bubble-btn reason" onclick="selectLevel('device', 4, 'Dañado')">Dañado</button>
                                     <button class="bubble-btn reason" onclick="selectLevel('device', 4, 'Incorrecto')">Incorrecto</button>
                                     <button class="bubble-btn reason" onclick="selectLevel('device', 4, 'Robado')">Robado</button>
-                                    <button class="bubble-btn reason" onclick="selectLevel('device', 4, 'Alarmado')">Alarmado</button>
                                     <button class="bubble-btn reason" onclick="selectLevel('device', 4, 'No recibido')">No recibido</button>
                                 </div>
                             </div>
@@ -569,8 +610,8 @@
                                 <option value="solucionado">Solucionado</option>
                                 <option value="cerrada">Cerrado</option>
                             </select>
-                            <button class="capsule-search-btn" onclick="refreshAllDashboardData()" title="Recargar" style="border-radius:50%; width:36px; height:36px; display:flex; align-items:center; justify-content:center; border:1px solid #ddd; background:white; cursor:pointer; color:#666;">
-                                <i class="fa fa-sync-alt"></i>
+                            <button onclick="clearDashboardFilters()" title="Limpiar Filtros" style="height: 36px; width: 36px; border-radius: 50%; border: 1px solid #e0e0e0; background: #fff; color: #888; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.2s; flex-shrink: 0;" onmouseover="this.style.color='var(--mi-orange)'; this.style.borderColor='var(--mi-orange)';" onmouseout="this.style.color='#888'; this.style.borderColor='#e0e0e0';">
+                                <i class="fas fa-eraser"></i>
                             </button>
                         </div>
                     </div>
@@ -579,7 +620,7 @@
                             <thead>
                                 <tr>
                                     <th>Fecha</th>
-                                    <th>Usuario</th>
+                                    <th id="th-usuario">Usuario</th>
                                     <th>Cuenta</th>
                                     <th>Tienda</th>
                                     <th>Tipo</th>
@@ -871,21 +912,26 @@
 
             <section id="view-materiales" class="sub-view hidden">
                 <div style="padding: 20px; text-align: center; margin-top: 2rem;">
-                    <h2 style="margin-bottom: 20px; color: #333;"><i class="fas fa-box-open" style="color: var(--mi-orange);"></i> Materiales Disponibles</h2>
-                    <p style="color: #666; margin-bottom: 30px;">Aquí encontrarás todos los enlaces directos a los recursos y materiales compartidos.</p>
-                    
-                    <div style="display: flex; flex-direction: column; gap: 15px; align-items: center;">
-                        <!-- Botón Estático Xiaomi 17T -->
-                        <a href="https://docs.google.com/presentation/d/1_cJVZKnAMqO_KV53hwsHWHojR7qZzVQA/edit?usp=drive_link&ouid=115671157525332985831&rtpof=true&sd=true" target="_blank" style="display: inline-flex; align-items: center; justify-content: flex-start; gap: 12px; background: white; color: #333; text-decoration: none; padding: 15px 25px; border-radius: 12px; font-weight: 600; font-size: 1rem; width: 100%; max-width: 400px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); border: 1px solid #eee; transition: transform 0.2s, box-shadow 0.2s;">
-                            <div style="width: 40px; height: 40px; background: #fff4e6; border-radius: 8px; display: flex; align-items: center; justify-content: center;">
-                                <i class="fas fa-file-powerpoint" style="color: var(--mi-orange); font-size: 1.2rem;"></i>
-                            </div>
-                            <div style="text-align: left; flex: 1;">
-                                <div style="font-size: 1.05rem; font-weight: 700;">Guía Xiaomi 17T Series</div>
-                                <div style="font-size: 0.8rem; color: #888;">Presentación de Lanzamiento</div>
-                            </div>
-                            <i class="fas fa-external-link-alt" style="color: #bbb;"></i>
-                        </a>
+                    <h2 style="margin-bottom: 20px; color: #333;"><i class="fas fa-store" style="color: var(--mi-orange);"></i> Tiendas Disponibles</h2>
+                    <p style="color: #666; margin-bottom: 30px;">Consulta el listado de tiendas asignadas y utiliza los filtros para buscar.</p>
+
+                    <div style="display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; align-items: center; margin-bottom: 2rem; background: #fff; padding: 1rem 1.5rem; border-radius: 12px; box-shadow: 0 2px 10px rgba(0,0,0,0.02); border: 1px solid #f0f0f0;">
+                        <select id="tiendas-filter-cuenta" class="capsule-select" style="width: auto !important; min-width: 150px; height: 38px; padding: 0 12px; font-size: 13px; border-radius: 20px; border: 1px solid #e0e0e0; display: inline-block; background-color: #fff; cursor: pointer;">
+                            <option value="all">Todas las Cuentas</option>
+                        </select>
+                        <input type="text" id="tiendas-filter-tienda" class="capsule-select" placeholder="Buscar por Tienda..." list="datalist-tiendas" style="width: auto !important; min-width: 250px; height: 38px; padding: 0 16px; font-size: 13px; border-radius: 20px; border: 1px solid #e0e0e0; display: inline-block; background-color: #fff;">
+                        <datalist id="datalist-tiendas"></datalist>
+                        <select id="tiendas-filter-usuario" class="capsule-select" style="width: auto !important; min-width: 150px; height: 38px; padding: 0 12px; font-size: 13px; border-radius: 20px; border: 1px solid #e0e0e0; display: none; background-color: #fff; cursor: pointer;">
+                            <option value="all">Todos los Usuarios</option>
+                        </select>
+                        <button onclick="clearTiendasFilters()" title="Limpiar Filtros" style="height: 38px; width: 38px; border-radius: 50%; border: 1px solid #e0e0e0; background: #fff; color: #888; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.2s;" onmouseover="this.style.color='var(--mi-orange)'; this.style.borderColor='var(--mi-orange)';" onmouseout="this.style.color='#888'; this.style.borderColor='#e0e0e0';">
+                            <i class="fas fa-eraser"></i>
+                        </button>
+                    </div>
+
+                    <!-- GRID DE TIENDAS -->
+                    <div id="tiendas-grid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 15px; text-align: left;">
+                        <!-- Las tiendas se inyectarán aquí vía JS -->
                     </div>
                 </div>
             </section>
@@ -906,8 +952,8 @@
                 <span>Lanzamientos</span>
             </div> -->
             <div class="mobile-bottom-nav-item" data-target="materiales">
-                <i class="fas fa-folder-open"></i>
-                <span>Materiales</span>
+                <i class="fas fa-store"></i>
+                <span>Tiendas</span>
             </div>
             <div class="mobile-bottom-nav-item" data-target="mensajes" style="position: relative;">
                 <i class="fas fa-bell"></i>
@@ -971,7 +1017,7 @@
     </div>
 
     <!-- Modal para Desglose de Reporte -->
-    <div id="report-modal" class="modal hidden" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); z-index: 1000; align-items: center; justify-content: center; backdrop-filter: blur(4px); transition: all 0.3s ease;">
+    <div id="report-modal" class="modal hidden" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); z-index: 10005; align-items: center; justify-content: center; backdrop-filter: blur(4px); transition: all 0.3s ease;">
         <div class="modal-content" style="background: #ffffff; padding: 2rem; border-radius: 12px; max-width: 600px; width: 90%; max-height: 85vh; overflow-y: auto; box-shadow: 0 10px 25px rgba(0,0,0,0.2); position: relative; animation: slideIn 0.3s ease;">
             <div class="bottom-sheet-drag-handle"></div>
             <span class="close-modal" onclick="closeReportModal()" style="position: absolute; top: 1.2rem; right: 1.5rem; font-size: 1.5rem; cursor: pointer; color: var(--mi-gray-dark); transition: color 0.2s;" onmouseover="this.style.color='var(--mi-orange)'" onmouseout="this.style.color='var(--mi-gray-dark)'">&times;</span>
