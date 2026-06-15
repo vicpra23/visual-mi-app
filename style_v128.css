@@ -336,8 +336,8 @@ h1, h2, h3, h4, .dashboard-welcome-title {
 }
 
 .capsule-select {
-    border: 1px solid transparent !important;
-    background: #f4f6f8 !important;
+    border: 1px solid #e0e0e0 !important;
+    background: #ffffff !important;
     border-radius: 12px !important;
     padding: 8px 12px !important;
     font-weight: 600;
@@ -345,10 +345,29 @@ h1, h2, h3, h4, .dashboard-welcome-title {
     min-width: 140px;
     cursor: pointer;
     transition: var(--transition);
+    color: #333;
+}
+
+select.capsule-select {
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    appearance: none;
+    background-image: url('data:image/svg+xml;utf8,<svg fill="%23ff6700" height="24" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg"><path d="M7 10l5 5 5-5z"/></svg>');
+    background-repeat: no-repeat;
+    background-position: right 10px center;
+    padding-right: 30px !important;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+}
+
+select.capsule-select:focus {
+    border-color: var(--mi-orange) !important;
+    box-shadow: 0 0 0 3px rgba(255,103,0,0.1);
+    outline: none;
 }
 
 .capsule-select:hover {
-    background: #ebeff2 !important;
+    background: #fbfcfd !important;
+    border-color: var(--mi-orange) !important;
 }
 
 /* Custom Large Stats Layout Grid - 1 Large Left, 4 Smaller Right */

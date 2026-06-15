@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Xiaomi VISUAL APP</title>
-    <link rel="stylesheet" href="style_v128.css?v=11">
+    <link rel="stylesheet" href="style_v128.css?v=12">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script>
@@ -202,13 +202,13 @@
                         <div class="form-grid-2col">
                             <div class="form-group">
                                 <label>Cuenta</label>
-                                <select class="form-control" id="incident-cuenta" onchange="filterStoresByAccount('incident', this.value)">
+                                <select class="form-control capsule-select" id="incident-cuenta" onchange="filterStoresByAccount('incident', this.value)">
                                     <option value="" disabled selected>Cargando cuentas...</option>
                                 </select>
                             </div>
                             <div class="form-group">
                                 <label>Centro</label>
-                                <select class="form-control" id="incident-centro" onchange="startIncidentProcedure(this.value)" disabled>
+                                <select class="form-control capsule-select" id="incident-centro" onchange="startIncidentProcedure(this.value)" disabled>
                                     <option value="" disabled selected>Primero elige cuenta</option>
                                 </select>
                             </div>
@@ -919,8 +919,9 @@
                         <select id="tiendas-filter-cuenta" class="capsule-select" style="width: auto !important; min-width: 150px; height: 38px; padding: 0 12px; font-size: 13px; border-radius: 20px; border: 1px solid #e0e0e0; display: inline-block; background-color: #fff; cursor: pointer;">
                             <option value="all">Todas las Cuentas</option>
                         </select>
-                        <input type="text" id="tiendas-filter-tienda" class="capsule-select" placeholder="Buscar por Tienda..." list="datalist-tiendas" style="width: auto !important; min-width: 250px; height: 38px; padding: 0 16px; font-size: 13px; border-radius: 20px; border: 1px solid #e0e0e0; display: inline-block; background-color: #fff;">
-                        <datalist id="datalist-tiendas"></datalist>
+                        <select id="tiendas-filter-tienda" class="capsule-select" style="width: auto !important; min-width: 250px; height: 38px; padding: 0 16px; font-size: 13px; border-radius: 20px; border: 1px solid #e0e0e0; display: inline-block; background-color: #fff; cursor: pointer;">
+                            <option value="">Todas las Tiendas</option>
+                        </select>
                         <select id="tiendas-filter-usuario" class="capsule-select" style="width: auto !important; min-width: 150px; height: 38px; padding: 0 12px; font-size: 13px; border-radius: 20px; border: 1px solid #e0e0e0; display: none; background-color: #fff; cursor: pointer;">
                             <option value="all">Todos los Usuarios</option>
                         </select>
@@ -1308,9 +1309,29 @@
     <!-- Contenedor Global para Banners de Notificación Latentes -->
     <div id="toast-container"></div>
 
+    <!-- Custom Store Selection Modal -->
+    <div id="store-selection-modal" class="modal hidden" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); z-index: 10010; align-items: center; justify-content: center; backdrop-filter: blur(4px); transition: all 0.3s ease;">
+        <div class="modal-content" style="background: #ffffff; padding: 1.5rem; border-radius: 12px; max-width: 500px; width: 90%; max-height: 85vh; overflow-y: hidden; display: flex; flex-direction: column; box-shadow: 0 10px 25px rgba(0,0,0,0.2); position: relative; animation: slideIn 0.3s ease;">
+            <span class="close-modal" onclick="document.getElementById('store-selection-modal').style.display='none'; document.getElementById('store-selection-modal').classList.add('hidden');" style="position: absolute; top: 1rem; right: 1.5rem; font-size: 1.5rem; cursor: pointer; color: var(--mi-gray-dark);">&times;</span>
+            <h3 style="margin-top: 0; margin-bottom: 1rem; color: var(--mi-black); font-size: 1.2rem;">Seleccionar Centro</h3>
+            
+            <div style="margin-bottom: 1rem; position: relative;">
+                <input type="text" id="store-selection-search" placeholder="Buscar por nombre o RMS..." style="width: 100%; box-sizing: border-box; padding: 10px 15px; padding-left: 35px; border: 1px solid #ddd; border-radius: 8px; font-size: 14px; outline: none;">
+                <i class="fas fa-search" style="position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: #aaa;"></i>
+            </div>
+            
+            <div id="store-selection-list" style="flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 8px;">
+                <!-- Opciones inyectadas vía JS -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Firebase Scripts -->
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-messaging-compat.js"></script>
+
     <!-- Archivos principales de la aplicación -->
     <link rel="stylesheet" href="style.css?v=5">
-    <script src="main_v130.js?v=47" defer></script>
+    <script src="main_v130.js?v=105" defer></script>
 </body>
-</html>
 </html>

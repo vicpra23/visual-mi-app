@@ -458,17 +458,42 @@ window.renderTiendasView = function() {
             filterCuenta.appendChild(opt);
         });
         
-        // Rellenar datalist de Tiendas
-        const datalistTiendas = document.getElementById('datalist-tiendas');
-        if (datalistTiendas) {
-            datalistTiendas.innerHTML = '';
-            const tiendas = [...new Set(stores.map(t => String(t.nombre || '').trim()))].filter(Boolean).sort();
-            tiendas.forEach(t => {
-                const opt = document.createElement('option');
-                opt.value = t;
-                datalistTiendas.appendChild(opt);
-            });
-        }
+        // Función para actualizar el select de Tiendas
+        window.updateSelectTiendas = function() {
+            const filterTienda = document.getElementById('tiendas-filter-tienda');
+            const filterUsuario = document.getElementById('tiendas-filter-usuario');
+            const selectedCuenta = filterCuenta.value;
+            const selectedUsuario = filterUsuario && filterUsuario.style.display !== 'none' ? filterUsuario.value : 'all';
+            
+            if (filterTienda) {
+                const currentVal = filterTienda.value;
+                filterTienda.innerHTML = '<option value="">Todas las Tiendas</option>';
+                let storesFiltered = stores;
+                
+                if (selectedCuenta !== 'all') {
+                    storesFiltered = storesFiltered.filter(t => String(t.cuenta || '').trim() === selectedCuenta);
+                }
+                if (selectedUsuario !== 'all') {
+                    storesFiltered = storesFiltered.filter(t => String(t.usuario || t.owner || '').trim() === selectedUsuario);
+                }
+                
+                const tiendas = [...new Set(storesFiltered.map(t => String(t.nombre || '').trim()))].filter(Boolean).sort();
+                tiendas.forEach(t => {
+                    const opt = document.createElement('option');
+                    opt.value = t;
+                    opt.textContent = t;
+                    filterTienda.appendChild(opt);
+                });
+                
+                if (tiendas.includes(currentVal)) {
+                    filterTienda.value = currentVal;
+                } else {
+                    filterTienda.value = '';
+                }
+            }
+        };
+        
+        window.updateSelectTiendas();
         
         // Rellenar select de Usuarios (Solo Admin)
         if (isAdmin && filterUsuario) {
@@ -485,9 +510,19 @@ window.renderTiendasView = function() {
         }
         
         // Event Listeners
-        filterCuenta.addEventListener('change', renderTiendasGrid);
-        filterTienda.addEventListener('input', renderTiendasGrid);
-        if (filterUsuario) filterUsuario.addEventListener('change', renderTiendasGrid);
+        filterCuenta.addEventListener('change', () => {
+            if(filterTienda) filterTienda.value = ''; // Reset tienda when cuenta changes
+            window.updateSelectTiendas();
+            renderTiendasGrid();
+        });
+        filterTienda.addEventListener('change', renderTiendasGrid);
+        if (filterUsuario) {
+            filterUsuario.addEventListener('change', () => {
+                if(filterTienda) filterTienda.value = ''; // Reset tienda when usuario changes
+                window.updateSelectTiendas();
+                renderTiendasGrid();
+            });
+        }
     }
     
     renderTiendasGrid();
@@ -2051,8 +2086,39 @@ window.applyModalFilters = function() {
     const targetStatus = APP_CONFIG.currentModalStatus || 'all';
     const isTodos = targetStatus === 'all' || targetStatus === 'todos';
     
+    // First, filter items by status so dropdowns only show relevant data
+    let statusFilteredItems = items;
+    if (!isTodos && !isLanzamientos) {
+        statusFilteredItems = items.filter(r => {
+            const est = String(r.estado || '').trim().toLowerCase();
+            if (targetStatus === 'cerrada') return est.includes('cerrada') || est.includes('cerrado');
+            return est.includes(targetStatus);
+        });
+    }
+
     const cuentaVal = document.getElementById('modal-filter-cuenta')?.value || 'all';
-    const tiendaVal = document.getElementById('modal-filter-tienda')?.value || 'all';
+    
+    // Dynamically rebuild modal-filter-tienda based on selected cuenta AND status
+    const filterTienda = document.getElementById('modal-filter-tienda');
+    if (filterTienda) {
+        const currentTiendaVal = filterTienda.value;
+        let storesForCuenta = statusFilteredItems;
+        if (cuentaVal !== 'all') {
+            storesForCuenta = statusFilteredItems.filter(r => String(r.cuenta || '').trim() === cuentaVal);
+        }
+        const tiendas = [...new Set(storesForCuenta.map(r => String(r.tienda || '').trim()).filter(Boolean))].sort();
+        
+        filterTienda.innerHTML = '<option value="all">Todas las Tiendas</option>';
+        tiendas.forEach(t => filterTienda.innerHTML += `<option value="${t}">${t}</option>`);
+        
+        if (tiendas.includes(currentTiendaVal)) {
+            filterTienda.value = currentTiendaVal;
+        } else {
+            filterTienda.value = 'all';
+        }
+    }
+    
+    const tiendaVal = filterTienda?.value || 'all';
     const tipoVal = document.getElementById('modal-filter-tipo')?.value || 'all';
     const usuarioVal = document.getElementById('modal-filter-usuario')?.value || 'all';
     const estadoVal = document.getElementById('modal-filter-estado')?.value || 'all';
@@ -2247,8 +2313,8 @@ function startApp(forceDashboard = false) {
 function filterStoresByAccount(type, cuenta) {
     const tiendas = APP_CONFIG.currentUser.tiendas || [];
     const filtered = tiendas.filter(t => t.cuenta === cuenta);
-    const select = document.getElementById(`${type}-centro`);
     
+    const select = document.getElementById(`${type}-centro`);
     if (select) {
         select.disabled = false;
         select.innerHTML = '<option value="" disabled selected>Seleccione Centro</option>';
@@ -2261,6 +2327,127 @@ function filterStoresByAccount(type, cuenta) {
         });
     }
 }
+
+// Custom Store Selection Modal Logic
+window.openStoreSelectionModal = function(mode = 'incident') {
+    APP_CONFIG.currentStoreSelectionMode = mode;
+    const modal = document.getElementById('store-selection-modal');
+    if (!modal) return;
+    
+    const searchInput = document.getElementById('store-selection-search');
+    if (searchInput) searchInput.value = '';
+    
+    renderStoreSelectionList();
+    
+    modal.style.display = 'flex';
+    modal.classList.remove('hidden');
+    
+    if (searchInput) {
+        setTimeout(() => searchInput.focus(), 100);
+        searchInput.oninput = renderStoreSelectionList;
+    }
+};
+
+window.renderStoreSelectionList = function() {
+    const listContainer = document.getElementById('store-selection-list');
+    const searchInput = document.getElementById('store-selection-search');
+    if (!listContainer) return;
+    
+    const mode = APP_CONFIG.currentStoreSelectionMode || 'incident';
+    
+    let stores = [];
+    if (mode === 'incident') {
+        stores = APP_CONFIG.currentCuentaStores || [];
+    } else {
+        // Tiendas View mode
+        const filterCuenta = document.getElementById('tiendas-filter-cuenta');
+        const selectedCuenta = filterCuenta ? filterCuenta.value : 'all';
+        let allStores = APP_CONFIG.currentUser.tiendas || [];
+        if (selectedCuenta !== 'all') {
+            stores = allStores.filter(t => String(t.cuenta || '').trim() === selectedCuenta);
+        } else {
+            stores = allStores;
+        }
+    }
+    
+    // Dedup stores by name since the list might contain the same store multiple times for different metrics
+    const uniqueStoreNames = [...new Set(stores.map(t => String(t.nombre || '').trim()))].filter(Boolean);
+    let uniqueStores = uniqueStoreNames.map(name => {
+        return stores.find(t => String(t.nombre || '').trim() === name);
+    });
+    
+    if (searchInput && searchInput.value.trim() !== '') {
+        const query = searchInput.value.toLowerCase().trim();
+        uniqueStores = uniqueStores.filter(t => 
+            String(t.nombre || '').toLowerCase().includes(query) || 
+            String(t.rms || '').toLowerCase().includes(query)
+        );
+    }
+    
+    listContainer.innerHTML = '';
+    
+    // Add "Todas las Tiendas" option if mode is 'tiendas_view'
+    if (mode === 'tiendas_view') {
+        const allBtn = document.createElement('button');
+        allBtn.style.cssText = 'width: 100%; text-align: left; padding: 12px 15px; background: #f9f9f9; border: 1px solid #eee; border-radius: 8px; cursor: pointer; display: flex; align-items: center; justify-content: space-between; font-size: 14px; color: #333; transition: all 0.2s; font-style: italic;';
+        allBtn.innerHTML = `<span><i class="fas fa-list"></i> Todas las Tiendas</span>`;
+        allBtn.onclick = () => {
+            document.getElementById('store-selection-modal').style.display = 'none';
+            document.getElementById('store-selection-modal').classList.add('hidden');
+            const tiendasInput = document.getElementById('tiendas-filter-tienda');
+            if (tiendasInput) {
+                tiendasInput.value = '';
+                tiendasInput.dataset.realValue = '';
+                window.renderTiendasGrid();
+            }
+        };
+        listContainer.appendChild(allBtn);
+    }
+    
+    if (uniqueStores.length === 0) {
+        listContainer.innerHTML += '<div style="padding: 20px; text-align: center; color: #888;">No hay resultados</div>';
+        return;
+    }
+    
+    // Sort
+    uniqueStores.sort((a, b) => String(a.nombre || '').localeCompare(String(b.nombre || '')));
+    
+    uniqueStores.forEach(t => {
+        const btn = document.createElement('button');
+        btn.style.cssText = 'width: 100%; text-align: left; padding: 12px 15px; background: #f9f9f9; border: 1px solid #eee; border-radius: 8px; cursor: pointer; display: flex; align-items: center; justify-content: space-between; font-size: 14px; color: #333; transition: all 0.2s;';
+        btn.onmouseover = () => btn.style.borderColor = 'var(--mi-orange)';
+        btn.onmouseout = () => btn.style.borderColor = '#eee';
+        
+        btn.innerHTML = `
+            <span style="font-weight: 500;">${t.nombre}</span>
+            <i class="fas fa-chevron-right" style="color: #ccc; font-size: 12px;"></i>
+        `;
+        
+        btn.onclick = () => {
+            document.getElementById('store-selection-modal').style.display = 'none';
+            document.getElementById('store-selection-modal').classList.add('hidden');
+            
+            if (mode === 'incident') {
+                document.getElementById('selected-store-text').textContent = t.nombre;
+                document.getElementById('selected-store-text').style.fontWeight = 'bold';
+                document.getElementById('custom-store-trigger').style.border = '1px solid #ccc';
+                const hiddenInput = document.getElementById('incident-centro');
+                if (hiddenInput) {
+                    hiddenInput.value = t.nombre;
+                    startIncidentProcedure(t.nombre);
+                }
+            } else if (mode === 'tiendas_view') {
+                const tiendasInput = document.getElementById('tiendas-filter-tienda');
+                if (tiendasInput) {
+                    tiendasInput.value = t.nombre;
+                    window.renderTiendasGrid();
+                }
+            }
+        };
+        
+        listContainer.appendChild(btn);
+    });
+};
 
 async function loadUsers() {
     const select = document.getElementById('login-usuario');
@@ -4611,6 +4798,16 @@ window.openDashboardModal = function(status) {
     APP_CONFIG.currentHistorialItems = baseList;
     APP_CONFIG.currentHistorialIsLanzamientos = false;
 
+    // Filter baseList by status so dropdown options only reflect matching reports
+    let statusFilteredList = baseList;
+    if (!isTodos) {
+        statusFilteredList = baseList.filter(r => {
+            const est = String(r.estado || '').trim().toLowerCase();
+            if (APP_CONFIG.currentModalStatus === 'cerrada') return est.includes('cerrada') || est.includes('cerrado');
+            return est.includes(APP_CONFIG.currentModalStatus);
+        });
+    }
+
     const userRole = String(APP_CONFIG.currentUser?.rol || '').trim().toUpperCase();
     const isAdmin = userRole === 'ADMIN' || userRole === 'ADMINISTRADOR';
     
@@ -4625,21 +4822,21 @@ window.openDashboardModal = function(status) {
     if (filterEstado) filterEstado.style.display = isTodos ? '' : 'none';
     
     if (filterCuenta) {
-        const cuentas = [...new Set(baseList.map(r => String(r.cuenta || '').trim()).filter(Boolean))].sort();
+        const cuentas = [...new Set(statusFilteredList.map(r => String(r.cuenta || '').trim()).filter(Boolean))].sort();
         filterCuenta.innerHTML = '<option value="all">Todas las Cuentas</option>';
         cuentas.forEach(c => filterCuenta.innerHTML += `<option value="${c}">${c}</option>`);
         filterCuenta.value = 'all';
     }
     
     if (filterTienda) {
-        const tiendas = [...new Set(baseList.map(r => String(r.tienda || '').trim()).filter(Boolean))].sort();
+        const tiendas = [...new Set(statusFilteredList.map(r => String(r.tienda || '').trim()).filter(Boolean))].sort();
         filterTienda.innerHTML = '<option value="all">Todas las Tiendas</option>';
         tiendas.forEach(t => filterTienda.innerHTML += `<option value="${t}">${t}</option>`);
         filterTienda.value = 'all';
     }
     
     if (isAdmin && filterUsuario) {
-        const usuarios = [...new Set(baseList.map(r => String(r.usuario || '').trim()).filter(Boolean))].sort();
+        const usuarios = [...new Set(statusFilteredList.map(r => String(r.usuario || '').trim()).filter(Boolean))].sort();
         filterUsuario.innerHTML = '<option value="all">Todos los Usuarios</option>';
         usuarios.forEach(u => filterUsuario.innerHTML += `<option value="${u}">${u}</option>`);
         filterUsuario.value = 'all';
