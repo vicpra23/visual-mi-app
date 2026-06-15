@@ -142,8 +142,36 @@
                     </div>
                 </div> <!-- CLOSE dashboard-grid-composite -->
 
-                <!-- SECTION 2: PROGRESO DE LANZAMIENTOS (SOLO LECTURA) -->
-                <div style="margin-top: 3rem; border-top: 1px solid #eee; padding-top: 2rem;">
+                <!-- SECTION: DASHBOARD POR CATEGORÍA -->
+                <div style="margin-top: 2rem; border-top: 1px solid #eee; padding-top: 2rem;">
+                    <div style="display: flex; flex-direction: column; gap: 15px; margin-bottom: 1.5rem;">
+                        <h3 style="margin: 0; font-size: 1.1rem; color: var(--mi-gray-dark); display: flex; align-items: center; gap: 8px;">
+                            <i class="fa fa-layer-group" style="color: var(--mi-orange)"></i> Incidencias por Categoría
+                        </h3>
+                    </div>
+                    
+                    <div class="sub-grid-quad">
+                        <div class="stat-card" style="cursor:pointer;" onclick="openDashboardModal('all', 'mobiliario')">
+                            <h3><span style="display:inline-block; width: 18px; height: 15px; border-top: 4px solid #1890ff; border-left: 3px solid #1890ff; border-right: 3px solid #1890ff; margin-right: 8px; vertical-align: middle; position: relative; top: -2px; border-radius: 3px 3px 0 0;"></span> Mobiliario</h3>
+                            <p id="dash-cat-mobiliario" style="color: #1890ff; font-size: 2rem;">0</p>
+                        </div>
+                        <div class="stat-card" style="cursor:pointer;" onclick="openDashboardModal('all', 'dispositivo')">
+                            <h3><i class="fa fa-mobile-alt" style="color: #52c41a;"></i> Dispositivo</h3>
+                            <p id="dash-cat-dispositivo" style="color: #52c41a; font-size: 2rem;">0</p>
+                        </div>
+                        <div class="stat-card" style="cursor:pointer;" onclick="openDashboardModal('all', 'pantalla')">
+                            <h3><i class="fa fa-tv" style="color: #722ed1;"></i> Pantalla Digital</h3>
+                            <p id="dash-cat-pantalla" style="color: #722ed1; font-size: 2rem;">0</p>
+                        </div>
+                        <div class="stat-card" style="cursor:pointer;" onclick="openDashboardModal('all', 'lona')">
+                            <h3><i class="fa fa-image" style="color: #faad14;"></i> Lonas</h3>
+                            <p id="dash-cat-lonas" style="color: #faad14; font-size: 2rem;">0</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- SECTION 2: PROGRESO DE LANZAMIENTOS (SOLO LECTURA) - OCULTO TEMPORALMENTE -->
+                <div style="display: none; margin-top: 3rem; border-top: 1px solid #eee; padding-top: 2rem;">
                     <div style="display: flex; flex-direction: column; gap: 15px; margin-bottom: 1.5rem;">
                         <h3 style="margin: 0; font-size: 1.1rem; color: var(--mi-gray-dark); display: flex; align-items: center; gap: 8px;">
                             <i class="fa fa-rocket" style="color: var(--mi-orange)"></i> Progreso de Lanzamientos
@@ -521,10 +549,10 @@
                                         
                                         <div style="display: flex; gap: 6px; align-items: flex-end; margin-bottom: 1rem;">
                                             <div style="flex: 1;">
-                                                <select id="lona-selector-dropdown" class="form-control" style="font-size: 12px; height: 35px;">
+                                                <select id="lona-selector-dropdown" class="form-control" style="font-size: 12px; height: 35px;" onchange="handleLonaDropdownChange(this)">
                                                     <option value="">Seleccione modelo...</option>
                                                 </select>
-                                                <input type="text" id="lona-selector-custom" class="form-control hidden" placeholder="Nombre del artículo..." style="font-size: 12px; height: 35px; border-bottom: 2px solid var(--mi-orange);">
+                                                <input type="text" id="lona-selector-custom" class="form-control hidden" placeholder="Escribir modelo..." style="display: none; font-size: 12px; height: 35px; margin-top: 5px; border: 1px solid var(--mi-border);">
                                             </div>
                                             <div style="width: 60px;">
                                                 <input type="number" id="lona-quantity-input" class="form-control" min="1" value="1" style="font-size: 13px; height: 35px; text-align: center;" title="Cantidad">
@@ -590,9 +618,8 @@
                             <select id="dash-filter-cuenta" class="capsule-select" style="width: auto !important; min-width: 140px; height: 36px; padding: 0 8px; font-size: 12px;" onchange="filterDashboardTable()">
                                 <option value="all">Todas Cuentas</option>
                             </select>
-                            <select id="dash-filter-tienda" class="capsule-select" style="width: auto !important; min-width: 140px; height: 36px; padding: 0 8px; font-size: 12px;" onchange="filterDashboardTable()">
-                                <option value="all">Todas Tiendas</option>
-                            </select>
+                            <input type="text" list="dash-filter-tienda-list" id="dash-filter-tienda" class="capsule-select" placeholder="Todas Tiendas" style="width: auto !important; min-width: 140px; height: 36px; padding: 0 8px; font-size: 12px;" oninput="filterDashboardTable()" onchange="filterDashboardTable()">
+                            <datalist id="dash-filter-tienda-list"></datalist>
                             <select id="dash-filter-tipo" class="capsule-select" style="width: auto !important; min-width: 120px; height: 36px; padding: 0 8px; font-size: 12px;" onchange="filterDashboardTable()">
                                 <option value="all">Todos Tipos</option>
                                 <option value="dispositivo">Dispositivo</option>
@@ -919,9 +946,8 @@
                         <select id="tiendas-filter-cuenta" class="capsule-select" style="width: auto !important; min-width: 150px; height: 38px; padding: 0 12px; font-size: 13px; border-radius: 20px; border: 1px solid #e0e0e0; display: inline-block; background-color: #fff; cursor: pointer;">
                             <option value="all">Todas las Cuentas</option>
                         </select>
-                        <select id="tiendas-filter-tienda" class="capsule-select" style="width: auto !important; min-width: 250px; height: 38px; padding: 0 16px; font-size: 13px; border-radius: 20px; border: 1px solid #e0e0e0; display: inline-block; background-color: #fff; cursor: pointer;">
-                            <option value="">Todas las Tiendas</option>
-                        </select>
+                        <input type="text" list="tiendas-filter-tienda-list" id="tiendas-filter-tienda" class="capsule-select" placeholder="Todas las Tiendas" style="width: auto !important; min-width: 250px; height: 38px; padding: 0 16px; font-size: 13px; border-radius: 20px; border: 1px solid #e0e0e0; display: inline-block; background-color: #fff;" autocomplete="off">
+                        <datalist id="tiendas-filter-tienda-list"></datalist>
                         <select id="tiendas-filter-usuario" class="capsule-select" style="width: auto !important; min-width: 150px; height: 38px; padding: 0 12px; font-size: 13px; border-radius: 20px; border: 1px solid #e0e0e0; display: none; background-color: #fff; cursor: pointer;">
                             <option value="all">Todos los Usuarios</option>
                         </select>
@@ -1041,9 +1067,8 @@
                 <select id="modal-filter-cuenta" class="capsule-select" style="flex: 1; min-width: 0; height: 36px; padding: 0 10px; font-size: 13px; outline: none; border: 1px solid var(--mi-border); border-radius: 6px;" onchange="window.applyModalFilters()">
                     <option value="all">Todas las Cuentas</option>
                 </select>
-                <select id="modal-filter-tienda" class="capsule-select" style="flex: 1; min-width: 0; height: 36px; padding: 0 10px; font-size: 13px; outline: none; border: 1px solid var(--mi-border); border-radius: 6px;" onchange="window.applyModalFilters()">
-                    <option value="all">Todas las Tiendas</option>
-                </select>
+                <input type="text" list="modal-filter-tienda-list" id="modal-filter-tienda" class="capsule-select" placeholder="Todas las Tiendas" style="flex: 1; min-width: 0; height: 36px; padding: 0 10px; font-size: 13px; outline: none; border: 1px solid var(--mi-border); border-radius: 6px;" oninput="window.applyModalFilters()" onchange="window.applyModalFilters()">
+                <datalist id="modal-filter-tienda-list"></datalist>
                 <select id="modal-filter-tipo" class="capsule-select" style="flex: 1; min-width: 0; height: 36px; padding: 0 10px; font-size: 13px; outline: none; border: 1px solid var(--mi-border); border-radius: 6px;" onchange="window.applyModalFilters()">
                     <option value="all">Todos los Tipos</option>
                     <option value="dispositivo">Dispositivo</option>
@@ -1332,6 +1357,6 @@
 
     <!-- Archivos principales de la aplicación -->
     <link rel="stylesheet" href="style.css?v=5">
-    <script src="main_v130.js?v=105" defer></script>
+    <script src="main_v130.js?v=118" defer></script>
 </body>
 </html>

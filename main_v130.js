@@ -3,7 +3,7 @@
  */
 
 const APP_CONFIG = {
-    scriptUrl: 'https://script.google.com/macros/s/AKfycbyYOyYKP_KL8-g-1Q7HFF-PNxe2eaGRWBbtJs6PV_Sk_i-dlABse2QzaCcDzu4XyoUIZw/exec',
+    scriptUrl: 'https://script.google.com/macros/s/AKfycbxxvnXnL-X6Rd7rW8v_UWDaVJwnU9t9o_ke_Rfs-dcsRzy8Xz9iyaWVYUpSorurQzNbMQ/exec',
     currentUser: null,
     currentReport: {
         category: '',
@@ -467,28 +467,28 @@ window.renderTiendasView = function() {
             
             if (filterTienda) {
                 const currentVal = filterTienda.value;
-                filterTienda.innerHTML = '<option value="">Todas las Tiendas</option>';
-                let storesFiltered = stores;
-                
-                if (selectedCuenta !== 'all') {
-                    storesFiltered = storesFiltered.filter(t => String(t.cuenta || '').trim() === selectedCuenta);
-                }
-                if (selectedUsuario !== 'all') {
-                    storesFiltered = storesFiltered.filter(t => String(t.usuario || t.owner || '').trim() === selectedUsuario);
-                }
-                
-                const tiendas = [...new Set(storesFiltered.map(t => String(t.nombre || '').trim()))].filter(Boolean).sort();
-                tiendas.forEach(t => {
-                    const opt = document.createElement('option');
-                    opt.value = t;
-                    opt.textContent = t;
-                    filterTienda.appendChild(opt);
-                });
-                
-                if (tiendas.includes(currentVal)) {
-                    filterTienda.value = currentVal;
-                } else {
-                    filterTienda.value = '';
+                const filterList = document.getElementById('tiendas-filter-tienda-list');
+                if (filterList) {
+                    filterList.innerHTML = '';
+                    let storesFiltered = stores;
+                    
+                    if (selectedCuenta !== 'all') {
+                        storesFiltered = storesFiltered.filter(t => String(t.cuenta || '').trim() === selectedCuenta);
+                    }
+                    if (selectedUsuario !== 'all') {
+                        storesFiltered = storesFiltered.filter(t => String(t.usuario || t.owner || '').trim() === selectedUsuario);
+                    }
+                    
+                    const tiendas = [...new Set(storesFiltered.map(t => String(t.nombre || '').trim()))].filter(Boolean).sort();
+                    tiendas.forEach(t => {
+                        const opt = document.createElement('option');
+                        opt.value = t;
+                        filterList.appendChild(opt);
+                    });
+                    
+                    if (!tiendas.includes(currentVal)) {
+                        filterTienda.value = '';
+                    }
                 }
             }
         };
@@ -813,6 +813,19 @@ async function loadDashboard() {
         }
         
         
+        // FIX: Si el backend (GAS) fuerza categoria="Dispositivo" o hay desajustes de acentos
+        // Buscamos en TODOS los valores del objeto para detectar si es una lona o pantalla
+        userReports.forEach(r => {
+            const allValuesStr = Object.values(r).map(v => String(v || '').toLowerCase()).join(' ');
+            if (allValuesStr.includes('lona') || allValuesStr.includes('lightbox') || allValuesStr.includes('top table')) {
+                r.categoria = 'Lonas';
+                r.tipo = 'Lona';
+            } else if (allValuesStr.includes('pantalla') || allValuesStr.includes('digital')) {
+                r.categoria = 'Pantalla Digital';
+                r.tipo = 'Pantalla';
+            }
+        });
+
         APP_CONFIG.dashboardReports = userReports;
         
         // Ejecutar actualización visual final con la data fresca
@@ -866,6 +879,13 @@ function renderDashboardFromData(userReports, explicitIsAdmin = null) {
     setStat('stat-incidents-solved', solvedIncidents);
     setStat('stat-incidents-closed', closedIncidents);
     
+    // Novedad: Estadísticas por Categoría
+    const countByCategory = (catStr) => userReports.filter(r => String(r.categoria || '').trim().toLowerCase().includes(catStr)).length;
+    setStat('dash-cat-mobiliario', countByCategory('mobiliario'));
+    setStat('dash-cat-dispositivo', countByCategory('dispositivo'));
+    setStat('dash-cat-pantalla', countByCategory('pantalla'));
+    setStat('dash-cat-lonas', countByCategory('lona'));
+    
     const accountFilter = document.getElementById('dash-account-filter');
     if (isAdmin) {
         const titleEl = document.getElementById('dashboard-table-title');
@@ -916,19 +936,22 @@ function renderDashboardFromData(userReports, explicitIsAdmin = null) {
     
     if (filterTienda) {
         const stores = [...new Set(userReports.map(r => String(r.tienda || '').trim()))].filter(Boolean).sort();
-        filterTienda.innerHTML = '<option value="all">Todas Tiendas</option>';
-        stores.forEach(store => {
-            const opt = document.createElement('option');
-            opt.value = store; opt.textContent = store;
-            filterTienda.appendChild(opt);
-        });
+        const filterList = document.getElementById('dash-filter-tienda-list');
+        if (filterList) {
+            filterList.innerHTML = '';
+            stores.forEach(store => {
+                const opt = document.createElement('option');
+                opt.value = store;
+                filterList.appendChild(opt);
+            });
+        }
     }
     
     // Resetear filtros visuales a ALL al cargar
     const filterEst = document.getElementById('dash-filter-estado');
     if (filterEst) filterEst.value = 'all';
     if (filterCuenta) filterCuenta.value = 'all';
-    if (filterTienda) filterTienda.value = 'all';
+    if (filterTienda) filterTienda.value = '';
     
     renderDashboardTable(userReports);
 }
@@ -1266,6 +1289,15 @@ window.closeReportModal = function() {
         modal.style.display = 'none';
         modal.classList.add('hidden');
     }
+    
+    if (APP_CONFIG.returnToHistorial) {
+        APP_CONFIG.returnToHistorial = false;
+        const hModal = document.getElementById('historial-modal');
+        if (hModal) {
+            hModal.style.display = 'flex';
+            hModal.classList.remove('hidden');
+        }
+    }
 };
 
 window.deleteDashboardReport = async function(id) {
@@ -1482,6 +1514,8 @@ window.jumpToCreateReportForStore = function(customReport = null) {
             const catStr = String(r.categoria || '').toLowerCase();
             const isFurniture = catStr.includes('mobiliario');
             const isDevice = catStr.includes('dispositivo');
+            const isLona = catStr.includes('lona');
+            const isScreen = catStr.includes('pantalla');
 
             // A. Auto-seleccionar Categoría Principal (simulando click)
             let mainBtn = null;
@@ -1489,6 +1523,10 @@ window.jumpToCreateReportForStore = function(customReport = null) {
                 mainBtn = document.querySelector('#category-selection button.furniture');
             } else if (isDevice) {
                 mainBtn = document.querySelector('#category-selection button.device');
+            } else if (isLona) {
+                mainBtn = document.querySelector('#category-selection button.lona');
+            } else if (isScreen) {
+                mainBtn = document.querySelector('#category-selection button.screen');
             }
             
             if (mainBtn) {
@@ -1498,7 +1536,11 @@ window.jumpToCreateReportForStore = function(customReport = null) {
             // Esperar a que la interfaz despliegue las subcategorías correspondientes
             await sleep(350);
 
-            const procId = isFurniture ? 'furniture-procedure' : 'device-procedure';
+            let procId = 'device-procedure';
+            if (isFurniture) procId = 'furniture-procedure';
+            if (isLona) procId = 'lona-procedure';
+            if (isScreen) procId = 'screen-procedure';
+            
             const container = document.getElementById(procId);
             if (!container) {
                 window.isAutoloadingReport = false; // Liberar bloqueo si algo falla catastróficamente
@@ -1523,6 +1565,26 @@ window.jumpToCreateReportForStore = function(customReport = null) {
                     if (targetMot) targetMot.click();
                 }
 
+            } else if (isLona) {
+                // RAMA LONA: L2(Tipología) -> L3(Motivo)
+                const lonaTip = r.tipologia || r.subcategoria || '';
+                if (lonaTip) {
+                    const tipBtns = Array.from(container.querySelectorAll('.level-box[data-level="2"] button.bubble-btn'));
+                    const targetTip = tipBtns.find(b => b.textContent.trim().toUpperCase() === String(lonaTip).trim().toUpperCase());
+                    if (targetTip) targetTip.click();
+                }
+                
+                await sleep(350);
+                
+                if (r.motivo) {
+                    const motBtns = Array.from(container.querySelectorAll('.level-box[data-level="3"] button.bubble-btn'));
+                    const targetMot = motBtns.find(b => b.textContent.trim().toUpperCase() === String(r.motivo).trim().toUpperCase());
+                    if (targetMot) targetMot.click();
+                }
+                
+            } else if (isScreen) {
+                // RAMA PANTALLA: Pantalla no tiene subcategorías en el frontend, pasa directo al paso C.
+                
             } else if (isDevice) {
                 // RAMA DISPOSITIVO: L2(Tipología) -> L3(Subcategoría) -> L4(Motivo)
                 const tipologyVal = r.tipologia || '';
@@ -1555,7 +1617,12 @@ window.jumpToCreateReportForStore = function(customReport = null) {
             await sleep(350);
 
             // C. Rellenar Bloque Final (Comentarios y Dónde Enviar)
-            const finalLvl = document.getElementById(`final-level-${isFurniture ? 'furniture' : 'device'}`);
+            let finalLvlId = 'final-level-device';
+            if (isFurniture) finalLvlId = 'final-level-furniture';
+            if (isLona) finalLvlId = 'final-level-lona';
+            if (isScreen) finalLvlId = 'final-level-screen';
+            
+            const finalLvl = document.getElementById(finalLvlId);
             if (finalLvl) {
                 const descInp = finalLvl.querySelector('.rep-desc');
                 if (descInp) descInp.value = r.descripcion || '';
@@ -1608,6 +1675,33 @@ window.jumpToCreateReportForStore = function(customReport = null) {
                     }
                 } else {
                     console.error("CRITICAL PRECARGA: No se encontraron dispositivos estructurados para el reporte id=" + (r.id || 'N/A'), sourceReport);
+                }
+            } else if (isLona) {
+                let sourceReport = r;
+                if (r.id && APP_CONFIG.dashboardReports) {
+                    const found = APP_CONFIG.dashboardReports.find(x => x.id === r.id);
+                    if (found) sourceReport = found;
+                }
+                let finalLonas = sourceReport.dispositivos;
+                if (typeof finalLonas === 'string') {
+                    try { finalLonas = JSON.parse(finalLonas); } catch(e) { finalLonas = null; }
+                }
+                if (!finalLonas || !Array.isArray(finalLonas)) {
+                    if (sourceReport.modelo) {
+                        finalLonas = [{
+                            modelo: sourceReport.modelo,
+                            cantidad: parseInt(sourceReport.cantidad) || 1,
+                            codigoDispositivo: sourceReport.codigoDispositivo || ''
+                        }];
+                    }
+                }
+                if (finalLonas && Array.isArray(finalLonas) && finalLonas.length > 0) {
+                    APP_CONFIG.currentSelectedLonas = JSON.parse(JSON.stringify(finalLonas));
+                    if (typeof renderSelectedLonas === 'function') {
+                        renderSelectedLonas();
+                        await sleep(250);
+                        renderSelectedLonas();
+                    }
                 }
             }
 
@@ -1815,7 +1909,7 @@ window.submitResolution = async function() {
 
 window.filterDashboardTable = function() {
     const selCuenta = document.getElementById('dash-filter-cuenta')?.value || 'all';
-    const selTienda = document.getElementById('dash-filter-tienda')?.value || 'all';
+    const selTienda = document.getElementById('dash-filter-tienda')?.value.trim().toLowerCase() || '';
     const selTipo = document.getElementById('dash-filter-tipo')?.value || 'all';
     const selEstado = document.getElementById('dash-filter-estado')?.value || 'all';
     const selUsuario = document.getElementById('dash-filter-usuario')?.value || 'all';
@@ -1827,7 +1921,7 @@ window.filterDashboardTable = function() {
     
     const filtered = reports.filter(r => {
         const matchCuenta = selCuenta === 'all' || String(r.cuenta || '').trim() === selCuenta;
-        const matchTienda = selTienda === 'all' || String(r.tienda || '').trim() === selTienda;
+        const matchTienda = selTienda === '' || String(r.tienda || '').trim().toLowerCase().includes(selTienda);
         
         let matchTipo = true;
         if (selTipo !== 'all') {
@@ -1990,6 +2084,7 @@ window.renderHistorialRows = function(items, isLanzamientos) {
             verBtn.onclick = (e) => {
                 e.stopPropagation();
                 modal.style.display = 'none';
+                APP_CONFIG.returnToHistorial = true;
                 window.showReportDetails(r);
             };
             flexWrapper.appendChild(verBtn);
@@ -2064,6 +2159,7 @@ window.renderHistorialRows = function(items, isLanzamientos) {
                     revBtn.onclick = (e) => {
                         e.stopPropagation();
                         modal.style.display = 'none';
+                        APP_CONFIG.returnToHistorial = true;
                         window.showReportDetails(r);
                         setTimeout(() => {
                             const adminRev = document.getElementById('admin-review-btn');
@@ -2097,28 +2193,29 @@ window.applyModalFilters = function() {
     }
 
     const cuentaVal = document.getElementById('modal-filter-cuenta')?.value || 'all';
+    const filterTienda = document.getElementById('modal-filter-tienda');
     
     // Dynamically rebuild modal-filter-tienda based on selected cuenta AND status
-    const filterTienda = document.getElementById('modal-filter-tienda');
     if (filterTienda) {
         const currentTiendaVal = filterTienda.value;
-        let storesForCuenta = statusFilteredItems;
-        if (cuentaVal !== 'all') {
-            storesForCuenta = statusFilteredItems.filter(r => String(r.cuenta || '').trim() === cuentaVal);
-        }
-        const tiendas = [...new Set(storesForCuenta.map(r => String(r.tienda || '').trim()).filter(Boolean))].sort();
-        
-        filterTienda.innerHTML = '<option value="all">Todas las Tiendas</option>';
-        tiendas.forEach(t => filterTienda.innerHTML += `<option value="${t}">${t}</option>`);
-        
-        if (tiendas.includes(currentTiendaVal)) {
-            filterTienda.value = currentTiendaVal;
-        } else {
-            filterTienda.value = 'all';
+        const filterList = document.getElementById('modal-filter-tienda-list');
+        if (filterList) {
+            let storesForCuenta = statusFilteredItems;
+            if (cuentaVal !== 'all') {
+                storesForCuenta = statusFilteredItems.filter(r => String(r.cuenta || '').trim() === cuentaVal);
+            }
+            const tiendas = [...new Set(storesForCuenta.map(r => String(r.tienda || '').trim()).filter(Boolean))].sort();
+            
+            filterList.innerHTML = '';
+            tiendas.forEach(t => filterList.innerHTML += `<option value="${t}"></option>`);
+            
+            if (currentTiendaVal !== '' && !tiendas.includes(currentTiendaVal)) {
+                filterTienda.value = '';
+            }
         }
     }
     
-    const tiendaVal = filterTienda?.value || 'all';
+    const tiendaVal = filterTienda?.value.trim().toLowerCase() || '';
     const tipoVal = document.getElementById('modal-filter-tipo')?.value || 'all';
     const usuarioVal = document.getElementById('modal-filter-usuario')?.value || 'all';
     const estadoVal = document.getElementById('modal-filter-estado')?.value || 'all';
@@ -2139,13 +2236,14 @@ window.applyModalFilters = function() {
         // Filtros desplegables
         if (cuentaVal !== 'all' && String(r.cuenta || '').trim() !== cuentaVal) return false;
         
-        if (tiendaVal !== 'all' && String(r.tienda || '').trim() !== tiendaVal) return false;
+        if (tiendaVal !== '' && !String(r.tienda || '').trim().toLowerCase().includes(tiendaVal)) return false;
         
         if (tipoVal !== 'all') {
             const rCat = String(r.categoria || '').trim().toLowerCase();
             let rTipoFinal = rCat;
             if (String(r.tipo || '').trim().toLowerCase().includes('lanzamiento')) rTipoFinal = 'lanzamiento';
             if (rCat.includes('pantalla')) rTipoFinal = 'pantalla';
+            if (rCat.includes('lona')) rTipoFinal = 'lona';
             if (rTipoFinal !== tipoVal) return false;
         }
         
@@ -2666,7 +2764,8 @@ window.addLonaToList = function() {
         selectedModel = customInput.value.trim();
         selectedCode = 'OTRO';
     } else {
-        selectedModel = dropdown.value;
+        selectedModel = dropdown.options[dropdown.selectedIndex]?.text || dropdown.value;
+        if (dropdown.value === 'otro') selectedModel = customInput.value.trim();
         selectedCode = dropdown.options[dropdown.selectedIndex]?.dataset.code || 'N/A';
     }
     
@@ -3114,7 +3213,28 @@ function populateLonaDropdown() {
             }
         }
     });
+    
+    // Añadir opción "Otro" al final
+    const optOtro = document.createElement('option');
+    optOtro.value = 'otro';
+    optOtro.textContent = 'Otro (Escribir manualmente)';
+    optOtro.dataset.code = 'OTRO';
+    dropdown.appendChild(optOtro);
 }
+
+window.handleLonaDropdownChange = function(sel) {
+    const customInput = document.getElementById('lona-selector-custom');
+    if (!customInput) return;
+    if (sel.value === 'otro') {
+        customInput.classList.remove('hidden');
+        customInput.style.display = 'inline-block';
+        customInput.focus();
+    } else {
+        customInput.classList.add('hidden');
+        customInput.style.display = 'none';
+        customInput.value = '';
+    }
+};
 
 async function handleIncidentPhotos(input, type) {
     const container = document.getElementById(`incident-thumbnails-${type}`);
@@ -3248,7 +3368,7 @@ async function submitFinalReport(event, type) {
     let reportCategory = 'Dispositivo';
     if (isFurniture) reportCategory = 'Mobiliario';
     if (isScreen) reportCategory = 'Pantalla Digital';
-    if (isLona) reportCategory = 'Lona';
+    if (isLona) reportCategory = 'Lonas';
 
     // Validate Alarmado inputs if furniture
     if (isFurniture) {
@@ -4783,9 +4903,9 @@ function mockApi(data) {
 
 
 window.filterToAllReports = function() { renderDashboardTable(APP_CONFIG.dashboardReports || []); const table = document.getElementById('recent-reports-table'); if (table) table.scrollIntoView({ behavior: 'smooth', block: 'center' }); };
-window.filterToIncidents = function() { const list = (APP_CONFIG.dashboardReports || []).filter(r => { const val = String(r.tipo || '').toUpperCase(); return val.includes('DISPOSITIVO') || val.includes('MOBILIARIO') || val.includes('INCIDENCIA') || val.includes('INCIDENTE'); }); renderDashboardTable(list); const table = document.getElementById('recent-reports-table'); if (table) table.scrollIntoView({ behavior: 'smooth', block: 'center' }); };
+window.filterToIncidents = function() { const list = (APP_CONFIG.dashboardReports || []).filter(r => { const val = String(r.tipo || '').toUpperCase(); return val.includes('DISPOSITIVO') || val.includes('MOBILIARIO') || val.includes('INCIDENCIA') || val.includes('INCIDENTE') || val.includes('LONA') || val.includes('PANTALLA'); }); renderDashboardTable(list); const table = document.getElementById('recent-reports-table'); if (table) table.scrollIntoView({ behavior: 'smooth', block: 'center' }); };
 
-window.openDashboardModal = function(status) { 
+window.openDashboardModal = function(status, category = null) { 
     const modal = document.getElementById('historial-modal'); 
     if (!modal) return; 
     const title = document.getElementById('historial-modal-title'); 
@@ -4815,6 +4935,7 @@ window.openDashboardModal = function(status) {
     const filterTienda = document.getElementById('modal-filter-tienda');
     const filterUsuario = document.getElementById('modal-filter-usuario');
     const filterEstado = document.getElementById('modal-filter-estado');
+    const filterTipo = document.getElementById('modal-filter-tipo');
     
     if (filtersEl) filtersEl.style.display = 'flex';
 
@@ -4829,10 +4950,13 @@ window.openDashboardModal = function(status) {
     }
     
     if (filterTienda) {
+        const datalist = document.getElementById('modal-filter-tienda-list');
         const tiendas = [...new Set(statusFilteredList.map(r => String(r.tienda || '').trim()).filter(Boolean))].sort();
-        filterTienda.innerHTML = '<option value="all">Todas las Tiendas</option>';
-        tiendas.forEach(t => filterTienda.innerHTML += `<option value="${t}">${t}</option>`);
-        filterTienda.value = 'all';
+        if (datalist) {
+            datalist.innerHTML = '';
+            tiendas.forEach(t => datalist.innerHTML += `<option value="${t}">`);
+        }
+        filterTienda.value = '';
     }
     
     if (isAdmin && filterUsuario) {
@@ -4844,8 +4968,19 @@ window.openDashboardModal = function(status) {
     
     if (filterEstado) filterEstado.value = 'all';
 
+    if (filterTipo) {
+        if (category) {
+            filterTipo.value = category;
+        } else {
+            filterTipo.value = 'all';
+        }
+    }
+
     if (title) {
-        const displayStatus = isTodos ? 'TODOS' : APP_CONFIG.currentModalStatus.toUpperCase();
+        let displayStatus = isTodos ? 'TODOS' : APP_CONFIG.currentModalStatus.toUpperCase();
+        if (category) {
+            displayStatus += ` - ${String(category).toUpperCase()}`;
+        }
         title.textContent = 'Historial de Incidencias: ' + displayStatus; 
     }
     
