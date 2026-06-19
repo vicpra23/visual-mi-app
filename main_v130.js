@@ -1276,6 +1276,12 @@ window.showReportDetails = function(report) {
             ${photosHtml}
         </div>
         
+        <div style="border-top: 1px solid var(--mi-border); padding-top: 1rem; margin-top: 1rem; display: flex; justify-content: flex-end;">
+            <button class="btn-primary" style="background:#4a90e2; width:auto; padding:8px 16px; border-radius:6px; color:white; border:none; font-size:12px; font-weight:600; cursor:pointer;" onclick="window.downloadReportPDF('${report.id}')">
+                <i class="fas fa-file-pdf"></i> Descargar PDF
+            </button>
+        </div>
+        
         ${adminActionsHtml}
     `;
     
@@ -1297,6 +1303,218 @@ window.closeReportModal = function() {
             hModal.style.display = 'flex';
             hModal.classList.remove('hidden');
         }
+    }
+};
+
+window.downloadReportPDF = function(reportId) {
+    const element = document.getElementById('report-modal').querySelector('.modal-content');
+    if (!element) return;
+    
+    // Ocultar botones e iconos interactivos para que no salgan en el PDF
+    const closeBtn = element.querySelector('.close-modal');
+    const dragHandle = element.querySelector('.bottom-sheet-drag-handle');
+    const actionBtns = element.querySelectorAll('button');
+    
+    if (closeBtn) closeBtn.style.display = 'none';
+    if (dragHandle) dragHandle.style.display = 'none';
+    actionBtns.forEach(btn => btn.style.display = 'none');
+    
+    // Opciones de html2pdf
+    const opt = {
+      margin:       15,
+      filename:     'Reporte_' + (reportId || 'Incidencia') + '.pdf',
+      image:        { type: 'jpeg', quality: 0.98 },
+      html2canvas:  { scale: 2, useCORS: true, logging: false },
+      jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' }
+    };
+
+    html2pdf().set(opt).from(element).save().then(() => {
+        // Restaurar UI original
+        if (closeBtn) closeBtn.style.display = '';
+        if (dragHandle) dragHandle.style.display = '';
+        actionBtns.forEach(btn => btn.style.display = '');
+    }).catch(err => {
+        console.error('Error generando PDF:', err);
+        if (closeBtn) closeBtn.style.display = '';
+        if (dragHandle) dragHandle.style.display = '';
+        actionBtns.forEach(btn => btn.style.display = '');
+        alert('Hubo un error al generar el PDF.');
+    });
+};
+
+window.downloadBulkExcel = async function() {
+    const userRole = String(APP_CONFIG.currentUser?.rol || '').trim().toUpperCase();
+    const isAdmin = userRole === 'ADMIN' || userRole === 'ADMINISTRADOR';
+    if (!isAdmin) {
+        alert("No tienes permisos para exportar reportes a Excel.");
+        return;
+    }
+
+    const list = APP_CONFIG.lastFilteredHistorialItems || APP_CONFIG.currentHistorialItems || [];
+    if (list.length === 0) {
+        alert("No hay reportes para exportar.");
+        return;
+    }
+    
+    // Validar que la librería se ha cargado
+    if (typeof ExcelJS === 'undefined') {
+        alert("La librería de Excel aún se está cargando. Por favor, inténtalo de nuevo en unos segundos.");
+        return;
+    }
+    
+    let maxPhotos = 0;
+    list.forEach(r => {
+        const rawFotos = r.fotos || r.photos || '';
+        const urls = rawFotos ? rawFotos.split(/[\n,]+/).map(u => u.trim()).filter(Boolean) : [];
+        if (urls.length > maxPhotos) maxPhotos = urls.length;
+    });
+    
+    const workbook = new ExcelJS.Workbook();
+    const worksheet = workbook.addWorksheet('Reportes');
+    
+    const columns = [
+        { header: 'ID Reporte', key: 'id', width: 15 },
+        { header: 'Fecha', key: 'fecha', width: 20 },
+        { header: 'Usuario', key: 'usuario', width: 25 },
+        { header: 'Cuenta', key: 'cuenta', width: 20 },
+        { header: 'Tienda', key: 'tienda', width: 25 },
+        { header: 'Categoría', key: 'categoria', width: 15 },
+        { header: 'Tipo / Tipología / Modelo', key: 'tipo', width: 25 },
+        { header: 'Código Dispositivo', key: 'codigo', width: 20 },
+        { header: 'Motivo', key: 'motivo', width: 25 },
+        { header: 'Descripción', key: 'descripcion', width: 50 },
+        { header: 'Estado', key: 'estado', width: 15 },
+        { header: 'Tiempo (días)', key: 'tiempo', width: 15 }
+    ];
+    
+    for (let i = 1; i <= maxPhotos; i++) {
+        columns.push({ header: `Foto ${i}`, key: `foto${i}`, width: 15 });
+    }
+    
+    worksheet.columns = columns;
+    
+    // Style headers
+    worksheet.getRow(1).font = { bold: true };
+    worksheet.getRow(1).fill = {
+        type: 'pattern',
+        pattern: 'solid',
+        fgColor: { argb: 'FFF3F3F3' }
+    };
+    
+    list.forEach(r => {
+        const est = String(r.estado || '').trim().toLowerCase();
+        let displayTiempo = '';
+        let rawTiempo = r.tiempo;
+        if (rawTiempo !== undefined && rawTiempo !== null && rawTiempo !== '') {
+            displayTiempo = String(rawTiempo).trim();
+        }
+        const isResolvedTiempo = est === 'solucionado' || est.includes('cerrad') || est.includes('realizad');
+        
+        if (displayTiempo !== '') {
+            if (displayTiempo === '0' && !isResolvedTiempo) {
+                displayTiempo = ''; 
+            } else {
+                if (!isNaN(displayTiempo)) {
+                    if (parseInt(displayTiempo) < 0) {
+                        displayTiempo = '0 días';
+                    } else {
+                        displayTiempo += ' días';
+                    }
+                }
+            }
+        }
+        
+        if (displayTiempo === '') {
+            const fechaStr = String(r.fecha || '');
+            const reportDate = new Date(fechaStr.replace(/-/g, '/')); 
+            if (!isNaN(reportDate.getTime())) {
+                const diffTime = Math.abs(new Date().getTime() - reportDate.getTime());
+                const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+                
+                if (isResolvedTiempo) {
+                    if (r.fechaCierre) {
+                        const closeDate = new Date(String(r.fechaCierre).replace(/-/g, '/'));
+                        if (!isNaN(closeDate.getTime())) {
+                            const diffT = Math.abs(closeDate.getTime() - reportDate.getTime());
+                            displayTiempo = `${Math.floor(diffT / (1000 * 60 * 60 * 24))} días`;
+                        } else {
+                            displayTiempo = '0 días';
+                        }
+                    } else {
+                        displayTiempo = '0 días'; 
+                    }
+                } else {
+                    displayTiempo = `${diffDays} días`; 
+                }
+            } else {
+                displayTiempo = '0 días';
+            }
+        }
+
+        const rowData = {
+            id: r.id || r.ref,
+            fecha: r.fecha,
+            usuario: r.usuario,
+            cuenta: r.cuenta,
+            tienda: r.tienda,
+            categoria: r.categoria,
+            tipo: r.tipo || r.tipologia || r.modelo,
+            codigo: r.codigoDispositivo || r.codigo || r.codigo_dispositivo || '',
+            motivo: r.motivo,
+            descripcion: r.descripcion,
+            estado: r.estado,
+            tiempo: displayTiempo
+        };
+        
+        const row = worksheet.addRow(rowData);
+        
+        const stateCell = row.getCell('estado');
+        stateCell.font = { bold: true };
+        if (est.includes('abiert')) {
+            stateCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFFEAEA' } };
+            stateCell.font = { color: { argb: 'FFD93025' }, bold: true };
+        } else if (est.includes('pendiente')) {
+            stateCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFFF4E5' } };
+            stateCell.font = { color: { argb: 'FFE37400' }, bold: true };
+        } else if (est.includes('solucionado')) {
+            stateCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFE8F0FE' } };
+            stateCell.font = { color: { argb: 'FF1A73E8' }, bold: true };
+        } else if (est.includes('cerrad')) {
+            stateCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFE6F4EA' } };
+            stateCell.font = { color: { argb: 'FF1E8E3E' }, bold: true };
+        }
+        
+        const rawFotos = r.fotos || r.photos || '';
+        const urls = rawFotos ? rawFotos.split(/[\n,]+/).map(u => u.trim()).filter(Boolean) : [];
+        
+        urls.forEach((url, i) => {
+            const cell = row.getCell(`foto${i + 1}`);
+            cell.value = {
+                text: 'Ver Foto ' + (i + 1),
+                hyperlink: url,
+                tooltip: 'Abrir foto en Drive'
+            };
+            cell.font = { color: { argb: 'FF1A73E8' }, underline: true };
+        });
+        
+        row.alignment = { vertical: 'middle', wrapText: true };
+    });
+    
+    try {
+        const buffer = await workbook.xlsx.writeBuffer();
+        const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+        const url = URL.createObjectURL(blob);
+        
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'Reportes_Filtrados_' + new Date().toISOString().slice(0,10) + '.xlsx';
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+    } catch (err) {
+        console.error('Error generando Excel:', err);
+        alert('Hubo un error al generar el archivo Excel.');
     }
 };
 
@@ -2265,6 +2483,7 @@ window.applyModalFilters = function() {
     });
     
     if (typeof renderHistorialRows === 'function') {
+        APP_CONFIG.lastFilteredHistorialItems = filtered;
         window.renderHistorialRows(filtered, isLanzamientos);
     }
 };
@@ -2284,6 +2503,13 @@ window.showHistorialModal = function(title, items, isLanzamientos) {
     // Save current items for local filtering
     APP_CONFIG.currentHistorialItems = items;
     APP_CONFIG.currentHistorialIsLanzamientos = isLanzamientos;
+    
+    const userRole = String(APP_CONFIG.currentUser?.rol || '').trim().toUpperCase();
+    const isAdmin = userRole === 'ADMIN' || userRole === 'ADMINISTRADOR';
+    const excelBtn = document.getElementById('export-excel-btn');
+    if (excelBtn) {
+        excelBtn.style.display = isAdmin ? 'flex' : 'none';
+    }
     
     window.renderHistorialRows(items, isLanzamientos);
     
@@ -4930,6 +5156,11 @@ window.openDashboardModal = function(status, category = null) {
 
     const userRole = String(APP_CONFIG.currentUser?.rol || '').trim().toUpperCase();
     const isAdmin = userRole === 'ADMIN' || userRole === 'ADMINISTRADOR';
+    
+    const excelBtn = document.getElementById('export-excel-btn');
+    if (excelBtn) {
+        excelBtn.style.display = isAdmin ? 'flex' : 'none';
+    }
     
     const filterCuenta = document.getElementById('modal-filter-cuenta');
     const filterTienda = document.getElementById('modal-filter-tienda');

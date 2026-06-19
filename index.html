@@ -38,6 +38,8 @@
     };
     </script>
     <link rel="manifest" href="./manifest.json">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.3.0/exceljs.min.js"></script>
 </head>
 <body>
     <div id="login-container" class="view">
@@ -1086,6 +1088,9 @@
                     <option value="solucionado">Solucionado</option>
                     <option value="cerrada">Cerrado</option>
                 </select>
+                <button id="export-excel-btn" onclick="window.downloadBulkExcel()" title="Descargar Excel" style="display: none; height: 36px; padding: 0 15px; background: #217346; color: white; border: none; border-radius: 6px; font-size: 13px; font-weight: 600; cursor: pointer; align-items: center; gap: 6px; transition: all 0.2s;" onmouseover="this.style.opacity='0.85'" onmouseout="this.style.opacity='1'">
+                    <i class="fas fa-file-excel"></i> Excel
+                </button>
             </div>
             
             <div style="overflow-x: auto; margin-top: 1rem;">
@@ -1357,6 +1362,6 @@
 
     <!-- Archivos principales de la aplicación -->
     <link rel="stylesheet" href="style.css?v=5">
-    <script src="main_v130.js?v=118" defer></script>
+    <script src="main_v130.js?v=126" defer></script>
 </body>
 </html>
