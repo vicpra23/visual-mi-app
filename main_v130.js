@@ -813,19 +813,6 @@ async function loadDashboard() {
         }
         
         
-        // FIX: Si el backend (GAS) fuerza categoria="Dispositivo" o hay desajustes de acentos
-        // Buscamos en TODOS los valores del objeto para detectar si es una lona o pantalla
-        userReports.forEach(r => {
-            const allValuesStr = Object.values(r).map(v => String(v || '').toLowerCase()).join(' ');
-            if (allValuesStr.includes('lona') || allValuesStr.includes('lightbox') || allValuesStr.includes('top table')) {
-                r.categoria = 'Lonas';
-                r.tipo = 'Lona';
-            } else if (allValuesStr.includes('pantalla') || allValuesStr.includes('digital')) {
-                r.categoria = 'Pantalla Digital';
-                r.tipo = 'Pantalla';
-            }
-        });
-
         APP_CONFIG.dashboardReports = userReports;
         
         // Ejecutar actualización visual final con la data fresca
@@ -3074,7 +3061,7 @@ window.addAlarmadoToList = function() {
     });
     
     dropdown.value = '';
-    qtyInput.value = '1';
+    qtyInput.value = 1;
     
     renderSelectedAlarmados();
 };
