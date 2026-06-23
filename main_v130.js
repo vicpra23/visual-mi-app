@@ -1830,10 +1830,21 @@ window.jumpToCreateReportForStore = function(customReport = null) {
             const finalLvl = document.getElementById(finalLvlId);
             if (finalLvl) {
                 const descInp = finalLvl.querySelector('.rep-desc');
-                if (descInp) descInp.value = r.descripcion || '';
+                if (descInp) descInp.value = r.descripcion || r.observaciones || '';
                 
                 const envSel = finalLvl.querySelector('.rep-enviar');
                 if (envSel && r.enviar) envSel.value = r.enviar;
+                
+                // PRECARGAR FOTOS ANTERIORES SI EXISTEN
+                if (r.foto && typeof r.foto === 'string') {
+                    const urls = r.foto.split(',').map(u => u.trim()).filter(u => u && u.startsWith('http'));
+                    if (urls.length > 0) {
+                        APP_CONFIG.incidentUploadedPhotos = urls;
+                        if (typeof window.renderIncidentPhotosUI === 'function') {
+                            window.renderIncidentPhotosUI(isFurniture ? 'furniture' : (isDevice ? 'device' : (isLona ? 'lona' : 'pantalla')));
+                        }
+                    }
+                }
                 
                 // Hacer scroll al final para revisión
                 finalLvl.scrollIntoView({ behavior: 'smooth', block: 'center' });
@@ -1920,7 +1931,7 @@ window.jumpToCreateReportForStore = function(customReport = null) {
                 
                 if (urls.length > 0) {
                     APP_CONFIG.incidentUploadedPhotos = [...urls];
-                    const thumbContainer = document.getElementById(`incident-thumbnails-${isFurniture ? 'furniture' : 'device'}`);
+                    const thumbContainer = document.getElementById(`incident-thumbnails-${isFurniture ? 'furniture' : (isDevice ? 'device' : (isLona ? 'lona' : 'pantalla'))}`);
                     
                     if (thumbContainer) {
                         thumbContainer.innerHTML = ''; // Limpiar previos visualmente
@@ -3165,6 +3176,11 @@ window.chooseMainCategory = function(category, btn) {
         if (el) el.classList.remove('hidden');
         resetLevels('device');
     }
+    
+    // NUEVO: Repintar fotos preservadas si existían
+    if (typeof window.renderIncidentPhotosUI === 'function' && APP_CONFIG.incidentUploadedPhotos.length > 0) {
+        window.renderIncidentPhotosUI(category === 'screen' ? 'pantalla' : category);
+    }
 };
 
 function resetLevels(type) {
@@ -3447,6 +3463,37 @@ window.handleLonaDropdownChange = function(sel) {
         customInput.style.display = 'none';
         customInput.value = '';
     }
+};
+
+window.renderIncidentPhotosUI = function(type) {
+    const container = document.getElementById(`incident-thumbnails-${type}`);
+    if (!container) return;
+    
+    container.innerHTML = ''; // Limpiar y repintar
+    
+    APP_CONFIG.incidentUploadedPhotos.forEach(url => {
+        const wrapper = document.createElement('div');
+        wrapper.className = 'local-thumb-wrapper uploaded';
+        wrapper.dataset.url = url;
+        wrapper.style.cssText = 'position: relative; width: 60px; height: 60px; border-radius: 6px; overflow: hidden; border: 2px solid #2ecc71; box-shadow: 0 2px 5px rgba(0,0,0,0.1); flex-shrink: 0;';
+        
+        wrapper.innerHTML = `
+            <img src="${url}" style="width: 100%; height: 100%; object-fit: cover;">
+            <div style="position: absolute; top: 2px; right: 2px; background: rgba(46, 204, 113, 0.9); color: #fff; width: 18px; height: 18px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 10px;">
+                <i class="fa fa-check"></i>
+            </div>
+            <button type="button" class="delete-thumb-btn" style="position: absolute; bottom: 0; left: 0; width: 100%; background: rgba(231, 76, 60, 0.85); color: #fff; border: none; font-size: 10px; padding: 2px 0; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 4px;">
+                <i class="fa fa-trash"></i> Borrar
+            </button>
+        `;
+        
+        wrapper.querySelector('.delete-thumb-btn').onclick = () => {
+            APP_CONFIG.incidentUploadedPhotos = APP_CONFIG.incidentUploadedPhotos.filter(u => u !== url);
+            wrapper.remove();
+        };
+        
+        container.appendChild(wrapper);
+    });
 };
 
 async function handleIncidentPhotos(input, type) {
@@ -3905,6 +3952,14 @@ function resetProcedure(preserveStoreContext = false) {
     // Guardamos el centro antes de limpiar si así lo solicitan (para cambios de categoría sin perder la tienda)
     const storedCentro = APP_CONFIG.currentReport?.centro || '';
     
+    // NUEVO: Guardar la descripción de la incidencia y fotos si se preserva el contexto
+    let storedDescription = '';
+    if (preserveStoreContext) {
+        document.querySelectorAll('.rep-desc').forEach(el => {
+            if (el.value && el.value.trim() !== '') storedDescription = el.value.trim();
+        });
+    }
+    
     APP_CONFIG.currentReport = { 
         category: '', 
         centro: preserveStoreContext ? storedCentro : '', 
@@ -3912,7 +3967,7 @@ function resetProcedure(preserveStoreContext = false) {
     };
 
     // Reset notes/inputs
-    document.querySelectorAll('.rep-desc').forEach(el => el.value = '');
+    document.querySelectorAll('.rep-desc').forEach(el => el.value = preserveStoreContext ? storedDescription : '');
     
     const submitBtn = document.getElementById('dash-submit-btn');
     if (submitBtn) {
@@ -3920,13 +3975,17 @@ function resetProcedure(preserveStoreContext = false) {
         submitBtn.textContent = 'Confirmar y Enviar Reporte';
     }
     
-    APP_CONFIG.incidentUploadedPhotos = [];
+    if (!preserveStoreContext) {
+        APP_CONFIG.incidentUploadedPhotos = [];
+    }
     APP_CONFIG.currentSelectedDevices = []; // Reset de buffer temporal
     APP_CONFIG.currentSelectedLonas = [];
     APP_CONFIG.currentSelectedAlarmados = [];
     
     // Limpiar miniaturas
-    document.querySelectorAll('.thumbnail-container').forEach(c => c.innerHTML = '');
+    if (!preserveStoreContext) {
+        document.querySelectorAll('.thumbnail-container').forEach(c => c.innerHTML = '');
+    }
 
     // NUEVO: Limpiar automáticamente el modo edición si estaba activo
     if (!preserveStoreContext) {
